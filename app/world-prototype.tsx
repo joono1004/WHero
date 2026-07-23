@@ -4,11 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 
-const MAP_WIDTH = 28;
-const MAP_DEPTH = 22;
+const MAP_WIDTH = 48;
+const MAP_DEPTH = 38;
 const HEX_SIZE = 0.92;
-const HEX_COLS = 14;
-const HEX_ROWS = 12;
+const HEX_WIDTH = Math.sqrt(3) * HEX_SIZE;
+const HEX_COLS = Math.ceil(MAP_WIDTH / HEX_WIDTH) + 1;
+const HEX_ROWS = Math.ceil(MAP_DEPTH / (1.5 * HEX_SIZE)) + 1;
 
 function hash(seed: number, x: number, y: number) {
   let value = seed ^ Math.imul(x + 31, 374761393) ^ Math.imul(y + 17, 668265263);
@@ -25,8 +26,8 @@ function terrainNoise(seed: number, x: number, z: number) {
 }
 
 function landValue(seed: number, x: number, z: number) {
-  const xRadius = 10.4 + hash(seed + 71, 1, 1) * 2.3;
-  const zRadius = 7.8 + hash(seed + 72, 1, 2) * 2;
+  const xRadius = MAP_WIDTH * (0.37 + hash(seed + 71, 1, 1) * 0.07);
+  const zRadius = MAP_DEPTH * (0.34 + hash(seed + 72, 1, 2) * 0.08);
   const offsetX = (hash(seed + 73, 1, 3) - 0.5) * 2.4;
   const offsetZ = (hash(seed + 74, 1, 4) - 0.5) * 1.8;
   const radial = Math.hypot((x - offsetX) / xRadius, (z - offsetZ) / zRadius);
@@ -46,6 +47,8 @@ function distanceToRiver(x: number, z: number, samples: THREE.Vector3[]) {
 }
 
 function buildRiver(seed: number) {
+  const scaleX = MAP_WIDTH / 28;
+  const scaleZ = MAP_DEPTH / 22;
   const bend = (index: number, strength = 1) => (hash(seed + 2000, index, 7) - 0.5) * strength;
   const drift = (hash(seed + 2010, 1, 1) - 0.5) * 5;
   const controlPoints = [
@@ -57,7 +60,7 @@ function buildRiver(seed: number) {
     new THREE.Vector3(4.4 + drift * 0.35 + bend(5, 2.7), 0, -4.6),
     new THREE.Vector3(5.7 + drift * 0.2 + bend(6, 2), 0, -7.6),
     new THREE.Vector3(6.3 + drift * 0.12, 0, -10.6),
-  ];
+  ].map((point) => new THREE.Vector3(point.x * scaleX, point.y, point.z * scaleZ));
   const curve = new THREE.CatmullRomCurve3(controlPoints, false, "centripetal", 0.42);
   return { curve, samples: curve.getPoints(150) };
 }
@@ -136,7 +139,7 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
     host.appendChild(renderer.domElement);
 
     const aspect = host.clientWidth / host.clientHeight;
-    const viewHeight = 20;
+    const viewHeight = 34;
     const camera = new THREE.OrthographicCamera(
       (-viewHeight * aspect) / 2,
       (viewHeight * aspect) / 2,
@@ -151,14 +154,17 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
     camera.updateProjectionMatrix();
 
     const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableRotate = false;
+    controls.enableRotate = true;
     controls.enableDamping = true;
     controls.dampingFactor = 0.08;
     controls.screenSpacePanning = true;
     controls.minZoom = 0.62;
     controls.maxZoom = 2.8;
     controls.mouseButtons.LEFT = THREE.MOUSE.PAN;
-    controls.mouseButtons.RIGHT = THREE.MOUSE.PAN;
+    controls.mouseButtons.MIDDLE = THREE.MOUSE.PAN;
+    controls.mouseButtons.RIGHT = THREE.MOUSE.ROTATE;
+    controls.minPolarAngle = Math.PI * 0.22;
+    controls.maxPolarAngle = Math.PI * 0.47;
 
     scene.add(new THREE.HemisphereLight("#fff6d7", "#465649", 2.3));
     const sun = new THREE.DirectionalLight("#fff0c1", 3.4);
@@ -174,7 +180,7 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
 
     const textureLoader = new THREE.TextureLoader();
     const { curve, samples } = buildRiver(seed);
-    const terrainGeometry = new THREE.PlaneGeometry(MAP_WIDTH, MAP_DEPTH, 84, 66);
+    const terrainGeometry = new THREE.PlaneGeometry(MAP_WIDTH, MAP_DEPTH, 144, 114);
     terrainGeometry.rotateX(-Math.PI / 2);
     const position = terrainGeometry.attributes.position;
     const colorValues: number[] = [];
@@ -218,7 +224,7 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
     seaTexture.needsUpdate = true;
     seaTexture.repeat.set(5, 4);
     const sea = new THREE.Mesh(
-      new THREE.PlaneGeometry(MAP_WIDTH + 10, MAP_DEPTH + 10),
+      new THREE.PlaneGeometry(MAP_WIDTH + 14, MAP_DEPTH + 14),
       new THREE.MeshPhysicalMaterial({
         color: "#4f91a6",
         map: seaTexture,
@@ -315,13 +321,17 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
       scene.add(rock);
     }
 
+    const hexCenter = (row: number, column: number) => {
+      const x = -MAP_WIDTH / 2 + HEX_WIDTH / 2 + column * HEX_WIDTH + (row % 2) * (HEX_WIDTH / 2);
+      const z = -MAP_DEPTH / 2 + HEX_SIZE + row * 1.5 * HEX_SIZE;
+      return { x, z };
+    };
     const gridPositions: number[] = [];
-    const gridOffsetX = -((HEX_COLS - 1) * Math.sqrt(3) * HEX_SIZE) / 2;
-    const gridOffsetZ = -((HEX_ROWS - 1) * 1.5 * HEX_SIZE) / 2;
     for (let r = 0; r < HEX_ROWS; r += 1) {
       for (let q = 0; q < HEX_COLS; q += 1) {
-        const cx = gridOffsetX + Math.sqrt(3) * HEX_SIZE * (q + r / 2);
-        const cz = gridOffsetZ + 1.5 * HEX_SIZE * r;
+        const { x: cx, z: cz } = hexCenter(r, q);
+        if (cx < -MAP_WIDTH / 2 - HEX_WIDTH || cx > MAP_WIDTH / 2 + HEX_WIDTH) continue;
+        if (cz < -MAP_DEPTH / 2 - HEX_SIZE || cz > MAP_DEPTH / 2 + HEX_SIZE) continue;
         for (let edge = 0; edge < 6; edge += 1) {
           const a = (Math.PI / 180) * (60 * edge - 30);
           const b = (Math.PI / 180) * (60 * (edge + 1) - 30);
@@ -330,8 +340,8 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
           const bx = cx + Math.cos(b) * HEX_SIZE;
           const bz = cz + Math.sin(b) * HEX_SIZE;
           gridPositions.push(
-            ax, heightAt(seed, ax, az, samples) + 0.045, az,
-            bx, heightAt(seed, bx, bz, samples) + 0.045, bz,
+            ax, Math.max(heightAt(seed, ax, az, samples) + 0.045, -0.285), az,
+            bx, Math.max(heightAt(seed, bx, bz, samples) + 0.045, -0.285), bz,
           );
         }
       }
@@ -344,6 +354,56 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
     );
     grid.visible = showGrid;
     scene.add(grid);
+
+    const selectionGeometry = new THREE.BufferGeometry();
+    const selection = new THREE.LineLoop(
+      selectionGeometry,
+      new THREE.LineBasicMaterial({ color: "#fff27a", transparent: true, opacity: 0.98 }),
+    );
+    selection.visible = false;
+    selection.renderOrder = 10000;
+    scene.add(selection);
+
+    const raycaster = new THREE.Raycaster();
+    const pointer = new THREE.Vector2();
+    let pointerDown = new THREE.Vector2();
+    const handlePointerDown = (event: PointerEvent) => {
+      pointerDown = new THREE.Vector2(event.clientX, event.clientY);
+    };
+    const handlePointerUp = (event: PointerEvent) => {
+      if (event.button !== 0 || pointerDown.distanceTo(new THREE.Vector2(event.clientX, event.clientY)) > 5) return;
+      const bounds = renderer.domElement.getBoundingClientRect();
+      pointer.set(
+        ((event.clientX - bounds.left) / bounds.width) * 2 - 1,
+        -((event.clientY - bounds.top) / bounds.height) * 2 + 1,
+      );
+      raycaster.setFromCamera(pointer, camera);
+      const hit = raycaster.intersectObject(terrain, false)[0];
+      if (!hit) return;
+      const row = THREE.MathUtils.clamp(
+        Math.round((hit.point.z + MAP_DEPTH / 2 - HEX_SIZE) / (1.5 * HEX_SIZE)),
+        0,
+        HEX_ROWS - 1,
+      );
+      const rowOffset = (row % 2) * (HEX_WIDTH / 2);
+      const column = THREE.MathUtils.clamp(
+        Math.round((hit.point.x + MAP_WIDTH / 2 - HEX_WIDTH / 2 - rowOffset) / HEX_WIDTH),
+        0,
+        HEX_COLS - 1,
+      );
+      const center = hexCenter(row, column);
+      const selectedPoints: THREE.Vector3[] = [];
+      for (let edge = 0; edge < 6; edge += 1) {
+        const angle = (Math.PI / 180) * (60 * edge - 30);
+        const x = center.x + Math.cos(angle) * HEX_SIZE * 0.96;
+        const z = center.z + Math.sin(angle) * HEX_SIZE * 0.96;
+        selectedPoints.push(new THREE.Vector3(x, Math.max(heightAt(seed, x, z, samples) + 0.095, -0.25), z));
+      }
+      selectionGeometry.setFromPoints(selectedPoints);
+      selection.visible = true;
+    };
+    renderer.domElement.addEventListener("pointerdown", handlePointerDown);
+    renderer.domElement.addEventListener("pointerup", handlePointerUp);
 
     const animate = () => {
       waterTexture.offset.y -= 0.00022;
@@ -367,10 +427,12 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
 
     return () => {
       observer.disconnect();
+      renderer.domElement.removeEventListener("pointerdown", handlePointerDown);
+      renderer.domElement.removeEventListener("pointerup", handlePointerUp);
       renderer.setAnimationLoop(null);
       controls.dispose();
       scene.traverse((object) => {
-        if (object instanceof THREE.Mesh || object instanceof THREE.LineSegments) {
+        if (object instanceof THREE.Mesh || object instanceof THREE.LineSegments || object instanceof THREE.LineLoop) {
           object.geometry.dispose();
           const materials = Array.isArray(object.material) ? object.material : [object.material];
           materials.forEach((material) => material.dispose());
