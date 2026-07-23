@@ -165,30 +165,6 @@ export function WorldPrototype() {
         ctx.stroke();
       }
 
-      if (cell.terrain === "forest") {
-        if (forestSprite) {
-          const scale = 1.65 + hash(seed + 770, cell.q, cell.r) * 0.28;
-          const spriteWidth = size * scale;
-          const spriteHeight = spriteWidth * (forestSprite.height / forestSprite.width);
-          ctx.save();
-          ctx.globalAlpha = 0.94;
-          ctx.shadowColor = "rgba(2,12,10,.5)";
-          ctx.shadowBlur = size * 0.18;
-          ctx.shadowOffsetY = size * 0.12;
-          ctx.drawImage(forestSprite, cx - spriteWidth / 2, cy - spriteHeight * 0.65, spriteWidth, spriteHeight);
-          ctx.restore();
-        } else for (let i = 0; i < 7; i += 1) {
-          const px = cx + (hash(seed + i, cell.q, cell.r) - 0.5) * size * 1.18;
-          const py = cy + (hash(seed + 41 + i, cell.r, cell.q) - 0.5) * size * 0.95;
-          const crown = size * (0.1 + hash(seed + 70 + i, cell.q, cell.r) * 0.08);
-          ctx.fillStyle = "rgba(5,20,17,.28)";
-          ctx.beginPath(); ctx.ellipse(px + crown * 0.35, py + crown * 0.45, crown, crown * 0.62, 0, 0, Math.PI * 2); ctx.fill();
-          const canopy = ctx.createRadialGradient(px - crown * 0.25, py - crown * 0.35, 0, px, py, crown);
-          canopy.addColorStop(0, "#78905c"); canopy.addColorStop(0.45, "#3e6849"); canopy.addColorStop(1, "#173c32");
-          ctx.fillStyle = canopy;
-          ctx.beginPath(); ctx.arc(px, py, crown, 0, Math.PI * 2); ctx.fill();
-        }
-      }
       if (cell.terrain === "hill") {
         ctx.fillStyle = "rgba(24,27,20,.22)";
         ctx.beginPath(); ctx.ellipse(cx + size * 0.1, cy + size * 0.15, size * 0.48, size * 0.22, -0.32, 0, Math.PI * 2); ctx.fill();
@@ -196,27 +172,6 @@ export function WorldPrototype() {
         hill.addColorStop(0, "rgba(179,166,112,.78)"); hill.addColorStop(1, "rgba(73,70,50,.55)");
         ctx.fillStyle = hill;
         ctx.beginPath(); ctx.ellipse(cx, cy, size * 0.48, size * 0.24, -0.32, 0, Math.PI * 2); ctx.fill();
-      }
-      if (cell.terrain === "mountain") {
-        if (mountainSprite) {
-          const scale = 1.9 + hash(seed + 880, cell.q, cell.r) * 0.32;
-          const spriteWidth = size * scale;
-          const spriteHeight = spriteWidth * (mountainSprite.height / mountainSprite.width);
-          ctx.save();
-          ctx.globalAlpha = 0.96;
-          ctx.shadowColor = "rgba(4,11,13,.62)";
-          ctx.shadowBlur = size * 0.2;
-          ctx.shadowOffsetY = size * 0.15;
-          ctx.drawImage(mountainSprite, cx - spriteWidth / 2, cy - spriteHeight * 0.76, spriteWidth, spriteHeight);
-          ctx.restore();
-        } else {
-          ctx.fillStyle = "rgba(12,18,19,.35)";
-          ctx.beginPath(); ctx.ellipse(cx + size * 0.12, cy + size * 0.25, size * 0.46, size * 0.15, 0, 0, Math.PI * 2); ctx.fill();
-          const mountain = ctx.createLinearGradient(cx - size * 0.5, cy - size * 0.5, cx + size * 0.5, cy + size * 0.4);
-          mountain.addColorStop(0, "#c4bda9"); mountain.addColorStop(0.47, "#77766d"); mountain.addColorStop(1, "#3b4341");
-          ctx.fillStyle = mountain;
-          ctx.beginPath(); ctx.moveTo(cx, cy - size * 0.68); ctx.lineTo(cx - size * 0.5, cy + size * 0.3); ctx.lineTo(cx + size * 0.52, cy + size * 0.3); ctx.closePath(); ctx.fill();
-        }
       }
     }
 
@@ -274,6 +229,81 @@ export function WorldPrototype() {
         ctx.restore();
       }
     }
+
+    const allDirections = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, -1], [-1, 1]];
+    const terrainGroups = (terrain: Terrain) => {
+      const remaining = new Set(cells.filter((cell) => cell.terrain === terrain).map((cell) => `${cell.q},${cell.r}`));
+      const groups: Cell[][] = [];
+      while (remaining.size > 0) {
+        const first = remaining.values().next().value as string;
+        remaining.delete(first);
+        const queue = [first];
+        const group: Cell[] = [];
+        while (queue.length) {
+          const key = queue.pop()!;
+          const cell = cellByCoordinate.get(key);
+          if (!cell) continue;
+          group.push(cell);
+          for (const [dq, dr] of allDirections) {
+            const next = `${cell.q + dq},${cell.r + dr}`;
+            if (remaining.delete(next)) queue.push(next);
+          }
+        }
+        groups.push(group);
+      }
+      return groups;
+    };
+
+    const drawConnectedTerrain = (groups: Cell[][], sprite: HTMLImageElement | null, kind: "forest" | "mountain") => {
+      if (!sprite) return;
+      const ratio = sprite.height / sprite.width;
+      for (const group of groups) {
+        const points = group.map(centerOf);
+        const minX = Math.min(...points.map((point) => point.x));
+        const maxX = Math.max(...points.map((point) => point.x));
+        const minY = Math.min(...points.map((point) => point.y));
+        const maxY = Math.max(...points.map((point) => point.y));
+        const cx = (minX + maxX) / 2;
+        const cy = (minY + maxY) / 2;
+        const desiredWidth = Math.max(maxX - minX + size * 1.75, (maxY - minY + size * 1.25) / ratio);
+        const widthLimit = size * (kind === "forest" ? 5.7 : 5.1);
+        const spriteWidth = Math.min(desiredWidth, widthLimit);
+        const spriteHeight = spriteWidth * ratio;
+
+        ctx.save();
+        ctx.beginPath();
+        for (const cell of group) {
+          const center = centerOf(cell);
+          for (let i = 0; i < 6; i += 1) {
+            const angle = (Math.PI / 180) * (60 * i - 30);
+            const x = center.x + size * 1.08 * Math.cos(angle);
+            const y = center.y + size * 1.08 * Math.sin(angle);
+            if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+          }
+          ctx.closePath();
+        }
+        ctx.clip("nonzero");
+        ctx.globalAlpha = kind === "forest" ? 0.94 : 0.97;
+        ctx.shadowColor = kind === "forest" ? "rgba(2,12,10,.52)" : "rgba(4,11,13,.64)";
+        ctx.shadowBlur = size * 0.2;
+        ctx.shadowOffsetY = size * 0.14;
+        ctx.drawImage(sprite, cx - spriteWidth / 2, cy - spriteHeight * (kind === "forest" ? 0.62 : 0.72), spriteWidth, spriteHeight);
+        ctx.restore();
+
+        if (group.length >= 6) {
+          const secondaryWidth = spriteWidth * 0.72;
+          const secondaryHeight = secondaryWidth * ratio;
+          const anchor = points[Math.floor(hash(seed + group.length, group[0].q, group[0].r) * points.length)];
+          ctx.save();
+          ctx.globalAlpha = kind === "forest" ? 0.78 : 0.86;
+          ctx.drawImage(sprite, anchor.x - secondaryWidth / 2, anchor.y - secondaryHeight * 0.66, secondaryWidth, secondaryHeight);
+          ctx.restore();
+        }
+      }
+    };
+
+    drawConnectedTerrain(terrainGroups("forest"), forestSprite, "forest");
+    drawConnectedTerrain(terrainGroups("mountain"), mountainSprite, "mountain");
 
     for (const cell of cells) {
       const { x: cx, y: cy } = centerOf(cell);
