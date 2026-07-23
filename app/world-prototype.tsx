@@ -1,13 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import * as THREE from "three";
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 
-type Terrain = "ocean" | "shallows" | "coast" | "plain" | "meadow" | "woodland" | "forest" | "hill" | "foothill" | "mountain";
-type Cell = { q: number; r: number; terrain: Terrain; elevation: number; moisture: number };
-
-const COLS = 20;
-const ROWS = 20;
-const SQRT3 = Math.sqrt(3);
+const MAP_WIDTH = 28;
+const MAP_DEPTH = 22;
+const HEX_SIZE = 0.92;
+const HEX_COLS = 14;
+const HEX_ROWS = 12;
 
 function hash(seed: number, x: number, y: number) {
   let value = seed ^ Math.imul(x + 31, 374761393) ^ Math.imul(y + 17, 668265263);
@@ -15,666 +16,293 @@ function hash(seed: number, x: number, y: number) {
   return ((value ^ (value >>> 16)) >>> 0) / 4294967295;
 }
 
-function smoothNoise(seed: number, x: number, y: number) {
-  let total = 0;
-  let weight = 0;
-  for (let dy = -2; dy <= 2; dy += 1) {
-    for (let dx = -2; dx <= 2; dx += 1) {
-      const w = 1 / (1 + Math.abs(dx) + Math.abs(dy));
-      total += hash(seed, x + dx, y + dy) * w;
-      weight += w;
-    }
-  }
-  return total / weight;
+function terrainNoise(seed: number, x: number, z: number) {
+  return (
+    Math.sin(x * 0.43 + seed * 0.00013) * 0.16 +
+    Math.cos(z * 0.37 - seed * 0.00017) * 0.13 +
+    Math.sin((x + z) * 0.71 + seed * 0.00007) * 0.07
+  );
 }
 
-function generateWorld(seed: number): Cell[] {
-  const raw = Array.from({ length: ROWS }, (_, r) =>
-    Array.from({ length: COLS }, (_, q) => {
-      const nx = q / (COLS - 1) - 0.5;
-      const ny = r / (ROWS - 1) - 0.5;
-      const island = Math.max(0, 1 - Math.pow(Math.hypot(nx * 1.08, ny) * 1.7, 2));
-      const elevation = smoothNoise(seed, q, r) * 0.7 + island * 0.42;
-      const moisture = smoothNoise(seed + 9187, q, r);
-      let terrain: Terrain = elevation < 0.46 ? "ocean" : elevation > 0.79 ? "mountain" : elevation > 0.68 ? "hill" : moisture > 0.59 ? "forest" : "plain";
-      return { q, r, terrain, elevation, moisture };
-    }),
-  );
+function distanceToRiver(x: number, z: number, samples: THREE.Vector3[]) {
+  let nearest = Infinity;
+  for (const point of samples) nearest = Math.min(nearest, Math.hypot(x - point.x, z - point.z));
+  return nearest;
+}
 
-  const neighbors = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, -1], [-1, 1]];
-  const get = (q: number, r: number) => raw[r]?.[q];
-  const adjacent = (cell: Cell) => neighbors.map(([dq, dr]) => get(cell.q + dq, cell.r + dr)).filter(Boolean) as Cell[];
+function buildRiver(seed: number) {
+  const bend = (index: number) => (hash(seed + 2000, index, 7) - 0.5) * 2.2;
+  const controlPoints = [
+    new THREE.Vector3(-8.6, 0, -12.2),
+    new THREE.Vector3(-7.3 + bend(1), 0, -7.8),
+    new THREE.Vector3(-4.6 + bend(2), 0, -4.2),
+    new THREE.Vector3(-0.8 + bend(3), 0, -1.3),
+    new THREE.Vector3(3.7 + bend(4), 0, 1.4),
+    new THREE.Vector3(4.5 + bend(5), 0, 5.7),
+    new THREE.Vector3(7.3 + bend(6), 0, 8.7),
+    new THREE.Vector3(8.5, 0, 12.2),
+  ];
+  const curve = new THREE.CatmullRomCurve3(controlPoints, false, "centripetal", 0.42);
+  return { curve, samples: curve.getPoints(150) };
+}
 
-  const removeSmallGroups = (terrain: Terrain, minimum: number, fallback: Terrain) => {
-    const pending = new Set(raw.flat().filter((cell) => cell.terrain === terrain).map((cell) => `${cell.q},${cell.r}`));
-    while (pending.size) {
-      const first = pending.values().next().value as string;
-      pending.delete(first);
-      const queue = [first];
-      const group: Cell[] = [];
-      while (queue.length) {
-        const [q, r] = queue.pop()!.split(",").map(Number);
-        const cell = get(q, r);
-        if (!cell) continue;
-        group.push(cell);
-        for (const [dq, dr] of neighbors) {
-          const key = `${q + dq},${r + dr}`;
-          if (pending.delete(key)) queue.push(key);
+function createRiverRibbon(curve: THREE.CatmullRomCurve3) {
+  const segments = 150;
+  const positions: number[] = [];
+  const uvs: number[] = [];
+  const indices: number[] = [];
+  for (let i = 0; i <= segments; i += 1) {
+    const t = i / segments;
+    const point = curve.getPoint(t);
+    const tangent = curve.getTangent(t).normalize();
+    const normal = new THREE.Vector3(-tangent.z, 0, tangent.x).normalize();
+    const width = 0.62 + t * 0.25 + Math.sin(t * Math.PI * 7) * 0.035;
+    for (const side of [-1, 1]) {
+      const edge = point.clone().addScaledVector(normal, width * side);
+      positions.push(edge.x, -0.17, edge.z);
+      uvs.push(side < 0 ? 0 : 1, t * 9);
+    }
+    if (i < segments) {
+      const base = i * 2;
+      indices.push(base, base + 2, base + 1, base + 1, base + 2, base + 3);
+    }
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  return geometry;
+}
+
+function heightAt(seed: number, x: number, z: number, riverSamples: THREE.Vector3[]) {
+  const base = terrainNoise(seed, x, z);
+  const ridge = Math.max(0, Math.sin(x * 0.22 - z * 0.12 + seed * 0.0001)) * 0.18;
+  const distance = distanceToRiver(x, z, riverSamples);
+  if (distance < 1.55) {
+    const bank = THREE.MathUtils.smoothstep(distance, 0.62, 1.55);
+    return THREE.MathUtils.lerp(-0.24, base + ridge, bank);
+  }
+  return base + ridge;
+}
+
+function terrainColor(height: number, wetness: number) {
+  const dry = new THREE.Color("#b7b76d");
+  const grass = new THREE.Color("#879d57");
+  const deep = new THREE.Color("#617c4d");
+  const color = dry.clone().lerp(grass, THREE.MathUtils.clamp(wetness, 0, 1));
+  if (height > 0.2) color.lerp(deep, Math.min(0.35, height));
+  return color;
+}
+
+function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
+  const hostRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const host = hostRef.current;
+    if (!host) return;
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color("#b9c8b0");
+    scene.fog = new THREE.Fog("#cbd2bc", 34, 58);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(host.clientWidth, host.clientHeight);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.08;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    host.appendChild(renderer.domElement);
+
+    const aspect = host.clientWidth / host.clientHeight;
+    const viewHeight = 20;
+    const camera = new THREE.OrthographicCamera(
+      (-viewHeight * aspect) / 2,
+      (viewHeight * aspect) / 2,
+      viewHeight / 2,
+      -viewHeight / 2,
+      0.1,
+      100,
+    );
+    camera.position.set(17, 18, 19);
+    camera.lookAt(0, 0, 0);
+    camera.zoom = 0.88;
+    camera.updateProjectionMatrix();
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableRotate = false;
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.08;
+    controls.screenSpacePanning = true;
+    controls.minZoom = 0.62;
+    controls.maxZoom = 2.8;
+    controls.mouseButtons.LEFT = THREE.MOUSE.PAN;
+    controls.mouseButtons.RIGHT = THREE.MOUSE.PAN;
+
+    scene.add(new THREE.HemisphereLight("#fff6d7", "#465649", 2.3));
+    const sun = new THREE.DirectionalLight("#fff0c1", 3.4);
+    sun.position.set(-12, 19, -9);
+    sun.castShadow = true;
+    sun.shadow.mapSize.set(2048, 2048);
+    sun.shadow.camera.left = -19;
+    sun.shadow.camera.right = 19;
+    sun.shadow.camera.top = 17;
+    sun.shadow.camera.bottom = -17;
+    sun.shadow.bias = -0.0005;
+    scene.add(sun);
+
+    const { curve, samples } = buildRiver(seed);
+    const terrainGeometry = new THREE.PlaneGeometry(MAP_WIDTH, MAP_DEPTH, 84, 66);
+    terrainGeometry.rotateX(-Math.PI / 2);
+    const position = terrainGeometry.attributes.position;
+    const colorValues: number[] = [];
+    for (let i = 0; i < position.count; i += 1) {
+      const x = position.getX(i);
+      const z = position.getZ(i);
+      const height = heightAt(seed, x, z, samples);
+      position.setY(i, height);
+      const wetness = 0.45 + terrainNoise(seed + 91, x * 1.7, z * 1.7) * 1.8;
+      const color = terrainColor(height, wetness);
+      colorValues.push(color.r, color.g, color.b);
+    }
+    terrainGeometry.setAttribute("color", new THREE.Float32BufferAttribute(colorValues, 3));
+    terrainGeometry.computeVertexNormals();
+    const terrain = new THREE.Mesh(
+      terrainGeometry,
+      new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.93, metalness: 0 }),
+    );
+    terrain.receiveShadow = true;
+    scene.add(terrain);
+
+    const textureLoader = new THREE.TextureLoader();
+    const waterTexture = textureLoader.load("/assets/terrain/river-water-v1.png");
+    waterTexture.colorSpace = THREE.SRGBColorSpace;
+    waterTexture.wrapS = THREE.RepeatWrapping;
+    waterTexture.wrapT = THREE.RepeatWrapping;
+    waterTexture.repeat.set(1.2, 8);
+    const river = new THREE.Mesh(
+      createRiverRibbon(curve),
+      new THREE.MeshPhysicalMaterial({
+        color: "#4f8ba5",
+        map: waterTexture,
+        roughness: 0.28,
+        metalness: 0.02,
+        transparent: true,
+        opacity: 0.92,
+        clearcoat: 0.35,
+        clearcoatRoughness: 0.22,
+      }),
+    );
+    river.receiveShadow = true;
+    scene.add(river);
+
+    const treeTexture = textureLoader.load("/assets/terrain/conifer-cluster-v1.png");
+    treeTexture.colorSpace = THREE.SRGBColorSpace;
+    const treeMaterial = new THREE.SpriteMaterial({ map: treeTexture, transparent: true, alphaTest: 0.14 });
+    for (let i = 0; i < 64; i += 1) {
+      const x = (hash(seed + 301, i, 1) - 0.5) * (MAP_WIDTH - 2);
+      const z = (hash(seed + 302, i, 2) - 0.5) * (MAP_DEPTH - 2);
+      if (distanceToRiver(x, z, samples) < 1.65 || hash(seed + 303, i, 3) < 0.31) continue;
+      const y = heightAt(seed, x, z, samples);
+      const tree = new THREE.Sprite(treeMaterial.clone());
+      const scale = 1.2 + hash(seed + 304, i, 4) * 0.8;
+      tree.position.set(x, y + scale * 0.54, z);
+      tree.scale.set(scale, scale, 1);
+      scene.add(tree);
+    }
+
+    const mountainMaterial = new THREE.MeshStandardMaterial({ color: "#77766d", roughness: 0.96 });
+    for (let i = 0; i < 14; i += 1) {
+      const x = -10 + hash(seed + 401, i, 1) * 8;
+      const z = 1 + hash(seed + 402, i, 2) * 8;
+      if (distanceToRiver(x, z, samples) < 1.8) continue;
+      const y = heightAt(seed, x, z, samples);
+      const mountain = new THREE.Mesh(new THREE.ConeGeometry(0.7 + hash(seed, i, 8) * 0.45, 1.8 + hash(seed, i, 9), 7), mountainMaterial);
+      mountain.position.set(x, y + 0.82, z);
+      mountain.rotation.y = hash(seed, i, 10) * Math.PI;
+      mountain.castShadow = true;
+      mountain.receiveShadow = true;
+      scene.add(mountain);
+    }
+
+    const gridPositions: number[] = [];
+    const gridOffsetX = -((HEX_COLS - 1) * Math.sqrt(3) * HEX_SIZE) / 2;
+    const gridOffsetZ = -((HEX_ROWS - 1) * 1.5 * HEX_SIZE) / 2;
+    for (let r = 0; r < HEX_ROWS; r += 1) {
+      for (let q = 0; q < HEX_COLS; q += 1) {
+        const cx = gridOffsetX + Math.sqrt(3) * HEX_SIZE * (q + r / 2);
+        const cz = gridOffsetZ + 1.5 * HEX_SIZE * r;
+        for (let edge = 0; edge < 6; edge += 1) {
+          const a = (Math.PI / 180) * (60 * edge - 30);
+          const b = (Math.PI / 180) * (60 * (edge + 1) - 30);
+          const ax = cx + Math.cos(a) * HEX_SIZE;
+          const az = cz + Math.sin(a) * HEX_SIZE;
+          const bx = cx + Math.cos(b) * HEX_SIZE;
+          const bz = cz + Math.sin(b) * HEX_SIZE;
+          gridPositions.push(
+            ax, heightAt(seed, ax, az, samples) + 0.045, az,
+            bx, heightAt(seed, bx, bz, samples) + 0.045, bz,
+          );
         }
       }
-      if (group.length < minimum) group.forEach((cell) => { cell.terrain = fallback; });
     }
-  };
+    const gridGeometry = new THREE.BufferGeometry();
+    gridGeometry.setAttribute("position", new THREE.Float32BufferAttribute(gridPositions, 3));
+    const grid = new THREE.LineSegments(
+      gridGeometry,
+      new THREE.LineBasicMaterial({ color: "#efe7be", transparent: true, opacity: 0.3 }),
+    );
+    grid.visible = showGrid;
+    scene.add(grid);
 
-  removeSmallGroups("mountain", 2, "hill");
-  removeSmallGroups("hill", 2, "plain");
-  for (let pass = 0; pass < 2; pass += 1) {
-    for (const cell of raw.flat()) {
-      if (cell.terrain === "forest" && adjacent(cell).some((other) => other.terrain === "hill" || other.terrain === "mountain")) cell.terrain = "plain";
-    }
-  }
-  removeSmallGroups("forest", 2, "plain");
+    const animate = () => {
+      controls.update();
+      renderer.render(scene, camera);
+    };
+    renderer.setAnimationLoop(animate);
 
-  const beforeTransitions = raw.flat().map((cell) => ({ ...cell }));
-  const original = new Map(beforeTransitions.map((cell) => [`${cell.q},${cell.r}`, cell]));
-  const originalAdjacent = (cell: Cell) => neighbors.map(([dq, dr]) => original.get(`${cell.q + dq},${cell.r + dr}`)).filter(Boolean) as Cell[];
+    const resize = () => {
+      const nextAspect = host.clientWidth / host.clientHeight;
+      camera.left = (-viewHeight * nextAspect) / 2;
+      camera.right = (viewHeight * nextAspect) / 2;
+      camera.top = viewHeight / 2;
+      camera.bottom = -viewHeight / 2;
+      camera.updateProjectionMatrix();
+      renderer.setSize(host.clientWidth, host.clientHeight);
+    };
+    const observer = new ResizeObserver(resize);
+    observer.observe(host);
 
-  for (const cell of raw.flat()) {
-    const source = original.get(`${cell.q},${cell.r}`)!;
-    if (source.terrain === "ocean") continue;
-    const around = originalAdjacent(source);
-    if (around.some((other) => other.terrain === "mountain") && source.terrain !== "mountain") cell.terrain = "foothill";
-  }
-  for (const cell of raw.flat()) {
-    const source = original.get(`${cell.q},${cell.r}`)!;
-    if (cell.terrain !== source.terrain || source.terrain !== "plain") continue;
-    const around = originalAdjacent(source);
-    if (around.some((other) => other.terrain === "forest")) cell.terrain = "woodland";
-    else if (around.some((other) => other.terrain === "hill")) cell.terrain = "meadow";
-  }
+    return () => {
+      observer.disconnect();
+      renderer.setAnimationLoop(null);
+      controls.dispose();
+      scene.traverse((object) => {
+        if (object instanceof THREE.Mesh || object instanceof THREE.LineSegments) {
+          object.geometry.dispose();
+          const materials = Array.isArray(object.material) ? object.material : [object.material];
+          materials.forEach((material) => material.dispose());
+        }
+      });
+      waterTexture.dispose();
+      treeTexture.dispose();
+      renderer.dispose();
+      renderer.domElement.remove();
+    };
+  }, [seed, showGrid]);
 
-  const coastKeys = new Set(
-    raw
-      .flat()
-      .filter(
-        (cell) =>
-          cell.terrain === "ocean" &&
-          adjacent(cell).some((other) => other.terrain !== "ocean"),
-      )
-      .map((cell) => `${cell.q},${cell.r}`),
-  );
-  const shallowKeys = new Set(
-    raw
-      .flat()
-      .filter(
-        (cell) =>
-          cell.terrain === "ocean" &&
-          !coastKeys.has(`${cell.q},${cell.r}`) &&
-          adjacent(cell).some((other) =>
-            coastKeys.has(`${other.q},${other.r}`),
-          ),
-      )
-      .map((cell) => `${cell.q},${cell.r}`),
-  );
-
-  return raw.flat().map((cell) => {
-    if (cell.terrain !== "ocean") return cell;
-    const key = `${cell.q},${cell.r}`;
-    if (coastKeys.has(key)) return { ...cell, terrain: "coast" as const };
-    if (shallowKeys.has(key)) return { ...cell, terrain: "shallows" as const };
-    return cell;
-  });
-}
-
-const colors: Record<Terrain, [string, string]> = {
-  ocean: ["#315f72", "#4f8291"],
-  shallows: ["#4f8490", "#75a9a6"],
-  coast: ["#68a0a1", "#9bc4b6"],
-  plain: ["#8f9e58", "#bdc574"],
-  meadow: ["#92985b", "#c2bb73"],
-  woodland: ["#6e8454", "#98a665"],
-  forest: ["#5a7651", "#81945d"],
-  hill: ["#81775a", "#aa986f"],
-  foothill: ["#78745c", "#9d9472"],
-  mountain: ["#74746f", "#aaa69b"],
-};
-
-function hexPath(ctx: CanvasRenderingContext2D, cx: number, cy: number, size: number) {
-  ctx.beginPath();
-  for (let i = 0; i < 6; i += 1) {
-    const angle = (Math.PI / 180) * (60 * i - 30);
-    const x = cx + size * Math.cos(angle);
-    const y = cy + size * Math.sin(angle);
-    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-  }
-  ctx.closePath();
+  return <div className="world-3d" ref={hostRef} aria-label="WebGL로 렌더링한 2.5D 육각형 세계 지도" />;
 }
 
 export function WorldPrototype() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [groundTexture, setGroundTexture] = useState<HTMLImageElement | null>(null);
-  const [forestSprite, setForestSprite] = useState<HTMLImageElement | null>(null);
-  const [hillSprite, setHillSprite] = useState<HTMLImageElement | null>(null);
-  const [mountainSprite, setMountainSprite] = useState<HTMLImageElement | null>(null);
-  const [riverTexture, setRiverTexture] = useState<HTMLImageElement | null>(null);
   const [seedText, setSeedText] = useState("20260723");
   const [seed, setSeed] = useState(20260723);
   const [showGrid, setShowGrid] = useState(true);
-  const [selected, setSelected] = useState<Cell | null>(null);
-  const [view, setView] = useState({ zoom: 1, x: 0, y: 0 });
-  const dragRef = useRef({ active: false, moved: false, x: 0, y: 0 });
-  const cells = useMemo(() => generateWorld(seed), [seed]);
-
-  useEffect(() => {
-    const load = (source: string, setter: (image: HTMLImageElement) => void) => {
-      const image = new Image();
-      image.src = source;
-      image.onload = () => setter(image);
-    };
-    load("/assets/terrain/ground-texture-v1.png", setGroundTexture);
-    load("/assets/terrain/conifer-cluster-v1.png", setForestSprite);
-    load("/assets/terrain/hill-cluster-v1.png", setHillSprite);
-    load("/assets/terrain/mountain-ridge-v1.png", setMountainSprite);
-    load("/assets/terrain/river-water-v1.png", setRiverTexture);
-  }, []);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    const ratio = window.devicePixelRatio || 1;
-    const width = canvas.clientWidth;
-    const height = canvas.clientHeight;
-    canvas.width = width * ratio;
-    canvas.height = height * ratio;
-    ctx.scale(ratio, ratio);
-    ctx.clearRect(0, 0, width, height);
-    ctx.fillStyle = "#0b2029";
-    ctx.fillRect(0, 0, width, height);
-
-    const baseSize = Math.min(width / (SQRT3 * (COLS + 0.5)), height / (1.5 * ROWS + 0.5));
-    const size = baseSize * view.zoom;
-    const mapWidth = SQRT3 * size * (COLS + 0.5);
-    const mapHeight = size * (1.5 * ROWS + 0.5);
-    const ox = (width - mapWidth) / 2 + SQRT3 * size / 2 + view.x;
-    const oy = (height - mapHeight) / 2 + size + view.y;
-    const centerOf = (cell: Cell) => ({
-      x: ox + SQRT3 * size * (cell.q + cell.r / 2),
-      y: oy + 1.5 * size * cell.r,
-    });
-    const cellByCoordinate = new Map(cells.map((cell) => [`${cell.q},${cell.r}`, cell]));
-
-    for (const cell of cells) {
-      const { x: cx, y: cy } = centerOf(cell);
-      hexPath(ctx, cx, cy, size + 0.6);
-      const [dark, light] = colors[cell.terrain];
-      const gradient = ctx.createLinearGradient(0, 0, width, height);
-      gradient.addColorStop(0, light);
-      gradient.addColorStop(1, dark);
-      ctx.fillStyle = gradient;
-      ctx.fill();
-
-      if (cell.terrain !== "ocean" && cell.terrain !== "shallows" && cell.terrain !== "coast" && groundTexture) {
-        ctx.save();
-        hexPath(ctx, cx, cy, size + 0.4);
-        ctx.clip();
-        ctx.globalAlpha = cell.terrain === "mountain" ? 0.18 : 0.34;
-        ctx.drawImage(groundTexture, 0, 0, width, height);
-        ctx.restore();
-      }
-
-      if (!["ocean", "shallows", "coast"].includes(cell.terrain)) {
-        ctx.save();
-        hexPath(ctx, cx, cy, size + 0.3);
-        ctx.clip();
-        const relief = ctx.createRadialGradient(
-          cx - size * 0.35,
-          cy - size * 0.38,
-          size * 0.08,
-          cx + size * 0.18,
-          cy + size * 0.3,
-          size * 1.15,
-        );
-        const reliefStrength = 0.08 + Math.max(0, cell.elevation - 0.48) * 0.3;
-        relief.addColorStop(0, `rgba(255,244,203,${reliefStrength})`);
-        relief.addColorStop(0.58, "rgba(255,255,255,0)");
-        relief.addColorStop(1, `rgba(23,28,23,${reliefStrength * 1.35})`);
-        ctx.fillStyle = relief;
-        ctx.fillRect(cx - size, cy - size, size * 2, size * 2);
-
-        const detailCount = cell.terrain === "plain" || cell.terrain === "meadow" ? 10 : 5;
-        for (let i = 0; i < detailCount; i += 1) {
-          const angle = hash(seed + 211 + i, cell.q, cell.r) * Math.PI * 2;
-          const distance = Math.sqrt(hash(seed + 311 + i, cell.r, cell.q)) * size * 0.68;
-          const dx = Math.cos(angle) * distance;
-          const dy = Math.sin(angle) * distance * 0.68;
-          const radius = size * (0.018 + hash(seed + 411 + i, cell.q, cell.r) * 0.035);
-          ctx.fillStyle = i % 3 === 0 ? "rgba(225,211,151,.22)" : "rgba(49,73,44,.17)";
-          ctx.beginPath();
-          ctx.ellipse(cx + dx, cy + dy, radius * 1.8, radius * 0.65, angle, 0, Math.PI * 2);
-          ctx.fill();
-        }
-        ctx.restore();
-      }
-
-      if (cell.terrain === "ocean" || cell.terrain === "shallows") {
-        ctx.strokeStyle = cell.terrain === "shallows" ? "rgba(177,225,222,.18)" : "rgba(151,211,220,.15)";
-        ctx.lineWidth = Math.max(0.7, size * 0.035);
-        for (let i = -1; i <= 1; i += 1) {
-          ctx.beginPath();
-          ctx.arc(cx + i * size * 0.24, cy + i * size * 0.09, size * 0.27, Math.PI * 1.08, Math.PI * 1.72);
-          ctx.stroke();
-        }
-      }
-
-    }
-
-    const neighborDirections = [[1, 0], [0, 1], [-1, 1]];
-    const isWater = (terrain: Terrain) => terrain === "ocean" || terrain === "shallows" || terrain === "coast";
-
-    for (const cell of cells) {
-      const a = centerOf(cell);
-      for (const [dq, dr] of neighborDirections) {
-        const neighbor = cellByCoordinate.get(`${cell.q + dq},${cell.r + dr}`);
-        if (!neighbor || neighbor.terrain === cell.terrain) continue;
-        const b = centerOf(neighbor);
-        const mx = (a.x + b.x) / 2;
-        const my = (a.y + b.y) / 2;
-        const vx = b.x - a.x;
-        const vy = b.y - a.y;
-        const length = Math.hypot(vx, vy);
-        const px = -vy / length;
-        const py = vx / length;
-        const pair = new Set([cell.terrain, neighbor.terrain]);
-
-        let band = "rgba(128,126,83,.42)";
-        if (pair.has("forest") || pair.has("woodland")) band = "rgba(64,102,65,.58)";
-        if (pair.has("hill") || pair.has("foothill") || pair.has("mountain")) band = "rgba(122,112,83,.56)";
-        if (isWater(cell.terrain) !== isWater(neighbor.terrain)) band = "rgba(209,193,132,.74)";
-        if (pair.has("coast") && pair.has("shallows")) band = "rgba(107,177,176,.5)";
-        if (pair.has("ocean") && pair.has("shallows")) band = "rgba(63,124,139,.46)";
-
-        ctx.save();
-        const waterBoundary = isWater(cell.terrain) !== isWater(neighbor.terrain);
-        ctx.strokeStyle = band;
-        ctx.lineWidth = size * (waterBoundary ? 0.18 : 0.3);
-        ctx.lineCap = "round";
-        const curve = (hash(seed + 740, cell.q + neighbor.q, cell.r + neighbor.r) - 0.5) * size * 0.28;
-        ctx.beginPath();
-        ctx.moveTo(mx - px * size * 0.42, my - py * size * 0.42);
-        ctx.quadraticCurveTo(mx + (vx / length) * curve, my + (vy / length) * curve, mx + px * size * 0.42, my + py * size * 0.42);
-        ctx.stroke();
-
-        if (waterBoundary) {
-          ctx.strokeStyle = "rgba(235,241,220,.58)";
-          ctx.lineWidth = Math.max(0.8, size * 0.035);
-          ctx.beginPath();
-          ctx.moveTo(mx - px * size * 0.4, my - py * size * 0.4);
-          ctx.quadraticCurveTo(mx + (vx / length) * curve * 0.82, my + (vy / length) * curve * 0.82, mx + px * size * 0.4, my + py * size * 0.4);
-          ctx.stroke();
-        }
-
-        if (!waterBoundary) for (let i = 0; i < 9; i += 1) {
-          const along = (i / 8 - 0.5) * size * 0.92;
-          const scatter = (hash(seed + 500 + i, cell.q + neighbor.q, cell.r + neighbor.r) - 0.5) * size * 0.33;
-          const x = mx + px * along + (vx / length) * scatter;
-          const y = my + py * along + (vy / length) * scatter;
-          const radius = size * (0.035 + hash(seed + 620 + i, neighbor.q, cell.r) * 0.07);
-
-          if ((pair.has("forest") || pair.has("woodland")) && !isWater(cell.terrain) && !isWater(neighbor.terrain)) {
-            ctx.fillStyle = i % 2 ? "#42694a" : "#68805a";
-            ctx.beginPath(); ctx.arc(x, y, radius * 1.18, 0, Math.PI * 2); ctx.fill();
-          } else if ((pair.has("hill") || pair.has("foothill") || pair.has("mountain")) && !isWater(cell.terrain) && !isWater(neighbor.terrain)) {
-            ctx.fillStyle = i % 2 ? "#746f60" : "#9b8f72";
-            ctx.beginPath(); ctx.ellipse(x, y, radius * 1.35, radius * 0.72, i * 0.7, 0, Math.PI * 2); ctx.fill();
-          }
-        }
-
-        if (forestSprite && pair.has("forest") && pair.has("woodland")) {
-          const transitionWidth = size * 0.82;
-          const transitionHeight = transitionWidth * (forestSprite.height / forestSprite.width);
-          ctx.save();
-          ctx.globalAlpha = 0.58;
-          ctx.drawImage(forestSprite, mx - transitionWidth / 2, my - transitionHeight * 0.58, transitionWidth, transitionHeight);
-          ctx.restore();
-        }
-        if (hillSprite && pair.has("foothill") && (pair.has("hill") || pair.has("mountain"))) {
-          const transitionWidth = size * 1.18;
-          const transitionHeight = transitionWidth * (hillSprite.height / hillSprite.width);
-          ctx.save();
-          ctx.globalAlpha = 0.82;
-          ctx.drawImage(hillSprite, mx - transitionWidth / 2, my - transitionHeight * 0.64, transitionWidth, transitionHeight);
-          ctx.restore();
-        }
-        ctx.restore();
-      }
-    }
-
-    const riverDirections = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, -1], [-1, 1]];
-    const riverSources: Cell[] = [];
-    for (const candidate of [...cells]
-      .filter((cell) => cell.terrain === "mountain" || cell.terrain === "hill")
-      .sort((a, b) => b.elevation - a.elevation)) {
-      if (riverSources.length >= 3) break;
-      if (riverSources.every((source) => Math.hypot(source.q - candidate.q, source.r - candidate.r) > 5)) {
-        riverSources.push(candidate);
-      }
-    }
-    const riverRoutes: Cell[][] = [];
-    for (const source of riverSources) {
-      const sourceKey = `${source.q},${source.r}`;
-      const costs = new Map<string, number>([[sourceKey, 0]]);
-      const previous = new Map<string, string>();
-      const frontier = [sourceKey];
-      let targetKey: string | null = null;
-
-      while (frontier.length) {
-        frontier.sort((a, b) => costs.get(a)! - costs.get(b)!);
-        const currentKey = frontier.shift()!;
-        const current = cellByCoordinate.get(currentKey)!;
-        if (isWater(current.terrain)) {
-          targetKey = currentKey;
-          break;
-        }
-        for (const [dq, dr] of riverDirections) {
-          const next = cellByCoordinate.get(`${current.q + dq},${current.r + dr}`);
-          if (!next) continue;
-          const nextKey = `${next.q},${next.r}`;
-          const uphill = Math.max(0, next.elevation - current.elevation);
-          const terrainPenalty = next.terrain === "mountain" && current !== source ? 2.4 : next.terrain === "hill" ? 0.45 : 0;
-          const meander = hash(seed + 1701, next.q, next.r) * 0.52;
-          const nextCost = costs.get(currentKey)! + 1 + uphill * 34 + terrainPenalty + meander;
-          if (nextCost >= (costs.get(nextKey) ?? Infinity)) continue;
-          costs.set(nextKey, nextCost);
-          previous.set(nextKey, currentKey);
-          if (!frontier.includes(nextKey)) frontier.push(nextKey);
-        }
-      }
-
-      if (targetKey) {
-        const route: Cell[] = [];
-        let cursor: string | undefined = targetKey;
-        while (cursor) {
-          const cell = cellByCoordinate.get(cursor);
-          if (cell) route.push(cell);
-          if (cursor === sourceKey) break;
-          cursor = previous.get(cursor);
-        }
-        route.reverse();
-        if (route.length >= 5) riverRoutes.push(route);
-      }
-    }
-
-    const drawRivers = () => {
-      const riverPattern = riverTexture ? ctx.createPattern(riverTexture, "repeat") : null;
-      riverPattern?.setTransform(new DOMMatrix().scale(Math.max(0.022, size / 620)));
-
-      const smoothPath = (points: { x: number; y: number }[], startIndex = 0) => {
-        const path = new Path2D();
-        const first = points[startIndex];
-        path.moveTo(first.x, first.y);
-        for (let i = startIndex + 1; i < points.length - 1; i += 1) {
-          const current = points[i];
-          const next = points[i + 1];
-          path.quadraticCurveTo(current.x, current.y, (current.x + next.x) / 2, (current.y + next.y) / 2);
-        }
-        const last = points[points.length - 1];
-        path.lineTo(last.x, last.y);
-        return path;
-      };
-
-      const strokePath = (path: Path2D, style: string | CanvasPattern, width: number, alpha = 1, cap: CanvasLineCap = "round") => {
-        ctx.save();
-        ctx.globalAlpha = alpha;
-        ctx.strokeStyle = style;
-        ctx.lineWidth = width;
-        ctx.lineCap = cap;
-        ctx.lineJoin = "round";
-        ctx.stroke(path);
-        ctx.restore();
-      };
-
-      for (const route of riverRoutes) {
-        const centers = route.map(centerOf);
-        const sampled = centers.filter((_, index) => index === 0 || index === centers.length - 1 || index % 2 === 0);
-        const points = sampled.map((point, index) => {
-          if (index === 0 || index === sampled.length - 1) return point;
-          const previous = sampled[index - 1];
-          const next = sampled[index + 1];
-          const dx = next.x - previous.x;
-          const dy = next.y - previous.y;
-          const length = Math.hypot(dx, dy);
-          const routeCell = route[Math.min(index * 2, route.length - 1)];
-          const bend = (hash(seed + 1801 + index, routeCell.q, routeCell.r) - 0.5) * size * 0.38;
-          return { x: point.x + (-dy / length) * bend, y: point.y + (dx / length) * bend };
-        });
-        const fullPath = smoothPath(points);
-
-        // A broad, restrained channel reads as terrain rather than a painted line.
-        ctx.save();
-        ctx.shadowColor = "rgba(22,36,39,.34)";
-        ctx.shadowBlur = size * 0.2;
-        ctx.shadowOffsetY = size * 0.07;
-        strokePath(fullPath, "rgba(105,113,78,.9)", size * 0.43);
-        ctx.restore();
-        strokePath(fullPath, "rgba(43,72,82,.58)", size * 0.35);
-        strokePath(fullPath, "rgba(66,116,141,.98)", size * 0.295);
-        if (riverPattern) strokePath(fullPath, riverPattern, size * 0.268, 0.24);
-        strokePath(fullPath, "rgba(188,220,222,.2)", Math.max(0.75, size * 0.034));
-
-        const mouth = points[points.length - 1];
-        const beforeMouth = points[points.length - 2];
-        const angle = Math.atan2(mouth.y - beforeMouth.y, mouth.x - beforeMouth.x);
-        const plume = ctx.createRadialGradient(mouth.x, mouth.y, 0, mouth.x, mouth.y, size * 0.68);
-        plume.addColorStop(0, "rgba(83,155,167,.42)");
-        plume.addColorStop(1, "rgba(83,155,167,0)");
-        ctx.fillStyle = plume;
-        ctx.beginPath();
-        ctx.ellipse(mouth.x, mouth.y, size * 0.68, size * 0.34, angle, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    };
-
-    const allDirections = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, -1], [-1, 1]];
-    const terrainGroups = (terrain: Terrain) => {
-      const remaining = new Set(cells.filter((cell) => cell.terrain === terrain).map((cell) => `${cell.q},${cell.r}`));
-      const groups: Cell[][] = [];
-      while (remaining.size > 0) {
-        const first = remaining.values().next().value as string;
-        remaining.delete(first);
-        const queue = [first];
-        const group: Cell[] = [];
-        while (queue.length) {
-          const key = queue.pop()!;
-          const cell = cellByCoordinate.get(key);
-          if (!cell) continue;
-          group.push(cell);
-          for (const [dq, dr] of allDirections) {
-            const next = `${cell.q + dq},${cell.r + dr}`;
-            if (remaining.delete(next)) queue.push(next);
-          }
-        }
-        groups.push(group);
-      }
-      return groups;
-    };
-
-    const drawConnectedTerrain = (groups: Cell[][], sprite: HTMLImageElement | null, kind: "woodland" | "forest" | "hill" | "foothill" | "mountain") => {
-      if (!sprite) return;
-      const ratio = sprite.height / sprite.width;
-      for (const group of groups) {
-        const points = group.map(centerOf);
-        if (kind === "forest" || kind === "woodland") {
-          const anchors: { x: number; y: number; cell: Cell }[] = [];
-          for (const cell of [...group].sort((a, b) => hash(seed + 991, a.q, a.r) - hash(seed + 991, b.q, b.r))) {
-            const point = centerOf(cell);
-            const spacing = kind === "forest" ? size * 1.28 : size * 1.82;
-            if (anchors.every((anchor) => Math.hypot(point.x - anchor.x, point.y - anchor.y) > spacing)) anchors.push({ ...point, cell });
-          }
-          for (const anchor of anchors) {
-            const baseWidth = kind === "forest" ? 1.08 : 0.74;
-            const spriteWidth = size * (baseWidth + hash(seed + 992, anchor.cell.q, anchor.cell.r) * (kind === "forest" ? 0.28 : 0.16));
-            const spriteHeight = spriteWidth * ratio;
-            ctx.save();
-            if (hash(seed + 993, anchor.cell.r, anchor.cell.q) > 0.5) {
-              ctx.translate(anchor.x, 0); ctx.scale(-1, 1); ctx.translate(-anchor.x, 0);
-            }
-            ctx.globalAlpha = kind === "forest" ? 0.96 : 0.74;
-            ctx.shadowColor = "rgba(2,12,10,.5)";
-            ctx.shadowBlur = size * 0.18;
-            ctx.shadowOffsetY = size * 0.12;
-            ctx.drawImage(sprite, anchor.x - spriteWidth / 2, anchor.y - spriteHeight * 0.61, spriteWidth, spriteHeight);
-            ctx.restore();
-          }
-          continue;
-        }
-        const minX = Math.min(...points.map((point) => point.x));
-        const maxX = Math.max(...points.map((point) => point.x));
-        const minY = Math.min(...points.map((point) => point.y));
-        const maxY = Math.max(...points.map((point) => point.y));
-        const cx = (minX + maxX) / 2;
-        const cy = (minY + maxY) / 2;
-        const desiredWidth = Math.max(maxX - minX + size * 1.75, (maxY - minY + size * 1.25) / ratio);
-        const isLowHill = kind === "hill" || kind === "foothill";
-        const widthLimit = size * (isLowHill ? 4.4 : 5.1);
-        const spriteWidth = Math.min(desiredWidth, widthLimit);
-        const spriteHeight = spriteWidth * ratio;
-
-        ctx.save();
-        ctx.beginPath();
-        for (const cell of group) {
-          const center = centerOf(cell);
-          for (let i = 0; i < 6; i += 1) {
-            const angle = (Math.PI / 180) * (60 * i - 30);
-            const x = center.x + size * 1.08 * Math.cos(angle);
-            const y = center.y + size * 1.08 * Math.sin(angle);
-            if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-          }
-          ctx.closePath();
-        }
-        ctx.clip("nonzero");
-        ctx.globalAlpha = kind === "hill" ? 0.93 : kind === "foothill" ? 0.74 : 0.97;
-        ctx.shadowColor = isLowHill ? "rgba(35,26,16,.48)" : "rgba(4,11,13,.64)";
-        ctx.shadowBlur = size * 0.2;
-        ctx.shadowOffsetY = size * 0.14;
-        ctx.drawImage(sprite, cx - spriteWidth / 2, cy - spriteHeight * (isLowHill ? 0.61 : 0.72), spriteWidth, spriteHeight);
-        ctx.restore();
-
-        if (group.length >= 6) {
-          const secondaryWidth = spriteWidth * 0.72;
-          const secondaryHeight = secondaryWidth * ratio;
-          const anchor = points[Math.floor(hash(seed + group.length, group[0].q, group[0].r) * points.length)];
-          ctx.save();
-          ctx.globalAlpha = isLowHill ? 0.72 : 0.86;
-          ctx.drawImage(sprite, anchor.x - secondaryWidth / 2, anchor.y - secondaryHeight * 0.66, secondaryWidth, secondaryHeight);
-          ctx.restore();
-        }
-      }
-    };
-
-    drawConnectedTerrain(terrainGroups("woodland"), forestSprite, "woodland");
-    drawConnectedTerrain(terrainGroups("forest"), forestSprite, "forest");
-    drawConnectedTerrain(terrainGroups("foothill"), hillSprite, "foothill");
-    drawConnectedTerrain(terrainGroups("hill"), hillSprite, "hill");
-    drawConnectedTerrain(terrainGroups("mountain"), mountainSprite, "mountain");
-
-    for (const cell of cells) {
-      const { x: cx, y: cy } = centerOf(cell);
-      if (showGrid) {
-        hexPath(ctx, cx, cy, size);
-        ctx.strokeStyle = isWater(cell.terrain) ? "rgba(225,243,241,.21)" : "rgba(250,241,207,.26)";
-        ctx.lineWidth = Math.max(0.65, size * 0.028);
-        ctx.stroke();
-      }
-    }
-
-    drawRivers();
-
-    for (const cell of cells) {
-      const { x: cx, y: cy } = centerOf(cell);
-      if (selected?.q === cell.q && selected?.r === cell.r) {
-        hexPath(ctx, cx, cy, size - 1);
-        ctx.strokeStyle = "#ffd76a";
-        ctx.lineWidth = 3;
-        ctx.stroke();
-      }
-    }
-
-    const handleClick = (event: MouseEvent) => {
-      if (dragRef.current.moved) {
-        dragRef.current.moved = false;
-        return;
-      }
-      const rect = canvas.getBoundingClientRect();
-      const x = event.clientX - rect.left;
-      const y = event.clientY - rect.top;
-      let best: Cell | null = null;
-      let bestDistance = Infinity;
-      for (const cell of cells) {
-        const { x: cx, y: cy } = centerOf(cell);
-        const distance = Math.hypot(x - cx, y - cy);
-        if (distance < bestDistance && distance < size) { best = cell; bestDistance = distance; }
-      }
-      setSelected(best);
-    };
-    const handleWheel = (event: WheelEvent) => {
-      event.preventDefault();
-      const rect = canvas.getBoundingClientRect();
-      const pointerX = event.clientX - rect.left - width / 2;
-      const pointerY = event.clientY - rect.top - height / 2;
-      const factor = event.deltaY < 0 ? 1.13 : 0.885;
-      setView((previous) => {
-        const zoom = Math.min(2.8, Math.max(0.72, previous.zoom * factor));
-        const applied = zoom / previous.zoom;
-        return {
-          zoom,
-          x: pointerX - (pointerX - previous.x) * applied,
-          y: pointerY - (pointerY - previous.y) * applied,
-        };
-      });
-    };
-    const handlePointerDown = (event: PointerEvent) => {
-      dragRef.current = { active: true, moved: false, x: event.clientX, y: event.clientY };
-      canvas.setPointerCapture(event.pointerId);
-      canvas.style.cursor = "grabbing";
-    };
-    const handlePointerMove = (event: PointerEvent) => {
-      const drag = dragRef.current;
-      if (!drag.active) return;
-      const dx = event.clientX - drag.x;
-      const dy = event.clientY - drag.y;
-      if (Math.abs(dx) + Math.abs(dy) > 2) drag.moved = true;
-      drag.x = event.clientX;
-      drag.y = event.clientY;
-      setView((previous) => ({ ...previous, x: previous.x + dx, y: previous.y + dy }));
-    };
-    const handlePointerUp = (event: PointerEvent) => {
-      dragRef.current.active = false;
-      if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
-      canvas.style.cursor = "grab";
-    };
-    canvas.style.cursor = "grab";
-    canvas.addEventListener("click", handleClick);
-    canvas.addEventListener("wheel", handleWheel, { passive: false });
-    canvas.addEventListener("pointerdown", handlePointerDown);
-    canvas.addEventListener("pointermove", handlePointerMove);
-    canvas.addEventListener("pointerup", handlePointerUp);
-    canvas.addEventListener("pointercancel", handlePointerUp);
-    return () => {
-      canvas.removeEventListener("click", handleClick);
-      canvas.removeEventListener("wheel", handleWheel);
-      canvas.removeEventListener("pointerdown", handlePointerDown);
-      canvas.removeEventListener("pointermove", handlePointerMove);
-      canvas.removeEventListener("pointerup", handlePointerUp);
-      canvas.removeEventListener("pointercancel", handlePointerUp);
-    };
-  }, [cells, forestSprite, groundTexture, hillSprite, mountainSprite, riverTexture, seed, selected, showGrid, view]);
 
   const regenerate = () => {
     const parsed = Number(seedText);
-    setSelected(null);
-    setView({ zoom: 1, x: 0, y: 0 });
     setSeed(Number.isFinite(parsed) ? Math.trunc(parsed) : Date.now());
   };
 
@@ -682,36 +310,38 @@ export function WorldPrototype() {
     const next = Math.floor(Math.random() * 99999999);
     setSeedText(String(next));
     setSeed(next);
-    setSelected(null);
-    setView({ zoom: 1, x: 0, y: 0 });
   };
 
   return (
     <main className="game-shell">
       <header className="topbar">
         <div>
-          <p className="eyebrow">WORLD GENERATION LAB · PROTOTYPE 01</p>
+          <p className="eyebrow">WORLD GENERATION LAB · WEBGL 2.5D</p>
           <h1>World in Hero</h1>
         </div>
         <div className="controls">
-          <label>세계 시드<input value={seedText} onChange={(event) => setSeedText(event.target.value)} onKeyDown={(event) => event.key === "Enter" && regenerate()} /></label>
+          <label>월드 시드<input value={seedText} onChange={(event) => setSeedText(event.target.value)} onKeyDown={(event) => event.key === "Enter" && regenerate()} /></label>
           <button onClick={regenerate}>이 시드로 생성</button>
           <button className="secondary" onClick={randomize}>새로운 세계</button>
-          <button className="secondary" onClick={() => setView({ zoom: 1, x: 0, y: 0 })}>화면 맞춤</button>
           <label className="toggle"><input type="checkbox" checked={showGrid} onChange={(event) => setShowGrid(event.target.checked)} />Hex 경계</label>
         </div>
       </header>
       <section className="stage">
-        <canvas ref={canvasRef} aria-label="랜덤으로 생성된 육각형 세계 지도" />
+        <WorldScene seed={seed} showGrid={showGrid} />
         <aside className="legend">
-          <strong>지형</strong>
-          {Object.entries({ 평원: "plain", 구릉: "meadow", 숲가장자리: "woodland", 숲: "forest", 언덕: "hill", 산기슭: "foothill", 산: "mountain", 해안: "coast", 얕은바다: "shallows", 바다: "ocean" }).map(([name, type]) => <span key={type}><i style={{ background: colors[type as Terrain][1] }} />{name}</span>)}
+          <strong>2.5D 지도</strong>
+          <span><i style={{ background: "#91a55d" }} />연속 지형</span>
+          <span><i style={{ background: "#4f8ba5" }} />파인 강</span>
+          <span><i style={{ background: "#405f3f" }} />입체 숲</span>
+          <span><i style={{ background: "#77766d" }} />산악</span>
         </aside>
         <div className="selection-card">
-          {selected ? <><span>선택한 지역</span><strong>{selected.q}, {selected.r}</strong><em>{({ ocean: "바다", shallows: "얕은 바다", coast: "해안", plain: "평원", meadow: "완만한 구릉", woodland: "숲 가장자리", forest: "울창한 숲", hill: "언덕", foothill: "산기슭", mountain: "산" } as Record<Terrain, string>)[selected.terrain]}</em></> : <><span>지도를 눌러보세요</span><strong>지역 정보</strong><em>Hex 경계와 지형 연결을 확인합니다.</em></>}
+          <span>조작 방법</span>
+          <strong>휠 확대 · 드래그 이동</strong>
+          <em>지형과 강이 실제 높이를 가진 WebGL 장면입니다.</em>
         </div>
       </section>
-      <footer><span>현재 검증</span><b>고도·강·해안 연결</b><b>휠 확대/축소</b><b>드래그 지도 이동</b><small>휠로 확대하고 지도를 잡아 끌어 이동할 수 있습니다.</small></footer>
+      <footer><span>현재 검증</span><b>2.5D 연속 지면</b><b>지형을 파낸 강</b><b>입체 그림자</b><small>이 버전에서 시점과 그래픽 방향을 먼저 확인합니다.</small></footer>
     </main>
   );
 }
