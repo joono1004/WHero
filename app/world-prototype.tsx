@@ -408,7 +408,7 @@ export function WorldPrototype() {
 
     const drawRivers = () => {
     const riverPattern = riverTexture ? ctx.createPattern(riverTexture, "repeat") : null;
-    riverPattern?.setTransform(new DOMMatrix().scale(Math.max(0.045, size / 180)));
+    riverPattern?.setTransform(new DOMMatrix().scale(Math.max(0.022, size / 620)));
     for (const route of riverRoutes) {
       const centers = route.map(centerOf);
       const points = [
@@ -450,31 +450,33 @@ export function WorldPrototype() {
 
         const valleyStyle =
           terrain === "forest" || terrain === "woodland"
-            ? { color: "rgba(103,119,76,.98)", width: 0.53 }
+            ? { color: "rgba(103,119,76,.98)", width: 0.68 }
             : terrain === "mountain"
-              ? { color: "rgba(105,101,89,.97)", width: 0.39 }
+              ? { color: "rgba(105,101,89,.97)", width: 0.49 }
               : terrain === "hill" || terrain === "foothill"
-                ? { color: "rgba(126,118,88,.97)", width: 0.43 }
-                : { color: "rgba(126,145,86,.96)", width: 0.34 };
+                ? { color: "rgba(126,118,88,.97)", width: 0.54 }
+                : { color: "rgba(126,145,86,.96)", width: 0.46 };
         const waterBase =
           terrain === "plain" || terrain === "meadow"
-            ? 0.105
-              : terrain === "forest" || terrain === "woodland"
-              ? 0.068
-              : 0.052;
-        const waterWidth = size * (waterBase + progress * (terrain === "plain" || terrain === "meadow" ? 0.105 : 0.06));
+            ? 0.18
+            : terrain === "forest" || terrain === "woodland"
+              ? 0.115
+              : 0.085;
+        const waterWidth = size * (waterBase + progress * (terrain === "plain" || terrain === "meadow" ? 0.16 : 0.095));
         const widthVariation = 0.92 + hash(seed + 2051 + i, route[i]?.q ?? 0, route[i]?.r ?? 0) * 0.18;
 
         // Draw an opaque valley first so forests and relief are visually split
         // into two banks instead of leaving the river painted over their art.
         trace(valleyStyle.color, size * valleyStyle.width * widthVariation);
-        trace("rgba(54,45,30,.52)", waterWidth * widthVariation + size * 0.09);
-        trace("rgba(157,142,94,.48)", waterWidth * widthVariation + size * 0.045);
-        trace(riverPattern ?? "rgba(54,126,149,.97)", waterWidth * widthVariation);
-        ctx.globalAlpha = 0.42;
-        trace("rgba(36,109,137,.72)", waterWidth * widthVariation * 0.74);
+        trace("rgba(54,45,30,.64)", waterWidth * widthVariation + size * 0.13);
+        trace("rgba(171,151,99,.62)", waterWidth * widthVariation + size * 0.065);
+        trace("rgba(34,94,116,.96)", waterWidth * widthVariation);
+        if (riverPattern) {
+          ctx.globalAlpha = 0.92;
+          trace(riverPattern, waterWidth * widthVariation * 0.9);
+        }
         ctx.globalAlpha = 1;
-        trace("rgba(192,229,226,.5)", Math.max(0.55, waterWidth * 0.18));
+        trace("rgba(205,237,232,.62)", Math.max(0.75, waterWidth * 0.16));
 
         if (terrain === "forest" || terrain === "woodland") {
           const nx = -dy / length;
@@ -482,7 +484,7 @@ export function WorldPrototype() {
           for (const side of [-1, 1]) {
             for (let tree = 0; tree < 3; tree += 1) {
               const t = 0.24 + tree * 0.26;
-              const bankDistance = size * (valleyStyle.width * 0.55 + 0.055);
+              const bankDistance = size * (valleyStyle.width * 0.55 + 0.08);
               const tx = start.x + dx * t + nx * bankDistance * side;
               const ty = start.y + dy * t + ny * bankDistance * side;
               ctx.fillStyle = tree % 2 ? "#355f43" : "#4b7350";
@@ -512,7 +514,7 @@ export function WorldPrototype() {
           const endX = mouth.x + nx * size * branch;
           const endY = mouth.y + ny * size * branch;
           ctx.strokeStyle = riverPattern ?? "rgba(62,137,157,.88)";
-          ctx.lineWidth = size * (branch === 0 ? 0.12 : 0.075);
+          ctx.lineWidth = size * (branch === 0 ? 0.19 : 0.12);
           ctx.lineCap = "round";
           ctx.beginPath();
           ctx.moveTo(deltaStart.x, deltaStart.y);
