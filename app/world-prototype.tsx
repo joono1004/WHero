@@ -177,7 +177,7 @@ export function WorldPrototype() {
       const { x: cx, y: cy } = centerOf(cell);
       hexPath(ctx, cx, cy, size + 0.6);
       const [dark, light] = colors[cell.terrain];
-      const gradient = ctx.createLinearGradient(cx - size, cy - size, cx + size, cy + size);
+      const gradient = ctx.createLinearGradient(0, 0, width, height);
       gradient.addColorStop(0, light);
       gradient.addColorStop(1, dark);
       ctx.fillStyle = gradient;
@@ -188,10 +188,7 @@ export function WorldPrototype() {
         hexPath(ctx, cx, cy, size + 0.4);
         ctx.clip();
         ctx.globalAlpha = cell.terrain === "mountain" ? 0.18 : 0.34;
-        const patchSize = size * 5.4;
-        const tx = cx - (hash(seed + 220, cell.q, cell.r) * patchSize);
-        const ty = cy - (hash(seed + 221, cell.r, cell.q) * patchSize);
-        ctx.drawImage(groundTexture, tx, ty, patchSize, patchSize);
+        ctx.drawImage(groundTexture, 0, 0, width, height);
         ctx.restore();
       }
 
@@ -203,19 +200,6 @@ export function WorldPrototype() {
           ctx.arc(cx + i * size * 0.24, cy + i * size * 0.09, size * 0.27, Math.PI * 1.08, Math.PI * 1.72);
           ctx.stroke();
         }
-      }
-
-      if (cell.terrain === "coast") {
-        ctx.strokeStyle = "rgba(213,236,217,.42)";
-        ctx.lineWidth = Math.max(1, size * 0.08);
-        ctx.beginPath();
-        ctx.arc(cx, cy + size * 0.03, size * 0.46, Math.PI * 1.05, Math.PI * 1.88);
-        ctx.stroke();
-        ctx.strokeStyle = "rgba(238,224,174,.33)";
-        ctx.lineWidth = Math.max(1, size * 0.12);
-        ctx.beginPath();
-        ctx.arc(cx, cy - size * 0.02, size * 0.58, Math.PI * 0.96, Math.PI * 1.94);
-        ctx.stroke();
       }
 
     }
@@ -245,15 +229,25 @@ export function WorldPrototype() {
         if (pair.has("ocean") && pair.has("coast")) band = "rgba(91,156,162,.48)";
 
         ctx.save();
+        const waterBoundary = isWater(cell.terrain) !== isWater(neighbor.terrain);
         ctx.strokeStyle = band;
-        ctx.lineWidth = size * 0.3;
+        ctx.lineWidth = size * (waterBoundary ? 0.18 : 0.3);
         ctx.lineCap = "round";
         ctx.beginPath();
         ctx.moveTo(mx - px * size * 0.42, my - py * size * 0.42);
         ctx.lineTo(mx + px * size * 0.42, my + py * size * 0.42);
         ctx.stroke();
 
-        for (let i = 0; i < 9; i += 1) {
+        if (waterBoundary) {
+          ctx.strokeStyle = "rgba(235,241,220,.58)";
+          ctx.lineWidth = Math.max(0.8, size * 0.035);
+          ctx.beginPath();
+          ctx.moveTo(mx - px * size * 0.4, my - py * size * 0.4);
+          ctx.lineTo(mx + px * size * 0.4, my + py * size * 0.4);
+          ctx.stroke();
+        }
+
+        if (!waterBoundary) for (let i = 0; i < 9; i += 1) {
           const along = (i / 8 - 0.5) * size * 0.92;
           const scatter = (hash(seed + 500 + i, cell.q + neighbor.q, cell.r + neighbor.r) - 0.5) * size * 0.33;
           const x = mx + px * along + (vx / length) * scatter;
@@ -266,9 +260,6 @@ export function WorldPrototype() {
           } else if ((pair.has("hill") || pair.has("foothill") || pair.has("mountain")) && !isWater(cell.terrain) && !isWater(neighbor.terrain)) {
             ctx.fillStyle = i % 2 ? "#746f60" : "#9b8f72";
             ctx.beginPath(); ctx.ellipse(x, y, radius * 1.35, radius * 0.72, i * 0.7, 0, Math.PI * 2); ctx.fill();
-          } else if (isWater(cell.terrain) !== isWater(neighbor.terrain)) {
-            ctx.fillStyle = i % 2 ? "rgba(229,216,169,.82)" : "rgba(130,183,177,.72)";
-            ctx.beginPath(); ctx.ellipse(x, y, radius * 1.5, radius * 0.6, Math.atan2(py, px), 0, Math.PI * 2); ctx.fill();
           }
         }
 
@@ -325,12 +316,12 @@ export function WorldPrototype() {
           const anchors: { x: number; y: number; cell: Cell }[] = [];
           for (const cell of [...group].sort((a, b) => hash(seed + 991, a.q, a.r) - hash(seed + 991, b.q, b.r))) {
             const point = centerOf(cell);
-            const spacing = kind === "forest" ? size * 1.12 : size * 1.42;
+            const spacing = kind === "forest" ? size * 2.18 : size * 1.55;
             if (anchors.every((anchor) => Math.hypot(point.x - anchor.x, point.y - anchor.y) > spacing)) anchors.push({ ...point, cell });
           }
           for (const anchor of anchors) {
-            const baseWidth = kind === "forest" ? 1.42 : 0.92;
-            const spriteWidth = size * (baseWidth + hash(seed + 992, anchor.cell.q, anchor.cell.r) * 0.24);
+            const baseWidth = kind === "forest" ? 2.25 : 0.88;
+            const spriteWidth = size * (baseWidth + hash(seed + 992, anchor.cell.q, anchor.cell.r) * (kind === "forest" ? 0.36 : 0.2));
             const spriteHeight = spriteWidth * ratio;
             ctx.save();
             if (hash(seed + 993, anchor.cell.r, anchor.cell.q) > 0.5) {
