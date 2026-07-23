@@ -153,6 +153,7 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
     sun.shadow.bias = -0.0005;
     scene.add(sun);
 
+    const textureLoader = new THREE.TextureLoader();
     const { curve, samples } = buildRiver(seed);
     const terrainGeometry = new THREE.PlaneGeometry(MAP_WIDTH, MAP_DEPTH, 84, 66);
     terrainGeometry.rotateX(-Math.PI / 2);
@@ -169,14 +170,24 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
     }
     terrainGeometry.setAttribute("color", new THREE.Float32BufferAttribute(colorValues, 3));
     terrainGeometry.computeVertexNormals();
+    const groundTexture = textureLoader.load("/assets/terrain/ground-texture-v1.png");
+    groundTexture.colorSpace = THREE.SRGBColorSpace;
+    groundTexture.wrapS = THREE.RepeatWrapping;
+    groundTexture.wrapT = THREE.RepeatWrapping;
+    groundTexture.repeat.set(8, 6);
+    groundTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
     const terrain = new THREE.Mesh(
       terrainGeometry,
-      new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.93, metalness: 0 }),
+      new THREE.MeshStandardMaterial({
+        map: groundTexture,
+        vertexColors: true,
+        roughness: 0.96,
+        metalness: 0,
+      }),
     );
     terrain.receiveShadow = true;
     scene.add(terrain);
 
-    const textureLoader = new THREE.TextureLoader();
     const waterTexture = textureLoader.load("/assets/terrain/river-water-v1.png");
     waterTexture.colorSpace = THREE.SRGBColorSpace;
     waterTexture.wrapS = THREE.RepeatWrapping;
@@ -198,33 +209,105 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
     river.receiveShadow = true;
     scene.add(river);
 
-    const treeTexture = textureLoader.load("/assets/terrain/conifer-cluster-v1.png");
-    treeTexture.colorSpace = THREE.SRGBColorSpace;
-    const treeMaterial = new THREE.SpriteMaterial({ map: treeTexture, transparent: true, alphaTest: 0.14 });
-    for (let i = 0; i < 64; i += 1) {
+    const treeLocations: { x: number; y: number; z: number; scale: number; rotation: number }[] = [];
+    for (let i = 0; i < 120; i += 1) {
       const x = (hash(seed + 301, i, 1) - 0.5) * (MAP_WIDTH - 2);
       const z = (hash(seed + 302, i, 2) - 0.5) * (MAP_DEPTH - 2);
-      if (distanceToRiver(x, z, samples) < 1.65 || hash(seed + 303, i, 3) < 0.31) continue;
+      if (distanceToRiver(x, z, samples) < 1.45 || hash(seed + 303, i, 3) < 0.25) continue;
       const y = heightAt(seed, x, z, samples);
-      const tree = new THREE.Sprite(treeMaterial.clone());
-      const scale = 1.2 + hash(seed + 304, i, 4) * 0.8;
-      tree.position.set(x, y + scale * 0.54, z);
-      tree.scale.set(scale, scale, 1);
-      scene.add(tree);
+      treeLocations.push({
+        x,
+        y,
+        z,
+        scale: 0.55 + hash(seed + 304, i, 4) * 0.55,
+        rotation: hash(seed + 305, i, 5) * Math.PI * 2,
+      });
     }
 
-    const mountainMaterial = new THREE.MeshStandardMaterial({ color: "#77766d", roughness: 0.96 });
+    const trunkMesh = new THREE.InstancedMesh(
+      new THREE.CylinderGeometry(0.075, 0.11, 0.72, 7),
+      new THREE.MeshStandardMaterial({ color: "#563d28", roughness: 1 }),
+      treeLocations.length,
+    );
+    const lowerFoliage = new THREE.InstancedMesh(
+      new THREE.ConeGeometry(0.58, 1.15, 9),
+      new THREE.MeshStandardMaterial({ color: "#315d3f", roughness: 0.92, flatShading: true }),
+      treeLocations.length,
+    );
+    const upperFoliage = new THREE.InstancedMesh(
+      new THREE.ConeGeometry(0.43, 1.02, 9),
+      new THREE.MeshStandardMaterial({ color: "#47734a", roughness: 0.9, flatShading: true }),
+      treeLocations.length,
+    );
+    const matrix = new THREE.Matrix4();
+    const quaternion = new THREE.Quaternion();
+    const scaleVector = new THREE.Vector3();
+    treeLocations.forEach((tree, index) => {
+      quaternion.setFromAxisAngle(new THREE.Vector3(0, 1, 0), tree.rotation);
+      matrix.compose(
+        new THREE.Vector3(tree.x, tree.y + tree.scale * 0.36, tree.z),
+        quaternion,
+        scaleVector.set(tree.scale, tree.scale, tree.scale),
+      );
+      trunkMesh.setMatrixAt(index, matrix);
+      matrix.compose(
+        new THREE.Vector3(tree.x, tree.y + tree.scale * 0.82, tree.z),
+        quaternion,
+        scaleVector.set(tree.scale, tree.scale, tree.scale),
+      );
+      lowerFoliage.setMatrixAt(index, matrix);
+      matrix.compose(
+        new THREE.Vector3(tree.x, tree.y + tree.scale * 1.34, tree.z),
+        quaternion,
+        scaleVector.set(tree.scale * 0.9, tree.scale * 0.9, tree.scale * 0.9),
+      );
+      upperFoliage.setMatrixAt(index, matrix);
+    });
+    for (const mesh of [trunkMesh, lowerFoliage, upperFoliage]) {
+      mesh.instanceMatrix.needsUpdate = true;
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      scene.add(mesh);
+    }
+
+    const mountainMaterial = new THREE.MeshStandardMaterial({ color: "#6f706b", roughness: 0.98, flatShading: true });
+    const snowMaterial = new THREE.MeshStandardMaterial({ color: "#d8d8ca", roughness: 0.9, flatShading: true });
     for (let i = 0; i < 14; i += 1) {
       const x = -10 + hash(seed + 401, i, 1) * 8;
       const z = 1 + hash(seed + 402, i, 2) * 8;
       if (distanceToRiver(x, z, samples) < 1.8) continue;
       const y = heightAt(seed, x, z, samples);
-      const mountain = new THREE.Mesh(new THREE.ConeGeometry(0.7 + hash(seed, i, 8) * 0.45, 1.8 + hash(seed, i, 9), 7), mountainMaterial);
-      mountain.position.set(x, y + 0.82, z);
+      const radius = 0.72 + hash(seed, i, 8) * 0.5;
+      const mountainHeight = 2 + hash(seed, i, 9) * 1.25;
+      const mountain = new THREE.Mesh(new THREE.ConeGeometry(radius, mountainHeight, 7, 3), mountainMaterial);
+      mountain.position.set(x, y + mountainHeight * 0.46, z);
       mountain.rotation.y = hash(seed, i, 10) * Math.PI;
+      mountain.scale.z = 0.78 + hash(seed, i, 11) * 0.42;
       mountain.castShadow = true;
       mountain.receiveShadow = true;
       scene.add(mountain);
+      if (mountainHeight > 2.55) {
+        const snow = new THREE.Mesh(new THREE.ConeGeometry(radius * 0.38, mountainHeight * 0.28, 7), snowMaterial);
+        snow.position.set(x, y + mountainHeight * 0.9, z);
+        snow.rotation.y = mountain.rotation.y;
+        snow.scale.z = mountain.scale.z;
+        snow.castShadow = true;
+        scene.add(snow);
+      }
+    }
+
+    const rockMaterial = new THREE.MeshStandardMaterial({ color: "#716e61", roughness: 1, flatShading: true });
+    for (let i = 0; i < 26; i += 1) {
+      const x = (hash(seed + 501, i, 1) - 0.5) * (MAP_WIDTH - 2);
+      const z = (hash(seed + 502, i, 2) - 0.5) * (MAP_DEPTH - 2);
+      if (distanceToRiver(x, z, samples) < 1.05) continue;
+      const y = heightAt(seed, x, z, samples);
+      const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(0.16 + hash(seed, i, 4) * 0.18, 0), rockMaterial);
+      rock.position.set(x, y + 0.12, z);
+      rock.scale.y = 0.55 + hash(seed, i, 5) * 0.45;
+      rock.rotation.set(hash(seed, i, 6), hash(seed, i, 7) * Math.PI, hash(seed, i, 8));
+      rock.castShadow = true;
+      scene.add(rock);
     }
 
     const gridPositions: number[] = [];
@@ -258,6 +341,7 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
     scene.add(grid);
 
     const animate = () => {
+      waterTexture.offset.y -= 0.00022;
       controls.update();
       renderer.render(scene, camera);
     };
@@ -286,8 +370,8 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
           materials.forEach((material) => material.dispose());
         }
       });
+      groundTexture.dispose();
       waterTexture.dispose();
-      treeTexture.dispose();
       renderer.dispose();
       renderer.domElement.remove();
     };
