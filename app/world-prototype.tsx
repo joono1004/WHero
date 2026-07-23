@@ -361,51 +361,99 @@ export function WorldPrototype() {
     }
     const riverRoutes: Cell[][] = [];
     for (const source of riverSources) {
-      const route = [source];
-      const visited = new Set([`${source.q},${source.r}`]);
-      let current = source;
-      for (let step = 0; step < 34 && !isWater(current.terrain); step += 1) {
-        const candidates = riverDirections
-          .map(([dq, dr]) => cellByCoordinate.get(`${current.q + dq},${current.r + dr}`))
-          .filter((cell): cell is Cell => Boolean(cell) && !visited.has(`${cell!.q},${cell!.r}`))
-          .sort((a, b) => {
-            const aWater = isWater(a.terrain) ? -2 : 0;
-            const bWater = isWater(b.terrain) ? -2 : 0;
-            const aNoise = hash(seed + 1701, a.q, a.r) * 0.045;
-            const bNoise = hash(seed + 1701, b.q, b.r) * 0.045;
-            return a.elevation + aNoise + aWater - (b.elevation + bNoise + bWater);
-          });
-        const next = candidates[0];
-        if (!next || (next.elevation > current.elevation + 0.09 && !isWater(next.terrain))) break;
-        route.push(next);
-        visited.add(`${next.q},${next.r}`);
-        current = next;
+      const sourceKey = `${source.q},${source.r}`;
+      const costs = new Map<string, number>([[sourceKey, 0]]);
+      const previous = new Map<string, string>();
+      const frontier = [sourceKey];
+      let targetKey: string | null = null;
+
+      while (frontier.length) {
+        frontier.sort((a, b) => costs.get(a)! - costs.get(b)!);
+        const currentKey = frontier.shift()!;
+        const current = cellByCoordinate.get(currentKey)!;
+        if (isWater(current.terrain)) {
+          targetKey = currentKey;
+          break;
+        }
+        for (const [dq, dr] of riverDirections) {
+          const next = cellByCoordinate.get(`${current.q + dq},${current.r + dr}`);
+          if (!next) continue;
+          const nextKey = `${next.q},${next.r}`;
+          const uphill = Math.max(0, next.elevation - current.elevation);
+          const terrainPenalty = next.terrain === "mountain" && current !== source ? 2.4 : next.terrain === "hill" ? 0.45 : 0;
+          const meander = hash(seed + 1701, next.q, next.r) * 0.52;
+          const nextCost = costs.get(currentKey)! + 1 + uphill * 34 + terrainPenalty + meander;
+          if (nextCost >= (costs.get(nextKey) ?? Infinity)) continue;
+          costs.set(nextKey, nextCost);
+          previous.set(nextKey, currentKey);
+          if (!frontier.includes(nextKey)) frontier.push(nextKey);
+        }
       }
-      if (route.length >= 4) riverRoutes.push(route);
+
+      if (targetKey) {
+        const route: Cell[] = [];
+        let cursor: string | undefined = targetKey;
+        while (cursor) {
+          const cell = cellByCoordinate.get(cursor);
+          if (cell) route.push(cell);
+          if (cursor === sourceKey) break;
+          cursor = previous.get(cursor);
+        }
+        route.reverse();
+        if (route.length >= 5) riverRoutes.push(route);
+      }
     }
 
-    const strokeRiver = (route: Cell[], color: string, lineWidth: number) => {
-      const points = route.map(centerOf);
-      ctx.strokeStyle = color;
-      ctx.lineWidth = lineWidth;
-      ctx.lineCap = "round";
-      ctx.lineJoin = "round";
-      ctx.beginPath();
-      ctx.moveTo(points[0].x, points[0].y);
-      for (let i = 1; i < points.length - 1; i += 1) {
-        const midpointX = (points[i].x + points[i + 1].x) / 2;
-        const midpointY = (points[i].y + points[i + 1].y) / 2;
-        ctx.quadraticCurveTo(points[i].x, points[i].y, midpointX, midpointY);
-      }
-      const last = points[points.length - 1];
-      ctx.lineTo(last.x, last.y);
-      ctx.stroke();
-    };
+    const drawRivers = () => {
     for (const route of riverRoutes) {
-      strokeRiver(route, "rgba(21,38,42,.45)", size * 0.19);
-      strokeRiver(route, "rgba(74,151,170,.94)", size * 0.115);
-      strokeRiver(route, "rgba(190,225,222,.42)", Math.max(0.75, size * 0.026));
+      const centers = route.map(centerOf);
+      const points = [
+        centers[0],
+        ...centers.slice(0, -1).map((point, index) => {
+          const next = centers[index + 1];
+          const dx = next.x - point.x;
+          const dy = next.y - point.y;
+          const length = Math.hypot(dx, dy);
+          const bend = (hash(seed + 1801 + index, route[index].q, route[index].r) - 0.5) * size * 0.28;
+          return {
+            x: (point.x + next.x) / 2 + (-dy / length) * bend,
+            y: (point.y + next.y) / 2 + (dx / length) * bend,
+          };
+        }),
+        centers[centers.length - 1],
+      ];
+
+      for (let i = 0; i < points.length - 1; i += 1) {
+        const start = points[i];
+        const end = points[i + 1];
+        const dx = end.x - start.x;
+        const dy = end.y - start.y;
+        const length = Math.hypot(dx, dy);
+        const progress = i / Math.max(1, points.length - 2);
+        const curve = (hash(seed + 1901 + i, route[0].q, route[0].r) - 0.5) * size * 0.32;
+        const controlX = (start.x + end.x) / 2 + (-dy / length) * curve;
+        const controlY = (start.y + end.y) / 2 + (dx / length) * curve;
+        const trace = (color: string, lineWidth: number) => {
+          ctx.strokeStyle = color;
+          ctx.lineWidth = lineWidth;
+          ctx.lineCap = "round";
+          ctx.beginPath();
+          ctx.moveTo(start.x, start.y);
+          ctx.quadraticCurveTo(controlX, controlY, end.x, end.y);
+          ctx.stroke();
+        };
+        trace("rgba(48,45,32,.38)", size * (0.085 + progress * 0.075));
+        trace("rgba(54,126,149,.96)", size * (0.052 + progress * 0.057));
+        trace("rgba(192,229,226,.48)", Math.max(0.55, size * (0.012 + progress * 0.009)));
+      }
+
+      const spring = points[0];
+      ctx.fillStyle = "rgba(68,139,157,.88)";
+      ctx.beginPath();
+      ctx.ellipse(spring.x, spring.y, size * 0.09, size * 0.055, -0.25, 0, Math.PI * 2);
+      ctx.fill();
     }
+    };
 
     const allDirections = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, -1], [-1, 1]];
     const terrainGroups = (terrain: Terrain) => {
@@ -547,6 +595,7 @@ export function WorldPrototype() {
     drawConnectedTerrain(terrainGroups("foothill"), hillSprite, "foothill");
     drawConnectedTerrain(terrainGroups("hill"), hillSprite, "hill");
     drawConnectedTerrain(terrainGroups("mountain"), mountainSprite, "mountain");
+    drawRivers();
 
     for (const cell of cells) {
       const { x: cx, y: cy } = centerOf(cell);
