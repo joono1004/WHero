@@ -24,6 +24,21 @@ function terrainNoise(seed: number, x: number, z: number) {
   );
 }
 
+function landValue(seed: number, x: number, z: number) {
+  const xRadius = 10.4 + hash(seed + 71, 1, 1) * 2.3;
+  const zRadius = 7.8 + hash(seed + 72, 1, 2) * 2;
+  const offsetX = (hash(seed + 73, 1, 3) - 0.5) * 2.4;
+  const offsetZ = (hash(seed + 74, 1, 4) - 0.5) * 1.8;
+  const radial = Math.hypot((x - offsetX) / xRadius, (z - offsetZ) / zRadius);
+  const phaseA = hash(seed + 75, 1, 5) * Math.PI * 2;
+  const phaseB = hash(seed + 76, 1, 6) * Math.PI * 2;
+  const coastline =
+    Math.sin(x * 0.58 + phaseA) * 0.12 +
+    Math.cos(z * 0.66 + phaseB) * 0.11 +
+    Math.sin((x - z) * 0.38 + phaseA * 0.7) * 0.08;
+  return 1 - radial + coastline;
+}
+
 function distanceToRiver(x: number, z: number, samples: THREE.Vector3[]) {
   let nearest = Infinity;
   for (const point of samples) nearest = Math.min(nearest, Math.hypot(x - point.x, z - point.z));
@@ -31,16 +46,17 @@ function distanceToRiver(x: number, z: number, samples: THREE.Vector3[]) {
 }
 
 function buildRiver(seed: number) {
-  const bend = (index: number) => (hash(seed + 2000, index, 7) - 0.5) * 2.2;
+  const bend = (index: number, strength = 1) => (hash(seed + 2000, index, 7) - 0.5) * strength;
+  const drift = (hash(seed + 2010, 1, 1) - 0.5) * 5;
   const controlPoints = [
-    new THREE.Vector3(-8.6, 0, -12.2),
-    new THREE.Vector3(-7.3 + bend(1), 0, -7.8),
-    new THREE.Vector3(-4.6 + bend(2), 0, -4.2),
-    new THREE.Vector3(-0.8 + bend(3), 0, -1.3),
-    new THREE.Vector3(3.7 + bend(4), 0, 1.4),
-    new THREE.Vector3(4.5 + bend(5), 0, 5.7),
-    new THREE.Vector3(7.3 + bend(6), 0, 8.7),
-    new THREE.Vector3(8.5, 0, 12.2),
+    new THREE.Vector3(-6.8 + drift * 0.25, 0, 8.7),
+    new THREE.Vector3(-5.8 + drift * 0.45 + bend(1, 2.6), 0, 6.2),
+    new THREE.Vector3(-3.3 + drift * 0.55 + bend(2, 3), 0, 3.7),
+    new THREE.Vector3(-0.4 + drift * 0.7 + bend(3, 3.4), 0, 1.1),
+    new THREE.Vector3(2.7 + drift * 0.55 + bend(4, 3.2), 0, -1.7),
+    new THREE.Vector3(4.4 + drift * 0.35 + bend(5, 2.7), 0, -4.6),
+    new THREE.Vector3(5.7 + drift * 0.2 + bend(6, 2), 0, -7.6),
+    new THREE.Vector3(6.3 + drift * 0.12, 0, -10.6),
   ];
   const curve = new THREE.CatmullRomCurve3(controlPoints, false, "centripetal", 0.42);
   return { curve, samples: curve.getPoints(150) };
@@ -78,6 +94,9 @@ function createRiverRibbon(curve: THREE.CatmullRomCurve3) {
 function heightAt(seed: number, x: number, z: number, riverSamples: THREE.Vector3[]) {
   const base = terrainNoise(seed, x, z);
   const ridge = Math.max(0, Math.sin(x * 0.22 - z * 0.12 + seed * 0.0001)) * 0.18;
+  const land = landValue(seed, x, z);
+  if (land < -0.08) return -0.72 + terrainNoise(seed + 811, x, z) * 0.12;
+  if (land < 0.08) return THREE.MathUtils.lerp(-0.42, base * 0.35, THREE.MathUtils.smoothstep(land, -0.08, 0.08));
   const distance = distanceToRiver(x, z, riverSamples);
   if (distance < 1.55) {
     const bank = THREE.MathUtils.smoothstep(distance, 0.62, 1.55);
@@ -166,6 +185,8 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
       position.setY(i, height);
       const wetness = 0.45 + terrainNoise(seed + 91, x * 1.7, z * 1.7) * 1.8;
       const color = terrainColor(height, wetness);
+      const coast = landValue(seed, x, z);
+      if (coast < 0.14) color.lerp(new THREE.Color("#c8b47d"), THREE.MathUtils.smoothstep(0.14 - coast, 0, 0.2));
       colorValues.push(color.r, color.g, color.b);
     }
     terrainGeometry.setAttribute("color", new THREE.Float32BufferAttribute(colorValues, 3));
@@ -193,6 +214,27 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
     waterTexture.wrapS = THREE.RepeatWrapping;
     waterTexture.wrapT = THREE.RepeatWrapping;
     waterTexture.repeat.set(1.2, 8);
+    const seaTexture = waterTexture.clone();
+    seaTexture.needsUpdate = true;
+    seaTexture.repeat.set(5, 4);
+    const sea = new THREE.Mesh(
+      new THREE.PlaneGeometry(MAP_WIDTH + 10, MAP_DEPTH + 10),
+      new THREE.MeshPhysicalMaterial({
+        color: "#4f91a6",
+        map: seaTexture,
+        roughness: 0.22,
+        metalness: 0.03,
+        transparent: true,
+        opacity: 0.94,
+        clearcoat: 0.48,
+        clearcoatRoughness: 0.18,
+      }),
+    );
+    sea.rotation.x = -Math.PI / 2;
+    sea.position.y = -0.32;
+    sea.receiveShadow = true;
+    scene.add(sea);
+
     const river = new THREE.Mesh(
       createRiverRibbon(curve),
       new THREE.MeshPhysicalMaterial({
@@ -209,43 +251,28 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
     river.receiveShadow = true;
     scene.add(river);
 
-    const forestAtlas = textureLoader.load("/assets/terrain/mixed-forest-real-v1.png");
-    forestAtlas.colorSpace = THREE.SRGBColorSpace;
-    const forestCenters = [
-      new THREE.Vector2(-7.6, -5.7),
-      new THREE.Vector2(-1.2, 6.1),
-      new THREE.Vector2(8.4, -4.7),
-      new THREE.Vector2(10.1, 4.1),
-    ];
-    for (let i = 0; i < 94; i += 1) {
-      const center = forestCenters[i % forestCenters.length];
-      const angle = hash(seed + 301, i, 1) * Math.PI * 2;
-      const radius = Math.pow(hash(seed + 302, i, 2), 0.72) * (2.6 + hash(seed + 303, i, 3) * 1.5);
-      const x = center.x + Math.cos(angle) * radius;
-      const z = center.y + Math.sin(angle) * radius * 0.7;
-      if (Math.abs(x) > MAP_WIDTH / 2 - 1 || Math.abs(z) > MAP_DEPTH / 2 - 1) continue;
-      if (distanceToRiver(x, z, samples) < 1.18) continue;
-
-      const atlasIndex = Math.floor(hash(seed + 304, i, 4) * 12);
-      const atlasTexture = forestAtlas.clone();
-      atlasTexture.needsUpdate = true;
-      atlasTexture.repeat.set(0.25, 1 / 3);
-      atlasTexture.offset.set((atlasIndex % 4) * 0.25, 1 - (Math.floor(atlasIndex / 4) + 1) / 3);
-      const material = new THREE.SpriteMaterial({
-        map: atlasTexture,
-        transparent: true,
-        alphaTest: 0.08,
-        depthWrite: true,
-        toneMapped: true,
-      });
-      const tree = new THREE.Sprite(material);
-      const scale = 0.72 + hash(seed + 305, i, 5) * 0.68;
+    const forestTexture = textureLoader.load("/assets/terrain/forest-grove-real-v2.png");
+    forestTexture.colorSpace = THREE.SRGBColorSpace;
+    const forestMaterial = new THREE.SpriteMaterial({
+      map: forestTexture,
+      transparent: true,
+      alphaTest: 0.1,
+      depthWrite: true,
+      toneMapped: true,
+    });
+    for (let i = 0; i < 14; i += 1) {
+      const x = (hash(seed + 301, i, 1) - 0.5) * (MAP_WIDTH - 5);
+      const z = (hash(seed + 302, i, 2) - 0.5) * (MAP_DEPTH - 4);
+      if (landValue(seed, x, z) < 0.18 || distanceToRiver(x, z, samples) < 1.75) continue;
+      const grove = new THREE.Sprite(forestMaterial.clone());
+      const scale = 1.7 + hash(seed + 303, i, 3) * 1.25;
       const y = heightAt(seed, x, z, samples);
-      tree.scale.set(scale * 1.35, scale * 1.72, 1);
-      tree.position.set(x, y + scale * 0.86, z);
-      tree.center.set(0.5, 0);
-      tree.renderOrder = Math.round((z + MAP_DEPTH / 2) * 10);
-      scene.add(tree);
+      grove.scale.set(scale * 1.75, scale * 1.18, 1);
+      grove.position.set(x, y, z);
+      grove.center.set(0.5, 0);
+      grove.renderOrder = Math.round((z + MAP_DEPTH / 2) * 10);
+      if (hash(seed + 304, i, 4) > 0.5) grove.material.rotation = 0.025;
+      scene.add(grove);
     }
 
     const mountainTexture = textureLoader.load("/assets/terrain/mountain-massif-real-v1.png");
@@ -257,14 +284,13 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
       depthWrite: true,
       toneMapped: true,
     });
-    const mountainCenters = [
-      [-10.3, 5.9, 4.9],
-      [-7.4, 7.2, 4.1],
-      [-11.4, 2.2, 3.7],
-      [-5.7, 4.1, 3.3],
-    ] as const;
+    const mountainCenters = Array.from({ length: 5 }, (_, index) => [
+      -8.8 + (hash(seed + 411, index, 1) - 0.5) * 7.5,
+      3.4 + (hash(seed + 412, index, 2) - 0.5) * 7,
+      3.25 + hash(seed + 413, index, 3) * 1.65,
+    ] as const);
     mountainCenters.forEach(([x, z, scale], index) => {
-      if (distanceToRiver(x, z, samples) < 1.55) return;
+      if (landValue(seed, x, z) < 0.22 || distanceToRiver(x, z, samples) < 1.55) return;
       const mountain = new THREE.Sprite(mountainMaterial.clone());
       const variation = 0.88 + hash(seed + 401, index, 2) * 0.24;
       const y = heightAt(seed, x, z, samples);
@@ -279,7 +305,7 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
     for (let i = 0; i < 26; i += 1) {
       const x = (hash(seed + 501, i, 1) - 0.5) * (MAP_WIDTH - 2);
       const z = (hash(seed + 502, i, 2) - 0.5) * (MAP_DEPTH - 2);
-      if (distanceToRiver(x, z, samples) < 1.05) continue;
+      if (landValue(seed, x, z) < 0.12 || distanceToRiver(x, z, samples) < 1.05) continue;
       const y = heightAt(seed, x, z, samples);
       const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(0.16 + hash(seed, i, 4) * 0.18, 0), rockMaterial);
       rock.position.set(x, y + 0.12, z);
@@ -321,6 +347,7 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
 
     const animate = () => {
       waterTexture.offset.y -= 0.00022;
+      seaTexture.offset.x += 0.000025;
       controls.update();
       renderer.render(scene, camera);
     };
@@ -355,7 +382,8 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
       });
       groundTexture.dispose();
       waterTexture.dispose();
-      forestAtlas.dispose();
+      seaTexture.dispose();
+      forestTexture.dispose();
       mountainTexture.dispose();
       renderer.dispose();
       renderer.domElement.remove();
