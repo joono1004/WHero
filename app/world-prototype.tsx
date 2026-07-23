@@ -156,6 +156,7 @@ export function WorldPrototype() {
   const [forestSprite, setForestSprite] = useState<HTMLImageElement | null>(null);
   const [hillSprite, setHillSprite] = useState<HTMLImageElement | null>(null);
   const [mountainSprite, setMountainSprite] = useState<HTMLImageElement | null>(null);
+  const [riverTexture, setRiverTexture] = useState<HTMLImageElement | null>(null);
   const [seedText, setSeedText] = useState("20260723");
   const [seed, setSeed] = useState(20260723);
   const [showGrid, setShowGrid] = useState(true);
@@ -174,6 +175,7 @@ export function WorldPrototype() {
     load("/assets/terrain/forest-cluster-v1.png", setForestSprite);
     load("/assets/terrain/hill-cluster-v1.png", setHillSprite);
     load("/assets/terrain/mountain-ridge-v1.png", setMountainSprite);
+    load("/assets/terrain/river-water-v1.png", setRiverTexture);
   }, []);
 
   useEffect(() => {
@@ -405,6 +407,8 @@ export function WorldPrototype() {
     }
 
     const drawRivers = () => {
+    const riverPattern = riverTexture ? ctx.createPattern(riverTexture, "repeat") : null;
+    riverPattern?.setTransform(new DOMMatrix().scale(Math.max(0.045, size / 180)));
     for (const route of riverRoutes) {
       const centers = route.map(centerOf);
       const points = [
@@ -434,7 +438,7 @@ export function WorldPrototype() {
         const controlX = (start.x + end.x) / 2 + (-dy / length) * curve;
         const controlY = (start.y + end.y) / 2 + (dx / length) * curve;
         const terrain = route[Math.min(i, route.length - 1)].terrain;
-        const trace = (color: string, lineWidth: number) => {
+        const trace = (color: string | CanvasPattern, lineWidth: number) => {
           ctx.strokeStyle = color;
           ctx.lineWidth = lineWidth;
           ctx.lineCap = "round";
@@ -455,16 +459,21 @@ export function WorldPrototype() {
         const waterBase =
           terrain === "plain" || terrain === "meadow"
             ? 0.105
-            : terrain === "forest" || terrain === "woodland"
+              : terrain === "forest" || terrain === "woodland"
               ? 0.068
               : 0.052;
         const waterWidth = size * (waterBase + progress * (terrain === "plain" || terrain === "meadow" ? 0.105 : 0.06));
+        const widthVariation = 0.92 + hash(seed + 2051 + i, route[i]?.q ?? 0, route[i]?.r ?? 0) * 0.18;
 
         // Draw an opaque valley first so forests and relief are visually split
         // into two banks instead of leaving the river painted over their art.
-        trace(valleyStyle.color, size * valleyStyle.width);
-        trace("rgba(66,54,37,.5)", waterWidth + size * 0.085);
-        trace("rgba(54,126,149,.97)", waterWidth);
+        trace(valleyStyle.color, size * valleyStyle.width * widthVariation);
+        trace("rgba(54,45,30,.52)", waterWidth * widthVariation + size * 0.09);
+        trace("rgba(157,142,94,.48)", waterWidth * widthVariation + size * 0.045);
+        trace(riverPattern ?? "rgba(54,126,149,.97)", waterWidth * widthVariation);
+        ctx.globalAlpha = 0.42;
+        trace("rgba(36,109,137,.72)", waterWidth * widthVariation * 0.74);
+        ctx.globalAlpha = 1;
         trace("rgba(192,229,226,.5)", Math.max(0.55, waterWidth * 0.18));
 
         if (terrain === "forest" || terrain === "woodland") {
@@ -502,7 +511,7 @@ export function WorldPrototype() {
         for (const branch of [-0.34, 0, 0.34]) {
           const endX = mouth.x + nx * size * branch;
           const endY = mouth.y + ny * size * branch;
-          ctx.strokeStyle = "rgba(62,137,157,.88)";
+          ctx.strokeStyle = riverPattern ?? "rgba(62,137,157,.88)";
           ctx.lineWidth = size * (branch === 0 ? 0.12 : 0.075);
           ctx.lineCap = "round";
           ctx.beginPath();
@@ -752,7 +761,7 @@ export function WorldPrototype() {
       canvas.removeEventListener("pointerup", handlePointerUp);
       canvas.removeEventListener("pointercancel", handlePointerUp);
     };
-  }, [cells, forestSprite, groundTexture, hillSprite, mountainSprite, seed, selected, showGrid, view]);
+  }, [cells, forestSprite, groundTexture, hillSprite, mountainSprite, riverTexture, seed, selected, showGrid, view]);
 
   const regenerate = () => {
     const parsed = Number(seedText);
