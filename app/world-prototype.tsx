@@ -117,6 +117,53 @@ function terrainColor(height: number, wetness: number) {
   return color;
 }
 
+function createShorelineGeometry(seed: number, riverSamples: THREE.Vector3[]) {
+  const columns = 96;
+  const rows = 76;
+  const threshold = 0.025;
+  const positions: number[] = [];
+  const point = (column: number, row: number) => ({
+    x: -MAP_WIDTH / 2 + (column / columns) * MAP_WIDTH,
+    z: -MAP_DEPTH / 2 + (row / rows) * MAP_DEPTH,
+  });
+  const crossing = (a: { x: number; z: number }, b: { x: number; z: number }) => {
+    const av = landValue(seed, a.x, a.z) - threshold;
+    const bv = landValue(seed, b.x, b.z) - threshold;
+    if (av === 0) return a;
+    if (av * bv > 0) return null;
+    const t = av / (av - bv);
+    return { x: THREE.MathUtils.lerp(a.x, b.x, t), z: THREE.MathUtils.lerp(a.z, b.z, t) };
+  };
+  for (let row = 0; row < rows; row += 1) {
+    for (let column = 0; column < columns; column += 1) {
+      const corners = [
+        point(column, row),
+        point(column + 1, row),
+        point(column + 1, row + 1),
+        point(column, row + 1),
+      ];
+      const hits = [
+        crossing(corners[0], corners[1]),
+        crossing(corners[1], corners[2]),
+        crossing(corners[2], corners[3]),
+        crossing(corners[3], corners[0]),
+      ].filter((value): value is { x: number; z: number } => value !== null);
+      if (hits.length < 2) continue;
+      for (let index = 0; index + 1 < hits.length; index += 2) {
+        const a = hits[index];
+        const b = hits[index + 1];
+        positions.push(
+          a.x, heightAt(seed, a.x, a.z, riverSamples) + 0.055, a.z,
+          b.x, heightAt(seed, b.x, b.z, riverSamples) + 0.055, b.z,
+        );
+      }
+    }
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  return geometry;
+}
+
 function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
   const hostRef = useRef<HTMLDivElement>(null);
 
@@ -164,7 +211,7 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
     controls.mouseButtons.MIDDLE = THREE.MOUSE.PAN;
     controls.mouseButtons.RIGHT = THREE.MOUSE.ROTATE;
     controls.minPolarAngle = Math.PI * 0.22;
-    controls.maxPolarAngle = Math.PI * 0.47;
+    controls.maxPolarAngle = Math.PI * 0.38;
 
     scene.add(new THREE.HemisphereLight("#fff6d7", "#465649", 2.3));
     const sun = new THREE.DirectionalLight("#fff0c1", 3.4);
@@ -192,7 +239,10 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
       const wetness = 0.45 + terrainNoise(seed + 91, x * 1.7, z * 1.7) * 1.8;
       const color = terrainColor(height, wetness);
       const coast = landValue(seed, x, z);
-      if (coast < 0.14) color.lerp(new THREE.Color("#c8b47d"), THREE.MathUtils.smoothstep(0.14 - coast, 0, 0.2));
+      if (coast < 0.24) {
+        const beachStrength = THREE.MathUtils.clamp((0.24 - coast) / 0.24, 0, 1);
+        color.lerp(new THREE.Color("#d2bd82"), beachStrength * 0.92);
+      }
       colorValues.push(color.r, color.g, color.b);
     }
     terrainGeometry.setAttribute("color", new THREE.Float32BufferAttribute(colorValues, 3));
@@ -241,6 +291,13 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
     sea.receiveShadow = true;
     scene.add(sea);
 
+    const shoreline = new THREE.LineSegments(
+      createShorelineGeometry(seed, samples),
+      new THREE.LineBasicMaterial({ color: "#f8edc7", transparent: true, opacity: 0.78 }),
+    );
+    shoreline.renderOrder = 20;
+    scene.add(shoreline);
+
     const river = new THREE.Mesh(
       createRiverRibbon(curve),
       new THREE.MeshPhysicalMaterial({
@@ -256,6 +313,37 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
     );
     river.receiveShadow = true;
     scene.add(river);
+
+    const shadowCanvas = document.createElement("canvas");
+    shadowCanvas.width = 128;
+    shadowCanvas.height = 128;
+    const shadowContext = shadowCanvas.getContext("2d");
+    if (shadowContext) {
+      const gradient = shadowContext.createRadialGradient(64, 64, 5, 64, 64, 60);
+      gradient.addColorStop(0, "rgba(27, 34, 20, 0.48)");
+      gradient.addColorStop(0.55, "rgba(27, 34, 20, 0.25)");
+      gradient.addColorStop(1, "rgba(27, 34, 20, 0)");
+      shadowContext.fillStyle = gradient;
+      shadowContext.fillRect(0, 0, 128, 128);
+    }
+    const contactShadowTexture = new THREE.CanvasTexture(shadowCanvas);
+    const addContactShadow = (x: number, y: number, z: number, width: number, depth: number, opacity: number) => {
+      const shadow = new THREE.Mesh(
+        new THREE.PlaneGeometry(width, depth),
+        new THREE.MeshBasicMaterial({
+          map: contactShadowTexture,
+          transparent: true,
+          opacity,
+          depthWrite: false,
+          polygonOffset: true,
+          polygonOffsetFactor: -2,
+        }),
+      );
+      shadow.rotation.x = -Math.PI / 2;
+      shadow.position.set(x, y + 0.035, z);
+      shadow.renderOrder = 2;
+      scene.add(shadow);
+    };
 
     const forestTexture = textureLoader.load("/assets/terrain/forest-grove-real-v2.png");
     forestTexture.colorSpace = THREE.SRGBColorSpace;
@@ -278,6 +366,7 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
       grove.center.set(0.5, 0);
       grove.renderOrder = Math.round((z + MAP_DEPTH / 2) * 10);
       if (hash(seed + 304, i, 4) > 0.5) grove.material.rotation = 0.025;
+      addContactShadow(x, y, z, scale * 1.48, scale * 0.84, 0.72);
       scene.add(grove);
     }
 
@@ -304,6 +393,7 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
       mountain.position.set(x, y, z);
       mountain.center.set(0.5, 0);
       mountain.renderOrder = Math.round((z + MAP_DEPTH / 2) * 10);
+      addContactShadow(x, y, z, scale * 1.2, scale * 0.67, 0.8);
       scene.add(mountain);
     });
 
@@ -445,6 +535,7 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
       groundTexture.dispose();
       waterTexture.dispose();
       seaTexture.dispose();
+      contactShadowTexture.dispose();
       forestTexture.dispose();
       mountainTexture.dispose();
       renderer.dispose();
