@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
-type Terrain = "ocean" | "coast" | "plain" | "meadow" | "woodland" | "forest" | "hill" | "foothill" | "mountain";
+type Terrain = "ocean" | "shallows" | "coast" | "plain" | "meadow" | "woodland" | "forest" | "hill" | "foothill" | "mountain";
 type Cell = { q: number; r: number; terrain: Terrain; elevation: number; moisture: number };
 
 const COLS = 20;
@@ -93,15 +93,42 @@ function generateWorld(seed: number): Cell[] {
     else if (around.some((other) => other.terrain === "hill")) cell.terrain = "meadow";
   }
 
+  const coastKeys = new Set(
+    raw
+      .flat()
+      .filter(
+        (cell) =>
+          cell.terrain === "ocean" &&
+          adjacent(cell).some((other) => other.terrain !== "ocean"),
+      )
+      .map((cell) => `${cell.q},${cell.r}`),
+  );
+  const shallowKeys = new Set(
+    raw
+      .flat()
+      .filter(
+        (cell) =>
+          cell.terrain === "ocean" &&
+          !coastKeys.has(`${cell.q},${cell.r}`) &&
+          adjacent(cell).some((other) =>
+            coastKeys.has(`${other.q},${other.r}`),
+          ),
+      )
+      .map((cell) => `${cell.q},${cell.r}`),
+  );
+
   return raw.flat().map((cell) => {
     if (cell.terrain !== "ocean") return cell;
-    const touchesLand = adjacent(cell).some((other) => other.terrain !== "ocean");
-    return touchesLand ? { ...cell, terrain: "coast" as const } : cell;
+    const key = `${cell.q},${cell.r}`;
+    if (coastKeys.has(key)) return { ...cell, terrain: "coast" as const };
+    if (shallowKeys.has(key)) return { ...cell, terrain: "shallows" as const };
+    return cell;
   });
 }
 
 const colors: Record<Terrain, [string, string]> = {
   ocean: ["#183f54", "#245c72"],
+  shallows: ["#28677a", "#438b96"],
   coast: ["#2e7283", "#62a3a4"],
   plain: ["#718759", "#9aa66b"],
   meadow: ["#7e8a5c", "#aaa46f"],
@@ -183,7 +210,7 @@ export function WorldPrototype() {
       ctx.fillStyle = gradient;
       ctx.fill();
 
-      if (cell.terrain !== "ocean" && cell.terrain !== "coast" && groundTexture) {
+      if (cell.terrain !== "ocean" && cell.terrain !== "shallows" && cell.terrain !== "coast" && groundTexture) {
         ctx.save();
         hexPath(ctx, cx, cy, size + 0.4);
         ctx.clip();
@@ -192,8 +219,8 @@ export function WorldPrototype() {
         ctx.restore();
       }
 
-      if (cell.terrain === "ocean") {
-        ctx.strokeStyle = "rgba(151,211,220,.15)";
+      if (cell.terrain === "ocean" || cell.terrain === "shallows") {
+        ctx.strokeStyle = cell.terrain === "shallows" ? "rgba(177,225,222,.18)" : "rgba(151,211,220,.15)";
         ctx.lineWidth = Math.max(0.7, size * 0.035);
         for (let i = -1; i <= 1; i += 1) {
           ctx.beginPath();
@@ -205,7 +232,7 @@ export function WorldPrototype() {
     }
 
     const neighborDirections = [[1, 0], [0, 1], [-1, 1]];
-    const isWater = (terrain: Terrain) => terrain === "ocean" || terrain === "coast";
+    const isWater = (terrain: Terrain) => terrain === "ocean" || terrain === "shallows" || terrain === "coast";
 
     for (const cell of cells) {
       const a = centerOf(cell);
@@ -226,7 +253,8 @@ export function WorldPrototype() {
         if (pair.has("forest") || pair.has("woodland")) band = "rgba(64,102,65,.58)";
         if (pair.has("hill") || pair.has("foothill") || pair.has("mountain")) band = "rgba(122,112,83,.56)";
         if (isWater(cell.terrain) !== isWater(neighbor.terrain)) band = "rgba(209,193,132,.74)";
-        if (pair.has("ocean") && pair.has("coast")) band = "rgba(91,156,162,.48)";
+        if (pair.has("coast") && pair.has("shallows")) band = "rgba(107,177,176,.5)";
+        if (pair.has("ocean") && pair.has("shallows")) band = "rgba(63,124,139,.46)";
 
         ctx.save();
         const waterBoundary = isWater(cell.terrain) !== isWater(neighbor.terrain);
@@ -312,7 +340,45 @@ export function WorldPrototype() {
       const ratio = sprite.height / sprite.width;
       for (const group of groups) {
         const points = group.map(centerOf);
-        if (kind === "forest" || kind === "woodland") {
+        if (kind === "forest") {
+          const minX = Math.min(...points.map((point) => point.x));
+          const maxX = Math.max(...points.map((point) => point.x));
+          const minY = Math.min(...points.map((point) => point.y));
+          const maxY = Math.max(...points.map((point) => point.y));
+          const cx = (minX + maxX) / 2;
+          const cy = (minY + maxY) / 2;
+          const desiredWidth = Math.max(
+            maxX - minX + size * 2.05,
+            (maxY - minY + size * 1.5) / ratio,
+          );
+          const spriteWidth = Math.min(desiredWidth, size * 6.8);
+          const spriteHeight = spriteWidth * ratio;
+
+          ctx.save();
+          ctx.beginPath();
+          for (const cell of group) {
+            const center = centerOf(cell);
+            for (let i = 0; i < 6; i += 1) {
+              const angle = (Math.PI / 180) * (60 * i - 30);
+              const x = center.x + size * 1.09 * Math.cos(angle);
+              const y = center.y + size * 1.09 * Math.sin(angle);
+              if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+            }
+            ctx.closePath();
+          }
+          ctx.clip("nonzero");
+          ctx.fillStyle = "rgba(23,58,39,.48)";
+          ctx.fillRect(minX - size, minY - size, maxX - minX + size * 2, maxY - minY + size * 2);
+          ctx.globalAlpha = 0.95;
+          ctx.shadowColor = "rgba(2,12,10,.55)";
+          ctx.shadowBlur = size * 0.22;
+          ctx.shadowOffsetY = size * 0.12;
+          ctx.drawImage(sprite, cx - spriteWidth / 2, cy - spriteHeight * 0.61, spriteWidth, spriteHeight);
+          ctx.restore();
+
+          continue;
+        }
+        if (kind === "woodland") {
           const anchors: { x: number; y: number; cell: Cell }[] = [];
           for (const cell of [...group].sort((a, b) => hash(seed + 991, a.q, a.r) - hash(seed + 991, b.q, b.r))) {
             const point = centerOf(cell);
@@ -450,10 +516,10 @@ export function WorldPrototype() {
         <canvas ref={canvasRef} aria-label="랜덤으로 생성된 육각형 세계 지도" />
         <aside className="legend">
           <strong>지형</strong>
-          {Object.entries({ 평원: "plain", 구릉: "meadow", 숲가장자리: "woodland", 숲: "forest", 언덕: "hill", 산기슭: "foothill", 산: "mountain", 해안: "coast", 바다: "ocean" }).map(([name, type]) => <span key={type}><i style={{ background: colors[type as Terrain][1] }} />{name}</span>)}
+          {Object.entries({ 평원: "plain", 구릉: "meadow", 숲가장자리: "woodland", 숲: "forest", 언덕: "hill", 산기슭: "foothill", 산: "mountain", 해안: "coast", 얕은바다: "shallows", 바다: "ocean" }).map(([name, type]) => <span key={type}><i style={{ background: colors[type as Terrain][1] }} />{name}</span>)}
         </aside>
         <div className="selection-card">
-          {selected ? <><span>선택한 지역</span><strong>{selected.q}, {selected.r}</strong><em>{({ ocean: "바다", coast: "해안", plain: "평원", meadow: "완만한 구릉", woodland: "숲 가장자리", forest: "울창한 숲", hill: "언덕", foothill: "산기슭", mountain: "산" } as Record<Terrain, string>)[selected.terrain]}</em></> : <><span>지도를 눌러보세요</span><strong>지역 정보</strong><em>Hex 경계와 지형 연결을 확인합니다.</em></>}
+          {selected ? <><span>선택한 지역</span><strong>{selected.q}, {selected.r}</strong><em>{({ ocean: "바다", shallows: "얕은 바다", coast: "해안", plain: "평원", meadow: "완만한 구릉", woodland: "숲 가장자리", forest: "울창한 숲", hill: "언덕", foothill: "산기슭", mountain: "산" } as Record<Terrain, string>)[selected.terrain]}</em></> : <><span>지도를 눌러보세요</span><strong>지역 정보</strong><em>Hex 경계와 지형 연결을 확인합니다.</em></>}
         </div>
       </section>
       <footer><span>현재 검증</span><b>Hex 경계 가독성</b><b>시드 재현성</b><b>육지·바다 연결</b><small>전투와 도시는 다음 단계에서 추가됩니다.</small></footer>
