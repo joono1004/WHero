@@ -74,11 +74,18 @@ function hexPath(ctx: CanvasRenderingContext2D, cx: number, cy: number, size: nu
 
 export function WorldPrototype() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [groundTexture, setGroundTexture] = useState<HTMLImageElement | null>(null);
   const [seedText, setSeedText] = useState("20260723");
   const [seed, setSeed] = useState(20260723);
   const [showGrid, setShowGrid] = useState(true);
   const [selected, setSelected] = useState<Cell | null>(null);
   const cells = useMemo(() => generateWorld(seed), [seed]);
+
+  useEffect(() => {
+    const image = new Image();
+    image.src = "/assets/terrain/ground-texture-v1.png";
+    image.onload = () => setGroundTexture(image);
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -112,17 +119,71 @@ export function WorldPrototype() {
       ctx.fillStyle = gradient;
       ctx.fill();
 
-      if (cell.terrain === "forest") {
-        ctx.fillStyle = "rgba(19,50,35,.7)";
-        for (let i = 0; i < 3; i += 1) {
-          const px = cx + (hash(seed + i, cell.q, cell.r) - 0.5) * size;
-          const py = cy + (hash(seed + 41 + i, cell.r, cell.q) - 0.5) * size;
-          ctx.beginPath(); ctx.arc(px, py, size * 0.12, 0, Math.PI * 2); ctx.fill();
+      if (cell.terrain !== "ocean" && cell.terrain !== "coast" && groundTexture) {
+        ctx.save();
+        hexPath(ctx, cx, cy, size + 0.4);
+        ctx.clip();
+        ctx.globalAlpha = cell.terrain === "mountain" ? 0.18 : 0.34;
+        const patchSize = size * 5.4;
+        const tx = cx - (hash(seed + 220, cell.q, cell.r) * patchSize);
+        const ty = cy - (hash(seed + 221, cell.r, cell.q) * patchSize);
+        ctx.drawImage(groundTexture, tx, ty, patchSize, patchSize);
+        ctx.restore();
+      }
+
+      if (cell.terrain === "ocean") {
+        ctx.strokeStyle = "rgba(151,211,220,.15)";
+        ctx.lineWidth = Math.max(0.7, size * 0.035);
+        for (let i = -1; i <= 1; i += 1) {
+          ctx.beginPath();
+          ctx.arc(cx + i * size * 0.24, cy + i * size * 0.09, size * 0.27, Math.PI * 1.08, Math.PI * 1.72);
+          ctx.stroke();
         }
       }
+
+      if (cell.terrain === "coast") {
+        ctx.strokeStyle = "rgba(213,236,217,.42)";
+        ctx.lineWidth = Math.max(1, size * 0.08);
+        ctx.beginPath();
+        ctx.arc(cx, cy + size * 0.03, size * 0.46, Math.PI * 1.05, Math.PI * 1.88);
+        ctx.stroke();
+        ctx.strokeStyle = "rgba(238,224,174,.33)";
+        ctx.lineWidth = Math.max(1, size * 0.12);
+        ctx.beginPath();
+        ctx.arc(cx, cy - size * 0.02, size * 0.58, Math.PI * 0.96, Math.PI * 1.94);
+        ctx.stroke();
+      }
+
+      if (cell.terrain === "forest") {
+        for (let i = 0; i < 7; i += 1) {
+          const px = cx + (hash(seed + i, cell.q, cell.r) - 0.5) * size * 1.18;
+          const py = cy + (hash(seed + 41 + i, cell.r, cell.q) - 0.5) * size * 0.95;
+          const crown = size * (0.1 + hash(seed + 70 + i, cell.q, cell.r) * 0.08);
+          ctx.fillStyle = "rgba(5,20,17,.28)";
+          ctx.beginPath(); ctx.ellipse(px + crown * 0.35, py + crown * 0.45, crown, crown * 0.62, 0, 0, Math.PI * 2); ctx.fill();
+          const canopy = ctx.createRadialGradient(px - crown * 0.25, py - crown * 0.35, 0, px, py, crown);
+          canopy.addColorStop(0, "#78905c"); canopy.addColorStop(0.45, "#3e6849"); canopy.addColorStop(1, "#173c32");
+          ctx.fillStyle = canopy;
+          ctx.beginPath(); ctx.arc(px, py, crown, 0, Math.PI * 2); ctx.fill();
+        }
+      }
+      if (cell.terrain === "hill") {
+        ctx.fillStyle = "rgba(24,27,20,.22)";
+        ctx.beginPath(); ctx.ellipse(cx + size * 0.1, cy + size * 0.15, size * 0.48, size * 0.22, -0.32, 0, Math.PI * 2); ctx.fill();
+        const hill = ctx.createLinearGradient(cx - size * 0.4, cy - size * 0.4, cx + size * 0.4, cy + size * 0.3);
+        hill.addColorStop(0, "rgba(179,166,112,.78)"); hill.addColorStop(1, "rgba(73,70,50,.55)");
+        ctx.fillStyle = hill;
+        ctx.beginPath(); ctx.ellipse(cx, cy, size * 0.48, size * 0.24, -0.32, 0, Math.PI * 2); ctx.fill();
+      }
       if (cell.terrain === "mountain") {
-        ctx.fillStyle = "rgba(230,225,208,.7)";
-        ctx.beginPath(); ctx.moveTo(cx, cy - size * 0.5); ctx.lineTo(cx - size * 0.35, cy + size * 0.25); ctx.lineTo(cx + size * 0.35, cy + size * 0.25); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = "rgba(12,18,19,.35)";
+        ctx.beginPath(); ctx.ellipse(cx + size * 0.12, cy + size * 0.25, size * 0.46, size * 0.15, 0, 0, Math.PI * 2); ctx.fill();
+        const mountain = ctx.createLinearGradient(cx - size * 0.5, cy - size * 0.5, cx + size * 0.5, cy + size * 0.4);
+        mountain.addColorStop(0, "#c4bda9"); mountain.addColorStop(0.47, "#77766d"); mountain.addColorStop(1, "#3b4341");
+        ctx.fillStyle = mountain;
+        ctx.beginPath(); ctx.moveTo(cx, cy - size * 0.68); ctx.lineTo(cx - size * 0.5, cy + size * 0.3); ctx.lineTo(cx + size * 0.52, cy + size * 0.3); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = "rgba(238,236,218,.72)";
+        ctx.beginPath(); ctx.moveTo(cx, cy - size * 0.68); ctx.lineTo(cx - size * 0.18, cy - size * 0.28); ctx.lineTo(cx, cy - size * 0.34); ctx.lineTo(cx + size * 0.15, cy - size * 0.18); ctx.lineTo(cx + size * 0.24, cy - size * 0.22); ctx.closePath(); ctx.fill();
       }
       if (showGrid) {
         hexPath(ctx, cx, cy, size);
@@ -154,7 +215,7 @@ export function WorldPrototype() {
     };
     canvas.addEventListener("click", handleClick);
     return () => canvas.removeEventListener("click", handleClick);
-  }, [cells, seed, selected, showGrid]);
+  }, [cells, groundTexture, seed, selected, showGrid]);
 
   const regenerate = () => {
     const parsed = Number(seedText);
