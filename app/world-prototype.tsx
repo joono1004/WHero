@@ -127,16 +127,16 @@ function generateWorld(seed: number): Cell[] {
 }
 
 const colors: Record<Terrain, [string, string]> = {
-  ocean: ["#183f54", "#245c72"],
-  shallows: ["#28677a", "#438b96"],
-  coast: ["#2e7283", "#62a3a4"],
-  plain: ["#718759", "#9aa66b"],
-  meadow: ["#7e8a5c", "#aaa46f"],
-  woodland: ["#516c4c", "#72845a"],
-  forest: ["#385f48", "#547558"],
-  hill: ["#756f51", "#938366"],
-  foothill: ["#686754", "#87806a"],
-  mountain: ["#76756e", "#a19d91"],
+  ocean: ["#315f72", "#4f8291"],
+  shallows: ["#4f8490", "#75a9a6"],
+  coast: ["#68a0a1", "#9bc4b6"],
+  plain: ["#8f9e58", "#bdc574"],
+  meadow: ["#92985b", "#c2bb73"],
+  woodland: ["#6e8454", "#98a665"],
+  forest: ["#5a7651", "#81945d"],
+  hill: ["#81775a", "#aa986f"],
+  foothill: ["#78745c", "#9d9472"],
+  mountain: ["#74746f", "#aaa69b"],
 };
 
 function hexPath(ctx: CanvasRenderingContext2D, cx: number, cy: number, size: number) {
@@ -172,7 +172,7 @@ export function WorldPrototype() {
       image.onload = () => setter(image);
     };
     load("/assets/terrain/ground-texture-v1.png", setGroundTexture);
-    load("/assets/terrain/forest-cluster-v1.png", setForestSprite);
+    load("/assets/terrain/conifer-cluster-v1.png", setForestSprite);
     load("/assets/terrain/hill-cluster-v1.png", setHillSprite);
     load("/assets/terrain/mountain-ridge-v1.png", setMountainSprite);
     load("/assets/terrain/river-water-v1.png", setRiverTexture);
@@ -453,9 +453,9 @@ export function WorldPrototype() {
 
         // Every layer follows the same uninterrupted path. Wider downstream
         // suffixes overlap the narrower upstream river without visible caps.
-        strokePath(fullPath, "rgba(108,112,79,.98)", size * 0.58);
-        strokePath(fullPath, "rgba(57,45,29,.66)", size * 0.31);
-        strokePath(fullPath, "rgba(173,151,96,.62)", size * 0.24);
+        strokePath(fullPath, "rgba(125,128,84,.94)", size * 0.44);
+        strokePath(fullPath, "rgba(69,58,40,.56)", size * 0.29);
+        strokePath(fullPath, "rgba(177,159,105,.48)", size * 0.225);
         strokePath(fullPath, "rgba(31,88,109,.98)", size * 0.145);
         if (riverPattern) strokePath(fullPath, riverPattern, size * 0.13, 0.9);
 
@@ -539,60 +539,22 @@ export function WorldPrototype() {
       const ratio = sprite.height / sprite.width;
       for (const group of groups) {
         const points = group.map(centerOf);
-        if (kind === "forest") {
-          const minX = Math.min(...points.map((point) => point.x));
-          const maxX = Math.max(...points.map((point) => point.x));
-          const minY = Math.min(...points.map((point) => point.y));
-          const maxY = Math.max(...points.map((point) => point.y));
-          const cx = (minX + maxX) / 2;
-          const cy = (minY + maxY) / 2;
-          const desiredWidth = Math.max(
-            maxX - minX + size * 2.05,
-            (maxY - minY + size * 1.5) / ratio,
-          );
-          const spriteWidth = Math.min(desiredWidth, size * 6.8);
-          const spriteHeight = spriteWidth * ratio;
-
-          ctx.save();
-          ctx.beginPath();
-          for (const cell of group) {
-            const center = centerOf(cell);
-            for (let i = 0; i < 6; i += 1) {
-              const angle = (Math.PI / 180) * (60 * i - 30);
-              const x = center.x + size * 1.09 * Math.cos(angle);
-              const y = center.y + size * 1.09 * Math.sin(angle);
-              if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-            }
-            ctx.closePath();
-          }
-          ctx.clip("nonzero");
-          ctx.fillStyle = "rgba(23,58,39,.48)";
-          ctx.fillRect(minX - size, minY - size, maxX - minX + size * 2, maxY - minY + size * 2);
-          ctx.globalAlpha = 0.95;
-          ctx.shadowColor = "rgba(2,12,10,.55)";
-          ctx.shadowBlur = size * 0.22;
-          ctx.shadowOffsetY = size * 0.12;
-          ctx.drawImage(sprite, cx - spriteWidth / 2, cy - spriteHeight * 0.61, spriteWidth, spriteHeight);
-          ctx.restore();
-
-          continue;
-        }
-        if (kind === "woodland") {
+        if (kind === "forest" || kind === "woodland") {
           const anchors: { x: number; y: number; cell: Cell }[] = [];
           for (const cell of [...group].sort((a, b) => hash(seed + 991, a.q, a.r) - hash(seed + 991, b.q, b.r))) {
             const point = centerOf(cell);
-            const spacing = kind === "forest" ? size * 2.18 : size * 1.55;
+            const spacing = kind === "forest" ? size * 1.28 : size * 1.82;
             if (anchors.every((anchor) => Math.hypot(point.x - anchor.x, point.y - anchor.y) > spacing)) anchors.push({ ...point, cell });
           }
           for (const anchor of anchors) {
-            const baseWidth = kind === "forest" ? 2.25 : 0.88;
-            const spriteWidth = size * (baseWidth + hash(seed + 992, anchor.cell.q, anchor.cell.r) * (kind === "forest" ? 0.36 : 0.2));
+            const baseWidth = kind === "forest" ? 1.08 : 0.74;
+            const spriteWidth = size * (baseWidth + hash(seed + 992, anchor.cell.q, anchor.cell.r) * (kind === "forest" ? 0.28 : 0.16));
             const spriteHeight = spriteWidth * ratio;
             ctx.save();
             if (hash(seed + 993, anchor.cell.r, anchor.cell.q) > 0.5) {
               ctx.translate(anchor.x, 0); ctx.scale(-1, 1); ctx.translate(-anchor.x, 0);
             }
-            ctx.globalAlpha = kind === "forest" ? 0.93 : 0.62;
+            ctx.globalAlpha = kind === "forest" ? 0.96 : 0.74;
             ctx.shadowColor = "rgba(2,12,10,.5)";
             ctx.shadowBlur = size * 0.18;
             ctx.shadowOffsetY = size * 0.12;
@@ -656,8 +618,8 @@ export function WorldPrototype() {
       const { x: cx, y: cy } = centerOf(cell);
       if (showGrid) {
         hexPath(ctx, cx, cy, size);
-        ctx.strokeStyle = isWater(cell.terrain) ? "rgba(205,236,238,.29)" : "rgba(245,230,190,.34)";
-        ctx.lineWidth = 1;
+        ctx.strokeStyle = isWater(cell.terrain) ? "rgba(225,243,241,.21)" : "rgba(250,241,207,.26)";
+        ctx.lineWidth = Math.max(0.65, size * 0.028);
         ctx.stroke();
       }
       if (selected?.q === cell.q && selected?.r === cell.r) {
