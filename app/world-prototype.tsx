@@ -75,6 +75,8 @@ function hexPath(ctx: CanvasRenderingContext2D, cx: number, cy: number, size: nu
 export function WorldPrototype() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [groundTexture, setGroundTexture] = useState<HTMLImageElement | null>(null);
+  const [forestSprite, setForestSprite] = useState<HTMLImageElement | null>(null);
+  const [mountainSprite, setMountainSprite] = useState<HTMLImageElement | null>(null);
   const [seedText, setSeedText] = useState("20260723");
   const [seed, setSeed] = useState(20260723);
   const [showGrid, setShowGrid] = useState(true);
@@ -82,9 +84,14 @@ export function WorldPrototype() {
   const cells = useMemo(() => generateWorld(seed), [seed]);
 
   useEffect(() => {
-    const image = new Image();
-    image.src = "/assets/terrain/ground-texture-v1.png";
-    image.onload = () => setGroundTexture(image);
+    const load = (source: string, setter: (image: HTMLImageElement) => void) => {
+      const image = new Image();
+      image.src = source;
+      image.onload = () => setter(image);
+    };
+    load("/assets/terrain/ground-texture-v1.png", setGroundTexture);
+    load("/assets/terrain/forest-cluster-v1.png", setForestSprite);
+    load("/assets/terrain/mountain-ridge-v1.png", setMountainSprite);
   }, []);
 
   useEffect(() => {
@@ -159,7 +166,18 @@ export function WorldPrototype() {
       }
 
       if (cell.terrain === "forest") {
-        for (let i = 0; i < 7; i += 1) {
+        if (forestSprite) {
+          const scale = 1.65 + hash(seed + 770, cell.q, cell.r) * 0.28;
+          const spriteWidth = size * scale;
+          const spriteHeight = spriteWidth * (forestSprite.height / forestSprite.width);
+          ctx.save();
+          ctx.globalAlpha = 0.94;
+          ctx.shadowColor = "rgba(2,12,10,.5)";
+          ctx.shadowBlur = size * 0.18;
+          ctx.shadowOffsetY = size * 0.12;
+          ctx.drawImage(forestSprite, cx - spriteWidth / 2, cy - spriteHeight * 0.65, spriteWidth, spriteHeight);
+          ctx.restore();
+        } else for (let i = 0; i < 7; i += 1) {
           const px = cx + (hash(seed + i, cell.q, cell.r) - 0.5) * size * 1.18;
           const py = cy + (hash(seed + 41 + i, cell.r, cell.q) - 0.5) * size * 0.95;
           const crown = size * (0.1 + hash(seed + 70 + i, cell.q, cell.r) * 0.08);
@@ -180,14 +198,25 @@ export function WorldPrototype() {
         ctx.beginPath(); ctx.ellipse(cx, cy, size * 0.48, size * 0.24, -0.32, 0, Math.PI * 2); ctx.fill();
       }
       if (cell.terrain === "mountain") {
-        ctx.fillStyle = "rgba(12,18,19,.35)";
-        ctx.beginPath(); ctx.ellipse(cx + size * 0.12, cy + size * 0.25, size * 0.46, size * 0.15, 0, 0, Math.PI * 2); ctx.fill();
-        const mountain = ctx.createLinearGradient(cx - size * 0.5, cy - size * 0.5, cx + size * 0.5, cy + size * 0.4);
-        mountain.addColorStop(0, "#c4bda9"); mountain.addColorStop(0.47, "#77766d"); mountain.addColorStop(1, "#3b4341");
-        ctx.fillStyle = mountain;
-        ctx.beginPath(); ctx.moveTo(cx, cy - size * 0.68); ctx.lineTo(cx - size * 0.5, cy + size * 0.3); ctx.lineTo(cx + size * 0.52, cy + size * 0.3); ctx.closePath(); ctx.fill();
-        ctx.fillStyle = "rgba(238,236,218,.72)";
-        ctx.beginPath(); ctx.moveTo(cx, cy - size * 0.68); ctx.lineTo(cx - size * 0.18, cy - size * 0.28); ctx.lineTo(cx, cy - size * 0.34); ctx.lineTo(cx + size * 0.15, cy - size * 0.18); ctx.lineTo(cx + size * 0.24, cy - size * 0.22); ctx.closePath(); ctx.fill();
+        if (mountainSprite) {
+          const scale = 1.9 + hash(seed + 880, cell.q, cell.r) * 0.32;
+          const spriteWidth = size * scale;
+          const spriteHeight = spriteWidth * (mountainSprite.height / mountainSprite.width);
+          ctx.save();
+          ctx.globalAlpha = 0.96;
+          ctx.shadowColor = "rgba(4,11,13,.62)";
+          ctx.shadowBlur = size * 0.2;
+          ctx.shadowOffsetY = size * 0.15;
+          ctx.drawImage(mountainSprite, cx - spriteWidth / 2, cy - spriteHeight * 0.76, spriteWidth, spriteHeight);
+          ctx.restore();
+        } else {
+          ctx.fillStyle = "rgba(12,18,19,.35)";
+          ctx.beginPath(); ctx.ellipse(cx + size * 0.12, cy + size * 0.25, size * 0.46, size * 0.15, 0, 0, Math.PI * 2); ctx.fill();
+          const mountain = ctx.createLinearGradient(cx - size * 0.5, cy - size * 0.5, cx + size * 0.5, cy + size * 0.4);
+          mountain.addColorStop(0, "#c4bda9"); mountain.addColorStop(0.47, "#77766d"); mountain.addColorStop(1, "#3b4341");
+          ctx.fillStyle = mountain;
+          ctx.beginPath(); ctx.moveTo(cx, cy - size * 0.68); ctx.lineTo(cx - size * 0.5, cy + size * 0.3); ctx.lineTo(cx + size * 0.52, cy + size * 0.3); ctx.closePath(); ctx.fill();
+        }
       }
     }
 
@@ -277,7 +306,7 @@ export function WorldPrototype() {
     };
     canvas.addEventListener("click", handleClick);
     return () => canvas.removeEventListener("click", handleClick);
-  }, [cells, groundTexture, seed, selected, showGrid]);
+  }, [cells, forestSprite, groundTexture, mountainSprite, seed, selected, showGrid]);
 
   const regenerate = () => {
     const parsed = Number(seedText);
