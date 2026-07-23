@@ -437,65 +437,31 @@ export function WorldPrototype() {
 
       for (const route of riverRoutes) {
         const centers = route.map(centerOf);
-        const points = centers.map((point, index) => {
-          if (index === 0 || index === centers.length - 1) return point;
-          const previous = centers[index - 1];
-          const next = centers[index + 1];
+        const sampled = centers.filter((_, index) => index === 0 || index === centers.length - 1 || index % 2 === 0);
+        const points = sampled.map((point, index) => {
+          if (index === 0 || index === sampled.length - 1) return point;
+          const previous = sampled[index - 1];
+          const next = sampled[index + 1];
           const dx = next.x - previous.x;
           const dy = next.y - previous.y;
           const length = Math.hypot(dx, dy);
-          const bend = (hash(seed + 1801 + index, route[index].q, route[index].r) - 0.5) * size * 0.32;
+          const routeCell = route[Math.min(index * 2, route.length - 1)];
+          const bend = (hash(seed + 1801 + index, routeCell.q, routeCell.r) - 0.5) * size * 0.38;
           return { x: point.x + (-dy / length) * bend, y: point.y + (dx / length) * bend };
         });
         const fullPath = smoothPath(points);
-        const middleIndex = Math.max(1, Math.floor(points.length * 0.38));
-        const lowerIndex = Math.max(middleIndex + 1, Math.floor(points.length * 0.7));
 
-        // Every layer follows the same uninterrupted path. Wider downstream
-        // suffixes overlap the narrower upstream river without visible caps.
-        strokePath(fullPath, "rgba(125,128,84,.94)", size * 0.44);
-        strokePath(fullPath, "rgba(69,58,40,.56)", size * 0.29);
-        strokePath(fullPath, "rgba(177,159,105,.48)", size * 0.225);
-        strokePath(fullPath, "rgba(31,88,109,.98)", size * 0.145);
-        if (riverPattern) strokePath(fullPath, riverPattern, size * 0.13, 0.9);
-
-        const middlePath = smoothPath(points, middleIndex);
-        strokePath(middlePath, "rgba(31,88,109,.98)", size * 0.19, 1, "butt");
-        if (riverPattern) strokePath(middlePath, riverPattern, size * 0.172, 0.9, "butt");
-
-        const lowerPath = smoothPath(points, lowerIndex);
-        strokePath(lowerPath, "rgba(31,88,109,.98)", size * 0.25, 1, "butt");
-        if (riverPattern) strokePath(lowerPath, riverPattern, size * 0.225, 0.92, "butt");
-        strokePath(fullPath, "rgba(210,239,233,.58)", Math.max(0.7, size * 0.024));
-
-        for (let i = 0; i < route.length - 1; i += 1) {
-          const terrain = route[i].terrain;
-          if (terrain !== "forest" && terrain !== "woodland") continue;
-          const start = points[i];
-          const end = points[i + 1];
-          const dx = end.x - start.x;
-          const dy = end.y - start.y;
-          const length = Math.hypot(dx, dy);
-          const nx = -dy / length;
-          const ny = dx / length;
-          for (const side of [-1, 1]) {
-            for (let tree = 0; tree < 3; tree += 1) {
-              const t = 0.22 + tree * 0.28;
-              const tx = start.x + dx * t + nx * size * 0.39 * side;
-              const ty = start.y + dy * t + ny * size * 0.39 * side;
-              ctx.fillStyle = tree % 2 ? "#355f43" : "#4b7350";
-              ctx.beginPath();
-              ctx.arc(tx, ty, size * 0.06, 0, Math.PI * 2);
-              ctx.fill();
-            }
-          }
-        }
-
-        const spring = points[0];
-        ctx.fillStyle = "rgba(64,135,153,.9)";
-        ctx.beginPath();
-        ctx.arc(spring.x, spring.y, size * 0.075, 0, Math.PI * 2);
-        ctx.fill();
+        // A broad, restrained channel reads as terrain rather than a painted line.
+        ctx.save();
+        ctx.shadowColor = "rgba(22,36,39,.34)";
+        ctx.shadowBlur = size * 0.2;
+        ctx.shadowOffsetY = size * 0.07;
+        strokePath(fullPath, "rgba(105,113,78,.9)", size * 0.43);
+        ctx.restore();
+        strokePath(fullPath, "rgba(43,72,82,.58)", size * 0.35);
+        strokePath(fullPath, "rgba(66,116,141,.98)", size * 0.295);
+        if (riverPattern) strokePath(fullPath, riverPattern, size * 0.268, 0.24);
+        strokePath(fullPath, "rgba(188,220,222,.2)", Math.max(0.75, size * 0.034));
 
         const mouth = points[points.length - 1];
         const beforeMouth = points[points.length - 2];
@@ -612,7 +578,6 @@ export function WorldPrototype() {
     drawConnectedTerrain(terrainGroups("foothill"), hillSprite, "foothill");
     drawConnectedTerrain(terrainGroups("hill"), hillSprite, "hill");
     drawConnectedTerrain(terrainGroups("mountain"), mountainSprite, "mountain");
-    drawRivers();
 
     for (const cell of cells) {
       const { x: cx, y: cy } = centerOf(cell);
@@ -622,6 +587,12 @@ export function WorldPrototype() {
         ctx.lineWidth = Math.max(0.65, size * 0.028);
         ctx.stroke();
       }
+    }
+
+    drawRivers();
+
+    for (const cell of cells) {
+      const { x: cx, y: cy } = centerOf(cell);
       if (selected?.q === cell.q && selected?.r === cell.r) {
         hexPath(ctx, cx, cy, size - 1);
         ctx.strokeStyle = "#ffd76a";
