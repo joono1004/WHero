@@ -203,14 +203,15 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color("#b9c8b0");
-    scene.fog = new THREE.Fog("#cbd2bc", 34, 58);
+    // Fog of war must be rendered as a per-hex exploration overlay.
+    // A global scene fog would also wash out terrain the player has revealed.
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(host.clientWidth, host.clientHeight);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.08;
+    renderer.toneMappingExposure = 1;
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     host.appendChild(renderer.domElement);
@@ -231,7 +232,7 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
     camera.updateProjectionMatrix();
 
     const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableRotate = false;
+    controls.enableRotate = true;
     controls.enableDamping = true;
     controls.dampingFactor = 0.08;
     controls.screenSpacePanning = true;
@@ -240,8 +241,8 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
     controls.mouseButtons.LEFT = THREE.MOUSE.PAN;
     controls.mouseButtons.MIDDLE = THREE.MOUSE.PAN;
     controls.mouseButtons.RIGHT = THREE.MOUSE.ROTATE;
-    controls.minPolarAngle = Math.PI * 0.22;
-    controls.maxPolarAngle = Math.PI * 0.38;
+    controls.minPolarAngle = Math.PI * 0.18;
+    controls.maxPolarAngle = Math.PI * 0.48;
 
     scene.add(new THREE.HemisphereLight("#fff6d7", "#465649", 2.3));
     const sun = new THREE.DirectionalLight("#fff0c1", 3.4);
@@ -256,7 +257,6 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
     scene.add(sun);
 
     const worldRoot = new THREE.Group();
-    worldRoot.rotation.order = "YXZ";
     scene.add(worldRoot);
 
     const textureLoader = new THREE.TextureLoader();
@@ -310,15 +310,11 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
     seaTexture.repeat.set(5, 4);
     const sea = new THREE.Mesh(
       new THREE.PlaneGeometry(MAP_WIDTH + 14, MAP_DEPTH + 14),
-      new THREE.MeshPhysicalMaterial({
-        color: "#4f91a6",
+      new THREE.MeshStandardMaterial({
+        color: "#3f819b",
         map: seaTexture,
-        roughness: 0.22,
-        metalness: 0.03,
-        transparent: true,
-        opacity: 0.94,
-        clearcoat: 0.48,
-        clearcoatRoughness: 0.18,
+        roughness: 0.68,
+        metalness: 0,
       }),
     );
     sea.rotation.x = -Math.PI / 2;
@@ -328,12 +324,12 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
 
     const shallowWater = new THREE.Mesh(
       createShallowCoastGeometry(seed),
-      new THREE.MeshPhysicalMaterial({
-        color: "#78c4c2",
-        roughness: 0.24,
+      new THREE.MeshStandardMaterial({
+        color: "#62b8bd",
+        roughness: 0.55,
+        metalness: 0,
         transparent: true,
-        opacity: 0.72,
-        clearcoat: 0.35,
+        opacity: 0.82,
         depthWrite: false,
       }),
     );
@@ -379,15 +375,13 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
 
     const river = new THREE.Mesh(
       createRiverRibbon(curve),
-      new THREE.MeshPhysicalMaterial({
-        color: "#4f8ba5",
+      new THREE.MeshStandardMaterial({
+        color: "#477f99",
         map: waterTexture,
-        roughness: 0.28,
-        metalness: 0.02,
+        roughness: 0.55,
+        metalness: 0,
         transparent: true,
-        opacity: 0.92,
-        clearcoat: 0.35,
-        clearcoatRoughness: 0.22,
+        opacity: 0.96,
       }),
     );
     river.receiveShadow = true;
@@ -595,10 +589,10 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
     worldRoot.add(hillMesh);
 
     const wetlandCells = componentsFor("wetland").flat();
-    const wetlandMaterial = new THREE.MeshPhysicalMaterial({
+    const wetlandMaterial = new THREE.MeshStandardMaterial({
       color: "#5d8f82",
-      roughness: 0.42,
-      clearcoat: 0.18,
+      roughness: 0.68,
+      metalness: 0,
       transparent: true,
       opacity: 0.86,
     });
@@ -682,37 +676,10 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
     const raycaster = new THREE.Raycaster();
     const pointer = new THREE.Vector2();
     let pointerDown = new THREE.Vector2();
-    let rightDragging = false;
-    let lastRightX = 0;
-    let lastRightY = 0;
     const handlePointerDown = (event: PointerEvent) => {
       pointerDown = new THREE.Vector2(event.clientX, event.clientY);
-      if (event.button === 2) {
-        rightDragging = true;
-        lastRightX = event.clientX;
-        lastRightY = event.clientY;
-        renderer.domElement.setPointerCapture(event.pointerId);
-      }
-    };
-    const handlePointerMove = (event: PointerEvent) => {
-      if (!rightDragging) return;
-      const deltaX = event.clientX - lastRightX;
-      const deltaY = event.clientY - lastRightY;
-      lastRightX = event.clientX;
-      lastRightY = event.clientY;
-      worldRoot.rotation.y += deltaX * 0.009;
-      worldRoot.rotation.x = THREE.MathUtils.clamp(
-        worldRoot.rotation.x + deltaY * 0.0065,
-        -Math.PI * 0.15,
-        Math.PI * 0.18,
-      );
     };
     const handlePointerUp = (event: PointerEvent) => {
-      if (event.button === 2) {
-        rightDragging = false;
-        renderer.domElement.releasePointerCapture(event.pointerId);
-        return;
-      }
       if (event.button !== 0 || pointerDown.distanceTo(new THREE.Vector2(event.clientX, event.clientY)) > 5) return;
       const bounds = renderer.domElement.getBoundingClientRect();
       pointer.set(
@@ -747,7 +714,6 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
     };
     const handleContextMenu = (event: MouseEvent) => event.preventDefault();
     renderer.domElement.addEventListener("pointerdown", handlePointerDown);
-    renderer.domElement.addEventListener("pointermove", handlePointerMove);
     renderer.domElement.addEventListener("pointerup", handlePointerUp);
     renderer.domElement.addEventListener("contextmenu", handleContextMenu);
 
@@ -774,7 +740,6 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
     return () => {
       observer.disconnect();
       renderer.domElement.removeEventListener("pointerdown", handlePointerDown);
-      renderer.domElement.removeEventListener("pointermove", handlePointerMove);
       renderer.domElement.removeEventListener("pointerup", handlePointerUp);
       renderer.domElement.removeEventListener("contextmenu", handleContextMenu);
       renderer.setAnimationLoop(null);
