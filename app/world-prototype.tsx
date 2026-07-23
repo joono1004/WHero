@@ -144,7 +144,7 @@ function createBeachGeometry(seed: number, riverSamples: THREE.Vector3[]) {
       const centerX = (corners[0].x + corners[2].x) / 2;
       const centerZ = (corners[0].z + corners[2].z) / 2;
       const coast = landValue(seed, centerX, centerZ);
-      if (coast < -0.015 || coast > 0.25) continue;
+      if (coast < 0.035 || coast > 0.33) continue;
       const triangles = [corners[0], corners[1], corners[2], corners[0], corners[2], corners[3]];
       for (const vertex of triangles) {
         positions.push(vertex.x, heightAt(seed, vertex.x, vertex.z, riverSamples) + 0.028, vertex.z);
@@ -197,7 +197,7 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
     camera.updateProjectionMatrix();
 
     const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableRotate = true;
+    controls.enableRotate = false;
     controls.enableDamping = true;
     controls.dampingFactor = 0.08;
     controls.screenSpacePanning = true;
@@ -220,6 +220,9 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
     sun.shadow.camera.bottom = -17;
     sun.shadow.bias = -0.0005;
     scene.add(sun);
+
+    const worldRoot = new THREE.Group();
+    scene.add(worldRoot);
 
     const textureLoader = new THREE.TextureLoader();
     const { curve, samples } = buildRiver(seed);
@@ -259,7 +262,7 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
       }),
     );
     terrain.receiveShadow = true;
-    scene.add(terrain);
+    worldRoot.add(terrain);
 
     const waterTexture = textureLoader.load("/assets/terrain/river-water-v1.png");
     waterTexture.colorSpace = THREE.SRGBColorSpace;
@@ -285,7 +288,7 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
     sea.rotation.x = -Math.PI / 2;
     sea.position.y = -0.32;
     sea.receiveShadow = true;
-    scene.add(sea);
+    worldRoot.add(sea);
 
     const beach = new THREE.Mesh(
       createBeachGeometry(seed, samples),
@@ -299,7 +302,7 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
     );
     beach.receiveShadow = true;
     beach.renderOrder = 18;
-    scene.add(beach);
+    worldRoot.add(beach);
 
     const river = new THREE.Mesh(
       createRiverRibbon(curve),
@@ -315,7 +318,7 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
       }),
     );
     river.receiveShadow = true;
-    scene.add(river);
+    worldRoot.add(river);
 
     type TerrainCell = { row: number; column: number; x: number; z: number; type: "forest" | "mountain" };
     const terrainCells = new Map<string, TerrainCell>();
@@ -369,7 +372,24 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
 
     const treeInstances: { x: number; y: number; z: number; scale: number; rotation: number }[] = [];
     componentsFor("forest").forEach((group, groupIndex) => {
-      const perHex = group.length >= 16 ? 9 : group.length >= 4 ? 7 : 3;
+      if (group.length < 4) {
+        const smallTreeCount = Math.min(2, group.length);
+        for (let treeIndex = 0; treeIndex < smallTreeCount; treeIndex += 1) {
+          const cell = group[treeIndex];
+          const index = groupIndex * 100 + treeIndex;
+          const x = cell.x + (hash(seed + 3291, index, 1) - 0.5) * HEX_SIZE * 0.42;
+          const z = cell.z + (hash(seed + 3292, index, 2) - 0.5) * HEX_SIZE * 0.42;
+          treeInstances.push({
+            x,
+            y: heightAt(seed, x, z, samples),
+            z,
+            scale: 0.55 + hash(seed + 3293, index, 3) * 0.22,
+            rotation: hash(seed + 3294, index, 4) * Math.PI * 2,
+          });
+        }
+        return;
+      }
+      const perHex = group.length >= 16 ? 7 : 5;
       group.forEach((cell, cellIndex) => {
         for (let treeIndex = 0; treeIndex < perHex; treeIndex += 1) {
           const index = groupIndex * 10000 + cellIndex * 100 + treeIndex;
@@ -437,7 +457,7 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
       mesh.instanceMatrix.needsUpdate = true;
       mesh.castShadow = true;
       mesh.receiveShadow = true;
-      scene.add(mesh);
+      worldRoot.add(mesh);
     });
 
     const mountainMaterial = new THREE.MeshStandardMaterial({ color: "#77766f", roughness: 0.98, flatShading: true });
@@ -457,13 +477,13 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
           mountain.rotation.y = hash(seed + 4405, index, 5) * Math.PI;
           mountain.castShadow = true;
           mountain.receiveShadow = true;
-          scene.add(mountain);
+          worldRoot.add(mountain);
           if (peakHeight > 1.65) {
             const snow = new THREE.Mesh(new THREE.ConeGeometry(radius * 0.34, peakHeight * 0.25, 9), snowMaterial);
             snow.position.set(x, y + peakHeight * 0.88, z);
             snow.rotation.y = mountain.rotation.y;
             snow.castShadow = true;
-            scene.add(snow);
+            worldRoot.add(snow);
           }
         }
       });
@@ -480,7 +500,7 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
       rock.scale.y = 0.55 + hash(seed, i, 5) * 0.45;
       rock.rotation.set(hash(seed, i, 6), hash(seed, i, 7) * Math.PI, hash(seed, i, 8));
       rock.castShadow = true;
-      scene.add(rock);
+      worldRoot.add(rock);
     }
 
     const gridPositions: number[] = [];
@@ -510,7 +530,7 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
       new THREE.LineBasicMaterial({ color: "#efe7be", transparent: true, opacity: 0.3 }),
     );
     grid.visible = showGrid;
-    scene.add(grid);
+    worldRoot.add(grid);
 
     const selectionGeometry = new THREE.BufferGeometry();
     const selection = new THREE.LineLoop(
@@ -519,15 +539,33 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
     );
     selection.visible = false;
     selection.renderOrder = 10000;
-    scene.add(selection);
+    worldRoot.add(selection);
 
     const raycaster = new THREE.Raycaster();
     const pointer = new THREE.Vector2();
     let pointerDown = new THREE.Vector2();
+    let rightDragging = false;
+    let lastRightX = 0;
     const handlePointerDown = (event: PointerEvent) => {
       pointerDown = new THREE.Vector2(event.clientX, event.clientY);
+      if (event.button === 2) {
+        rightDragging = true;
+        lastRightX = event.clientX;
+        renderer.domElement.setPointerCapture(event.pointerId);
+      }
+    };
+    const handlePointerMove = (event: PointerEvent) => {
+      if (!rightDragging) return;
+      const deltaX = event.clientX - lastRightX;
+      lastRightX = event.clientX;
+      worldRoot.rotation.y += deltaX * 0.008;
     };
     const handlePointerUp = (event: PointerEvent) => {
+      if (event.button === 2) {
+        rightDragging = false;
+        renderer.domElement.releasePointerCapture(event.pointerId);
+        return;
+      }
       if (event.button !== 0 || pointerDown.distanceTo(new THREE.Vector2(event.clientX, event.clientY)) > 5) return;
       const bounds = renderer.domElement.getBoundingClientRect();
       pointer.set(
@@ -537,14 +575,15 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
       raycaster.setFromCamera(pointer, camera);
       const hit = raycaster.intersectObject(terrain, false)[0];
       if (!hit) return;
+      const localHit = worldRoot.worldToLocal(hit.point.clone());
       const row = THREE.MathUtils.clamp(
-        Math.round((hit.point.z + MAP_DEPTH / 2 - HEX_SIZE) / (1.5 * HEX_SIZE)),
+        Math.round((localHit.z + MAP_DEPTH / 2 - HEX_SIZE) / (1.5 * HEX_SIZE)),
         0,
         HEX_ROWS - 1,
       );
       const rowOffset = (row % 2) * (HEX_WIDTH / 2);
       const column = THREE.MathUtils.clamp(
-        Math.round((hit.point.x + MAP_WIDTH / 2 - HEX_WIDTH / 2 - rowOffset) / HEX_WIDTH),
+        Math.round((localHit.x + MAP_WIDTH / 2 - HEX_WIDTH / 2 - rowOffset) / HEX_WIDTH),
         0,
         HEX_COLS - 1,
       );
@@ -559,8 +598,11 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
       selectionGeometry.setFromPoints(selectedPoints);
       selection.visible = true;
     };
+    const handleContextMenu = (event: MouseEvent) => event.preventDefault();
     renderer.domElement.addEventListener("pointerdown", handlePointerDown);
+    renderer.domElement.addEventListener("pointermove", handlePointerMove);
     renderer.domElement.addEventListener("pointerup", handlePointerUp);
+    renderer.domElement.addEventListener("contextmenu", handleContextMenu);
 
     const animate = () => {
       waterTexture.offset.y -= 0.00022;
@@ -585,7 +627,9 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
     return () => {
       observer.disconnect();
       renderer.domElement.removeEventListener("pointerdown", handlePointerDown);
+      renderer.domElement.removeEventListener("pointermove", handlePointerMove);
       renderer.domElement.removeEventListener("pointerup", handlePointerUp);
+      renderer.domElement.removeEventListener("contextmenu", handleContextMenu);
       renderer.setAnimationLoop(null);
       controls.dispose();
       scene.traverse((object) => {
