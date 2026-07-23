@@ -407,134 +407,107 @@ export function WorldPrototype() {
     }
 
     const drawRivers = () => {
-    const riverPattern = riverTexture ? ctx.createPattern(riverTexture, "repeat") : null;
-    riverPattern?.setTransform(new DOMMatrix().scale(Math.max(0.022, size / 620)));
-    for (const route of riverRoutes) {
-      const centers = route.map(centerOf);
-      const points = [
-        centers[0],
-        ...centers.slice(0, -1).map((point, index) => {
-          const next = centers[index + 1];
-          const dx = next.x - point.x;
-          const dy = next.y - point.y;
-          const length = Math.hypot(dx, dy);
-          const bend = (hash(seed + 1801 + index, route[index].q, route[index].r) - 0.5) * size * 0.28;
-          return {
-            x: (point.x + next.x) / 2 + (-dy / length) * bend,
-            y: (point.y + next.y) / 2 + (dx / length) * bend,
-          };
-        }),
-        centers[centers.length - 1],
-      ];
+      const riverPattern = riverTexture ? ctx.createPattern(riverTexture, "repeat") : null;
+      riverPattern?.setTransform(new DOMMatrix().scale(Math.max(0.022, size / 620)));
 
-      for (let i = 0; i < points.length - 1; i += 1) {
-        const start = points[i];
-        const end = points[i + 1];
-        const dx = end.x - start.x;
-        const dy = end.y - start.y;
-        const length = Math.hypot(dx, dy);
-        const progress = i / Math.max(1, points.length - 2);
-        const curve = (hash(seed + 1901 + i, route[0].q, route[0].r) - 0.5) * size * 0.32;
-        const controlX = (start.x + end.x) / 2 + (-dy / length) * curve;
-        const controlY = (start.y + end.y) / 2 + (dx / length) * curve;
-        const terrain = route[Math.min(i, route.length - 1)].terrain;
-        const trace = (color: string | CanvasPattern, lineWidth: number) => {
-          ctx.strokeStyle = color;
-          ctx.lineWidth = lineWidth;
-          ctx.lineCap = "round";
-          ctx.beginPath();
-          ctx.moveTo(start.x, start.y);
-          ctx.quadraticCurveTo(controlX, controlY, end.x, end.y);
-          ctx.stroke();
-        };
-
-        const valleyStyle =
-          terrain === "forest" || terrain === "woodland"
-            ? { color: "rgba(103,119,76,.98)", width: 0.68 }
-            : terrain === "mountain"
-              ? { color: "rgba(105,101,89,.97)", width: 0.49 }
-              : terrain === "hill" || terrain === "foothill"
-                ? { color: "rgba(126,118,88,.97)", width: 0.54 }
-                : { color: "rgba(126,145,86,.96)", width: 0.46 };
-        const waterBase =
-          terrain === "plain" || terrain === "meadow"
-            ? 0.18
-            : terrain === "forest" || terrain === "woodland"
-              ? 0.115
-              : 0.085;
-        const waterWidth = size * (waterBase + progress * (terrain === "plain" || terrain === "meadow" ? 0.16 : 0.095));
-        const widthVariation = 0.92 + hash(seed + 2051 + i, route[i]?.q ?? 0, route[i]?.r ?? 0) * 0.18;
-
-        // Draw an opaque valley first so forests and relief are visually split
-        // into two banks instead of leaving the river painted over their art.
-        trace(valleyStyle.color, size * valleyStyle.width * widthVariation);
-        trace("rgba(54,45,30,.64)", waterWidth * widthVariation + size * 0.13);
-        trace("rgba(171,151,99,.62)", waterWidth * widthVariation + size * 0.065);
-        trace("rgba(34,94,116,.96)", waterWidth * widthVariation);
-        if (riverPattern) {
-          ctx.globalAlpha = 0.92;
-          trace(riverPattern, waterWidth * widthVariation * 0.9);
+      const smoothPath = (points: { x: number; y: number }[], startIndex = 0) => {
+        const path = new Path2D();
+        const first = points[startIndex];
+        path.moveTo(first.x, first.y);
+        for (let i = startIndex + 1; i < points.length - 1; i += 1) {
+          const current = points[i];
+          const next = points[i + 1];
+          path.quadraticCurveTo(current.x, current.y, (current.x + next.x) / 2, (current.y + next.y) / 2);
         }
-        ctx.globalAlpha = 1;
-        trace("rgba(205,237,232,.62)", Math.max(0.75, waterWidth * 0.16));
+        const last = points[points.length - 1];
+        path.lineTo(last.x, last.y);
+        return path;
+      };
 
-        if (terrain === "forest" || terrain === "woodland") {
+      const strokePath = (path: Path2D, style: string | CanvasPattern, width: number, alpha = 1, cap: CanvasLineCap = "round") => {
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.strokeStyle = style;
+        ctx.lineWidth = width;
+        ctx.lineCap = cap;
+        ctx.lineJoin = "round";
+        ctx.stroke(path);
+        ctx.restore();
+      };
+
+      for (const route of riverRoutes) {
+        const centers = route.map(centerOf);
+        const points = centers.map((point, index) => {
+          if (index === 0 || index === centers.length - 1) return point;
+          const previous = centers[index - 1];
+          const next = centers[index + 1];
+          const dx = next.x - previous.x;
+          const dy = next.y - previous.y;
+          const length = Math.hypot(dx, dy);
+          const bend = (hash(seed + 1801 + index, route[index].q, route[index].r) - 0.5) * size * 0.32;
+          return { x: point.x + (-dy / length) * bend, y: point.y + (dx / length) * bend };
+        });
+        const fullPath = smoothPath(points);
+        const middleIndex = Math.max(1, Math.floor(points.length * 0.38));
+        const lowerIndex = Math.max(middleIndex + 1, Math.floor(points.length * 0.7));
+
+        // Every layer follows the same uninterrupted path. Wider downstream
+        // suffixes overlap the narrower upstream river without visible caps.
+        strokePath(fullPath, "rgba(108,112,79,.98)", size * 0.58);
+        strokePath(fullPath, "rgba(57,45,29,.66)", size * 0.31);
+        strokePath(fullPath, "rgba(173,151,96,.62)", size * 0.24);
+        strokePath(fullPath, "rgba(31,88,109,.98)", size * 0.145);
+        if (riverPattern) strokePath(fullPath, riverPattern, size * 0.13, 0.9);
+
+        const middlePath = smoothPath(points, middleIndex);
+        strokePath(middlePath, "rgba(31,88,109,.98)", size * 0.19, 1, "butt");
+        if (riverPattern) strokePath(middlePath, riverPattern, size * 0.172, 0.9, "butt");
+
+        const lowerPath = smoothPath(points, lowerIndex);
+        strokePath(lowerPath, "rgba(31,88,109,.98)", size * 0.25, 1, "butt");
+        if (riverPattern) strokePath(lowerPath, riverPattern, size * 0.225, 0.92, "butt");
+        strokePath(fullPath, "rgba(210,239,233,.58)", Math.max(0.7, size * 0.024));
+
+        for (let i = 0; i < route.length - 1; i += 1) {
+          const terrain = route[i].terrain;
+          if (terrain !== "forest" && terrain !== "woodland") continue;
+          const start = points[i];
+          const end = points[i + 1];
+          const dx = end.x - start.x;
+          const dy = end.y - start.y;
+          const length = Math.hypot(dx, dy);
           const nx = -dy / length;
           const ny = dx / length;
           for (const side of [-1, 1]) {
             for (let tree = 0; tree < 3; tree += 1) {
-              const t = 0.24 + tree * 0.26;
-              const bankDistance = size * (valleyStyle.width * 0.55 + 0.08);
-              const tx = start.x + dx * t + nx * bankDistance * side;
-              const ty = start.y + dy * t + ny * bankDistance * side;
+              const t = 0.22 + tree * 0.28;
+              const tx = start.x + dx * t + nx * size * 0.39 * side;
+              const ty = start.y + dy * t + ny * size * 0.39 * side;
               ctx.fillStyle = tree % 2 ? "#355f43" : "#4b7350";
               ctx.beginPath();
-              ctx.arc(tx, ty, size * (0.055 + tree * 0.006), 0, Math.PI * 2);
+              ctx.arc(tx, ty, size * 0.06, 0, Math.PI * 2);
               ctx.fill();
             }
           }
         }
-      }
 
-      const spring = points[0];
-      ctx.fillStyle = "rgba(68,139,157,.88)";
-      ctx.beginPath();
-      ctx.ellipse(spring.x, spring.y, size * 0.09, size * 0.055, -0.25, 0, Math.PI * 2);
-      ctx.fill();
+        const spring = points[0];
+        ctx.fillStyle = "rgba(64,135,153,.9)";
+        ctx.beginPath();
+        ctx.arc(spring.x, spring.y, size * 0.075, 0, Math.PI * 2);
+        ctx.fill();
 
-      if (points.length >= 4) {
-        const deltaStart = points[points.length - 3];
         const mouth = points[points.length - 1];
-        const dx = mouth.x - deltaStart.x;
-        const dy = mouth.y - deltaStart.y;
-        const length = Math.hypot(dx, dy);
-        const nx = -dy / length;
-        const ny = dx / length;
-        for (const branch of [-0.34, 0, 0.34]) {
-          const endX = mouth.x + nx * size * branch;
-          const endY = mouth.y + ny * size * branch;
-          ctx.strokeStyle = riverPattern ?? "rgba(62,137,157,.88)";
-          ctx.lineWidth = size * (branch === 0 ? 0.19 : 0.12);
-          ctx.lineCap = "round";
-          ctx.beginPath();
-          ctx.moveTo(deltaStart.x, deltaStart.y);
-          ctx.quadraticCurveTo(
-            (deltaStart.x + endX) / 2 + nx * size * branch * 0.5,
-            (deltaStart.y + endY) / 2 + ny * size * branch * 0.5,
-            endX,
-            endY,
-          );
-          ctx.stroke();
-        }
-        const plume = ctx.createRadialGradient(mouth.x, mouth.y, 0, mouth.x, mouth.y, size * 0.72);
+        const beforeMouth = points[points.length - 2];
+        const angle = Math.atan2(mouth.y - beforeMouth.y, mouth.x - beforeMouth.x);
+        const plume = ctx.createRadialGradient(mouth.x, mouth.y, 0, mouth.x, mouth.y, size * 0.68);
         plume.addColorStop(0, "rgba(83,155,167,.42)");
         plume.addColorStop(1, "rgba(83,155,167,0)");
         ctx.fillStyle = plume;
         ctx.beginPath();
-        ctx.ellipse(mouth.x, mouth.y, size * 0.72, size * 0.38, Math.atan2(dy, dx), 0, Math.PI * 2);
+        ctx.ellipse(mouth.x, mouth.y, size * 0.68, size * 0.34, angle, 0, Math.PI * 2);
         ctx.fill();
       }
-    }
     };
 
     const allDirections = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, -1], [-1, 1]];
