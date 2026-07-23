@@ -160,6 +160,8 @@ export function WorldPrototype() {
   const [seed, setSeed] = useState(20260723);
   const [showGrid, setShowGrid] = useState(true);
   const [selected, setSelected] = useState<Cell | null>(null);
+  const [view, setView] = useState({ zoom: 1, x: 0, y: 0 });
+  const dragRef = useRef({ active: false, moved: false, x: 0, y: 0 });
   const cells = useMemo(() => generateWorld(seed), [seed]);
 
   useEffect(() => {
@@ -189,11 +191,12 @@ export function WorldPrototype() {
     ctx.fillStyle = "#0b2029";
     ctx.fillRect(0, 0, width, height);
 
-    const size = Math.min(width / (SQRT3 * (COLS + 0.5)), height / (1.5 * ROWS + 0.5));
+    const baseSize = Math.min(width / (SQRT3 * (COLS + 0.5)), height / (1.5 * ROWS + 0.5));
+    const size = baseSize * view.zoom;
     const mapWidth = SQRT3 * size * (COLS + 0.5);
     const mapHeight = size * (1.5 * ROWS + 0.5);
-    const ox = (width - mapWidth) / 2 + SQRT3 * size / 2;
-    const oy = (height - mapHeight) / 2 + size;
+    const ox = (width - mapWidth) / 2 + SQRT3 * size / 2 + view.x;
+    const oy = (height - mapHeight) / 2 + size + view.y;
     const centerOf = (cell: Cell) => ({
       x: ox + SQRT3 * size * (cell.q + cell.r / 2),
       y: oy + 1.5 * size * cell.r,
@@ -216,6 +219,40 @@ export function WorldPrototype() {
         ctx.clip();
         ctx.globalAlpha = cell.terrain === "mountain" ? 0.18 : 0.34;
         ctx.drawImage(groundTexture, 0, 0, width, height);
+        ctx.restore();
+      }
+
+      if (!["ocean", "shallows", "coast"].includes(cell.terrain)) {
+        ctx.save();
+        hexPath(ctx, cx, cy, size + 0.3);
+        ctx.clip();
+        const relief = ctx.createRadialGradient(
+          cx - size * 0.35,
+          cy - size * 0.38,
+          size * 0.08,
+          cx + size * 0.18,
+          cy + size * 0.3,
+          size * 1.15,
+        );
+        const reliefStrength = 0.08 + Math.max(0, cell.elevation - 0.48) * 0.3;
+        relief.addColorStop(0, `rgba(255,244,203,${reliefStrength})`);
+        relief.addColorStop(0.58, "rgba(255,255,255,0)");
+        relief.addColorStop(1, `rgba(23,28,23,${reliefStrength * 1.35})`);
+        ctx.fillStyle = relief;
+        ctx.fillRect(cx - size, cy - size, size * 2, size * 2);
+
+        const detailCount = cell.terrain === "plain" || cell.terrain === "meadow" ? 10 : 5;
+        for (let i = 0; i < detailCount; i += 1) {
+          const angle = hash(seed + 211 + i, cell.q, cell.r) * Math.PI * 2;
+          const distance = Math.sqrt(hash(seed + 311 + i, cell.r, cell.q)) * size * 0.68;
+          const dx = Math.cos(angle) * distance;
+          const dy = Math.sin(angle) * distance * 0.68;
+          const radius = size * (0.018 + hash(seed + 411 + i, cell.q, cell.r) * 0.035);
+          ctx.fillStyle = i % 3 === 0 ? "rgba(225,211,151,.22)" : "rgba(49,73,44,.17)";
+          ctx.beginPath();
+          ctx.ellipse(cx + dx, cy + dy, radius * 1.8, radius * 0.65, angle, 0, Math.PI * 2);
+          ctx.fill();
+        }
         ctx.restore();
       }
 
@@ -261,9 +298,10 @@ export function WorldPrototype() {
         ctx.strokeStyle = band;
         ctx.lineWidth = size * (waterBoundary ? 0.18 : 0.3);
         ctx.lineCap = "round";
+        const curve = (hash(seed + 740, cell.q + neighbor.q, cell.r + neighbor.r) - 0.5) * size * 0.28;
         ctx.beginPath();
         ctx.moveTo(mx - px * size * 0.42, my - py * size * 0.42);
-        ctx.lineTo(mx + px * size * 0.42, my + py * size * 0.42);
+        ctx.quadraticCurveTo(mx + (vx / length) * curve, my + (vy / length) * curve, mx + px * size * 0.42, my + py * size * 0.42);
         ctx.stroke();
 
         if (waterBoundary) {
@@ -271,7 +309,7 @@ export function WorldPrototype() {
           ctx.lineWidth = Math.max(0.8, size * 0.035);
           ctx.beginPath();
           ctx.moveTo(mx - px * size * 0.4, my - py * size * 0.4);
-          ctx.lineTo(mx + px * size * 0.4, my + py * size * 0.4);
+          ctx.quadraticCurveTo(mx + (vx / length) * curve * 0.82, my + (vy / length) * curve * 0.82, mx + px * size * 0.4, my + py * size * 0.4);
           ctx.stroke();
         }
 
@@ -309,6 +347,64 @@ export function WorldPrototype() {
         }
         ctx.restore();
       }
+    }
+
+    const riverDirections = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, -1], [-1, 1]];
+    const riverSources: Cell[] = [];
+    for (const candidate of [...cells]
+      .filter((cell) => cell.terrain === "mountain" || cell.terrain === "hill")
+      .sort((a, b) => b.elevation - a.elevation)) {
+      if (riverSources.length >= 3) break;
+      if (riverSources.every((source) => Math.hypot(source.q - candidate.q, source.r - candidate.r) > 5)) {
+        riverSources.push(candidate);
+      }
+    }
+    const riverRoutes: Cell[][] = [];
+    for (const source of riverSources) {
+      const route = [source];
+      const visited = new Set([`${source.q},${source.r}`]);
+      let current = source;
+      for (let step = 0; step < 34 && !isWater(current.terrain); step += 1) {
+        const candidates = riverDirections
+          .map(([dq, dr]) => cellByCoordinate.get(`${current.q + dq},${current.r + dr}`))
+          .filter((cell): cell is Cell => Boolean(cell) && !visited.has(`${cell!.q},${cell!.r}`))
+          .sort((a, b) => {
+            const aWater = isWater(a.terrain) ? -2 : 0;
+            const bWater = isWater(b.terrain) ? -2 : 0;
+            const aNoise = hash(seed + 1701, a.q, a.r) * 0.045;
+            const bNoise = hash(seed + 1701, b.q, b.r) * 0.045;
+            return a.elevation + aNoise + aWater - (b.elevation + bNoise + bWater);
+          });
+        const next = candidates[0];
+        if (!next || (next.elevation > current.elevation + 0.09 && !isWater(next.terrain))) break;
+        route.push(next);
+        visited.add(`${next.q},${next.r}`);
+        current = next;
+      }
+      if (route.length >= 4) riverRoutes.push(route);
+    }
+
+    const strokeRiver = (route: Cell[], color: string, lineWidth: number) => {
+      const points = route.map(centerOf);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = lineWidth;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.beginPath();
+      ctx.moveTo(points[0].x, points[0].y);
+      for (let i = 1; i < points.length - 1; i += 1) {
+        const midpointX = (points[i].x + points[i + 1].x) / 2;
+        const midpointY = (points[i].y + points[i + 1].y) / 2;
+        ctx.quadraticCurveTo(points[i].x, points[i].y, midpointX, midpointY);
+      }
+      const last = points[points.length - 1];
+      ctx.lineTo(last.x, last.y);
+      ctx.stroke();
+    };
+    for (const route of riverRoutes) {
+      strokeRiver(route, "rgba(21,38,42,.45)", size * 0.19);
+      strokeRiver(route, "rgba(74,151,170,.94)", size * 0.115);
+      strokeRiver(route, "rgba(190,225,222,.42)", Math.max(0.75, size * 0.026));
     }
 
     const allDirections = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, -1], [-1, 1]];
@@ -469,6 +565,10 @@ export function WorldPrototype() {
     }
 
     const handleClick = (event: MouseEvent) => {
+      if (dragRef.current.moved) {
+        dragRef.current.moved = false;
+        return;
+      }
       const rect = canvas.getBoundingClientRect();
       const x = event.clientX - rect.left;
       const y = event.clientY - rect.top;
@@ -481,13 +581,63 @@ export function WorldPrototype() {
       }
       setSelected(best);
     };
+    const handleWheel = (event: WheelEvent) => {
+      event.preventDefault();
+      const rect = canvas.getBoundingClientRect();
+      const pointerX = event.clientX - rect.left - width / 2;
+      const pointerY = event.clientY - rect.top - height / 2;
+      const factor = event.deltaY < 0 ? 1.13 : 0.885;
+      setView((previous) => {
+        const zoom = Math.min(2.8, Math.max(0.72, previous.zoom * factor));
+        const applied = zoom / previous.zoom;
+        return {
+          zoom,
+          x: pointerX - (pointerX - previous.x) * applied,
+          y: pointerY - (pointerY - previous.y) * applied,
+        };
+      });
+    };
+    const handlePointerDown = (event: PointerEvent) => {
+      dragRef.current = { active: true, moved: false, x: event.clientX, y: event.clientY };
+      canvas.setPointerCapture(event.pointerId);
+      canvas.style.cursor = "grabbing";
+    };
+    const handlePointerMove = (event: PointerEvent) => {
+      const drag = dragRef.current;
+      if (!drag.active) return;
+      const dx = event.clientX - drag.x;
+      const dy = event.clientY - drag.y;
+      if (Math.abs(dx) + Math.abs(dy) > 2) drag.moved = true;
+      drag.x = event.clientX;
+      drag.y = event.clientY;
+      setView((previous) => ({ ...previous, x: previous.x + dx, y: previous.y + dy }));
+    };
+    const handlePointerUp = (event: PointerEvent) => {
+      dragRef.current.active = false;
+      if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+      canvas.style.cursor = "grab";
+    };
+    canvas.style.cursor = "grab";
     canvas.addEventListener("click", handleClick);
-    return () => canvas.removeEventListener("click", handleClick);
-  }, [cells, forestSprite, groundTexture, hillSprite, mountainSprite, seed, selected, showGrid]);
+    canvas.addEventListener("wheel", handleWheel, { passive: false });
+    canvas.addEventListener("pointerdown", handlePointerDown);
+    canvas.addEventListener("pointermove", handlePointerMove);
+    canvas.addEventListener("pointerup", handlePointerUp);
+    canvas.addEventListener("pointercancel", handlePointerUp);
+    return () => {
+      canvas.removeEventListener("click", handleClick);
+      canvas.removeEventListener("wheel", handleWheel);
+      canvas.removeEventListener("pointerdown", handlePointerDown);
+      canvas.removeEventListener("pointermove", handlePointerMove);
+      canvas.removeEventListener("pointerup", handlePointerUp);
+      canvas.removeEventListener("pointercancel", handlePointerUp);
+    };
+  }, [cells, forestSprite, groundTexture, hillSprite, mountainSprite, seed, selected, showGrid, view]);
 
   const regenerate = () => {
     const parsed = Number(seedText);
     setSelected(null);
+    setView({ zoom: 1, x: 0, y: 0 });
     setSeed(Number.isFinite(parsed) ? Math.trunc(parsed) : Date.now());
   };
 
@@ -496,6 +646,7 @@ export function WorldPrototype() {
     setSeedText(String(next));
     setSeed(next);
     setSelected(null);
+    setView({ zoom: 1, x: 0, y: 0 });
   };
 
   return (
@@ -509,6 +660,7 @@ export function WorldPrototype() {
           <label>세계 시드<input value={seedText} onChange={(event) => setSeedText(event.target.value)} onKeyDown={(event) => event.key === "Enter" && regenerate()} /></label>
           <button onClick={regenerate}>이 시드로 생성</button>
           <button className="secondary" onClick={randomize}>새로운 세계</button>
+          <button className="secondary" onClick={() => setView({ zoom: 1, x: 0, y: 0 })}>화면 맞춤</button>
           <label className="toggle"><input type="checkbox" checked={showGrid} onChange={(event) => setShowGrid(event.target.checked)} />Hex 경계</label>
         </div>
       </header>
@@ -522,7 +674,7 @@ export function WorldPrototype() {
           {selected ? <><span>선택한 지역</span><strong>{selected.q}, {selected.r}</strong><em>{({ ocean: "바다", shallows: "얕은 바다", coast: "해안", plain: "평원", meadow: "완만한 구릉", woodland: "숲 가장자리", forest: "울창한 숲", hill: "언덕", foothill: "산기슭", mountain: "산" } as Record<Terrain, string>)[selected.terrain]}</em></> : <><span>지도를 눌러보세요</span><strong>지역 정보</strong><em>Hex 경계와 지형 연결을 확인합니다.</em></>}
         </div>
       </section>
-      <footer><span>현재 검증</span><b>Hex 경계 가독성</b><b>시드 재현성</b><b>육지·바다 연결</b><small>전투와 도시는 다음 단계에서 추가됩니다.</small></footer>
+      <footer><span>현재 검증</span><b>고도·강·해안 연결</b><b>휠 확대/축소</b><b>드래그 지도 이동</b><small>휠로 확대하고 지도를 잡아 끌어 이동할 수 있습니다.</small></footer>
     </main>
   );
 }
