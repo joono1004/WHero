@@ -11,6 +11,13 @@ const HEX_WIDTH = Math.sqrt(3) * HEX_SIZE;
 const HEX_COLS = Math.ceil(MAP_WIDTH / HEX_WIDTH) + 1;
 const HEX_ROWS = Math.ceil(MAP_DEPTH / (1.5 * HEX_SIZE)) + 1;
 
+function hexCenterAt(row: number, column: number) {
+  return {
+    x: -MAP_WIDTH / 2 + HEX_WIDTH / 2 + column * HEX_WIDTH + (row % 2) * (HEX_WIDTH / 2),
+    z: -MAP_DEPTH / 2 + HEX_SIZE + row * 1.5 * HEX_SIZE,
+  };
+}
+
 function hash(seed: number, x: number, y: number) {
   let value = seed ^ Math.imul(x + 31, 374761393) ^ Math.imul(y + 17, 668265263);
   value = Math.imul(value ^ (value >>> 13), 1274126177);
@@ -117,23 +124,15 @@ function terrainColor(height: number, wetness: number) {
   return color;
 }
 
-function createShorelineGeometry(seed: number, riverSamples: THREE.Vector3[]) {
+function createBeachGeometry(seed: number, riverSamples: THREE.Vector3[]) {
   const columns = 96;
   const rows = 76;
-  const threshold = 0.025;
   const positions: number[] = [];
+  const colors: number[] = [];
   const point = (column: number, row: number) => ({
     x: -MAP_WIDTH / 2 + (column / columns) * MAP_WIDTH,
     z: -MAP_DEPTH / 2 + (row / rows) * MAP_DEPTH,
   });
-  const crossing = (a: { x: number; z: number }, b: { x: number; z: number }) => {
-    const av = landValue(seed, a.x, a.z) - threshold;
-    const bv = landValue(seed, b.x, b.z) - threshold;
-    if (av === 0) return a;
-    if (av * bv > 0) return null;
-    const t = av / (av - bv);
-    return { x: THREE.MathUtils.lerp(a.x, b.x, t), z: THREE.MathUtils.lerp(a.z, b.z, t) };
-  };
   for (let row = 0; row < rows; row += 1) {
     for (let column = 0; column < columns; column += 1) {
       const corners = [
@@ -142,25 +141,22 @@ function createShorelineGeometry(seed: number, riverSamples: THREE.Vector3[]) {
         point(column + 1, row + 1),
         point(column, row + 1),
       ];
-      const hits = [
-        crossing(corners[0], corners[1]),
-        crossing(corners[1], corners[2]),
-        crossing(corners[2], corners[3]),
-        crossing(corners[3], corners[0]),
-      ].filter((value): value is { x: number; z: number } => value !== null);
-      if (hits.length < 2) continue;
-      for (let index = 0; index + 1 < hits.length; index += 2) {
-        const a = hits[index];
-        const b = hits[index + 1];
-        positions.push(
-          a.x, heightAt(seed, a.x, a.z, riverSamples) + 0.055, a.z,
-          b.x, heightAt(seed, b.x, b.z, riverSamples) + 0.055, b.z,
-        );
+      const centerX = (corners[0].x + corners[2].x) / 2;
+      const centerZ = (corners[0].z + corners[2].z) / 2;
+      const coast = landValue(seed, centerX, centerZ);
+      if (coast < -0.015 || coast > 0.25) continue;
+      const triangles = [corners[0], corners[1], corners[2], corners[0], corners[2], corners[3]];
+      for (const vertex of triangles) {
+        positions.push(vertex.x, heightAt(seed, vertex.x, vertex.z, riverSamples) + 0.028, vertex.z);
+        const variation = 0.9 + terrainNoise(seed + 970, vertex.x * 2, vertex.z * 2) * 0.28;
+        colors.push(0.83 * variation, 0.72 * variation, 0.45 * variation);
       }
     }
   }
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
+  geometry.computeVertexNormals();
   return geometry;
 }
 
@@ -291,12 +287,19 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
     sea.receiveShadow = true;
     scene.add(sea);
 
-    const shoreline = new THREE.LineSegments(
-      createShorelineGeometry(seed, samples),
-      new THREE.LineBasicMaterial({ color: "#f8edc7", transparent: true, opacity: 0.78 }),
+    const beach = new THREE.Mesh(
+      createBeachGeometry(seed, samples),
+      new THREE.MeshStandardMaterial({
+        vertexColors: true,
+        roughness: 0.98,
+        metalness: 0,
+        polygonOffset: true,
+        polygonOffsetFactor: -2,
+      }),
     );
-    shoreline.renderOrder = 20;
-    scene.add(shoreline);
+    beach.receiveShadow = true;
+    beach.renderOrder = 18;
+    scene.add(beach);
 
     const river = new THREE.Mesh(
       createRiverRibbon(curve),
@@ -314,87 +317,156 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
     river.receiveShadow = true;
     scene.add(river);
 
-    const shadowCanvas = document.createElement("canvas");
-    shadowCanvas.width = 128;
-    shadowCanvas.height = 128;
-    const shadowContext = shadowCanvas.getContext("2d");
-    if (shadowContext) {
-      const gradient = shadowContext.createRadialGradient(64, 64, 5, 64, 64, 60);
-      gradient.addColorStop(0, "rgba(27, 34, 20, 0.48)");
-      gradient.addColorStop(0.55, "rgba(27, 34, 20, 0.25)");
-      gradient.addColorStop(1, "rgba(27, 34, 20, 0)");
-      shadowContext.fillStyle = gradient;
-      shadowContext.fillRect(0, 0, 128, 128);
+    type TerrainCell = { row: number; column: number; x: number; z: number; type: "forest" | "mountain" };
+    const terrainCells = new Map<string, TerrainCell>();
+    for (let row = 0; row < HEX_ROWS; row += 1) {
+      for (let column = 0; column < HEX_COLS; column += 1) {
+        const { x, z } = hexCenterAt(row, column);
+        if (Math.abs(x) > MAP_WIDTH / 2 || Math.abs(z) > MAP_DEPTH / 2) continue;
+        if (landValue(seed, x, z) < 0.22 || distanceToRiver(x, z, samples) < 1.18) continue;
+        const mountainScore =
+          Math.sin(x * 0.19 - z * 0.13 + seed * 0.00031) * 0.55 +
+          Math.cos(z * 0.24 + seed * 0.00019) * 0.45;
+        const forestScore =
+          Math.sin(x * 0.26 + z * 0.17 + seed * 0.00043) * 0.52 +
+          Math.cos(x * 0.18 - z * 0.29 + seed * 0.00037) * 0.48;
+        if (mountainScore > 0.7) terrainCells.set(`${row}:${column}`, { row, column, x, z, type: "mountain" });
+        else if (forestScore > 0.38) terrainCells.set(`${row}:${column}`, { row, column, x, z, type: "forest" });
+      }
     }
-    const contactShadowTexture = new THREE.CanvasTexture(shadowCanvas);
-    const addContactShadow = (x: number, y: number, z: number, width: number, depth: number, opacity: number) => {
-      const shadow = new THREE.Mesh(
-        new THREE.PlaneGeometry(width, depth),
-        new THREE.MeshBasicMaterial({
-          map: contactShadowTexture,
-          transparent: true,
-          opacity,
-          depthWrite: false,
-          polygonOffset: true,
-          polygonOffsetFactor: -2,
-        }),
-      );
-      shadow.rotation.x = -Math.PI / 2;
-      shadow.position.set(x, y + 0.035, z);
-      shadow.renderOrder = 2;
-      scene.add(shadow);
+    const neighborCells = (cell: TerrainCell) => {
+      const diagonal = cell.row % 2 === 0 ? -1 : 1;
+      return [
+        [cell.row, cell.column - 1], [cell.row, cell.column + 1],
+        [cell.row - 1, cell.column], [cell.row + 1, cell.column],
+        [cell.row - 1, cell.column + diagonal], [cell.row + 1, cell.column + diagonal],
+      ];
+    };
+    const componentsFor = (type: TerrainCell["type"]) => {
+      const visited = new Set<string>();
+      const groups: TerrainCell[][] = [];
+      for (const [key, cell] of terrainCells) {
+        if (cell.type !== type || visited.has(key)) continue;
+        const group: TerrainCell[] = [];
+        const queue = [cell];
+        visited.add(key);
+        while (queue.length) {
+          const current = queue.shift()!;
+          group.push(current);
+          for (const [row, column] of neighborCells(current)) {
+            const neighborKey = `${row}:${column}`;
+            const neighbor = terrainCells.get(neighborKey);
+            if (neighbor?.type === type && !visited.has(neighborKey)) {
+              visited.add(neighborKey);
+              queue.push(neighbor);
+            }
+          }
+        }
+        groups.push(group);
+      }
+      return groups;
     };
 
-    const forestTexture = textureLoader.load("/assets/terrain/forest-grove-real-v2.png");
-    forestTexture.colorSpace = THREE.SRGBColorSpace;
-    const forestMaterial = new THREE.SpriteMaterial({
-      map: forestTexture,
-      transparent: true,
-      alphaTest: 0.1,
-      depthWrite: true,
-      toneMapped: true,
+    const treeInstances: { x: number; y: number; z: number; scale: number; rotation: number }[] = [];
+    componentsFor("forest").forEach((group, groupIndex) => {
+      const perHex = group.length >= 16 ? 9 : group.length >= 4 ? 7 : 3;
+      group.forEach((cell, cellIndex) => {
+        for (let treeIndex = 0; treeIndex < perHex; treeIndex += 1) {
+          const index = groupIndex * 10000 + cellIndex * 100 + treeIndex;
+          const angle = hash(seed + 3301, index, 1) * Math.PI * 2;
+          const radius = Math.sqrt(hash(seed + 3302, index, 2)) * HEX_SIZE * 0.72;
+          const x = cell.x + Math.cos(angle) * radius;
+          const z = cell.z + Math.sin(angle) * radius;
+          treeInstances.push({
+            x,
+            y: heightAt(seed, x, z, samples),
+            z,
+            scale: 0.42 + hash(seed + 3303, index, 3) * 0.36,
+            rotation: hash(seed + 3304, index, 4) * Math.PI * 2,
+          });
+        }
+      });
+      const groupKeys = new Set(group.map((cell) => `${cell.row}:${cell.column}`));
+      group.forEach((cell, cellIndex) => {
+        neighborCells(cell).forEach(([row, column], neighborIndex) => {
+          const neighborKey = `${row}:${column}`;
+          if (!groupKeys.has(neighborKey) || `${cell.row}:${cell.column}` > neighborKey) return;
+          const neighbor = terrainCells.get(neighborKey)!;
+          const x = (cell.x + neighbor.x) / 2;
+          const z = (cell.z + neighbor.z) / 2;
+          const index = groupIndex * 1000 + cellIndex * 10 + neighborIndex;
+          treeInstances.push({
+            x,
+            y: heightAt(seed, x, z, samples),
+            z,
+            scale: 0.48 + hash(seed + 3310, index, 1) * 0.28,
+            rotation: hash(seed + 3311, index, 2) * Math.PI * 2,
+          });
+        });
+      });
     });
-    for (let i = 0; i < 14; i += 1) {
-      const x = (hash(seed + 301, i, 1) - 0.5) * (MAP_WIDTH - 5);
-      const z = (hash(seed + 302, i, 2) - 0.5) * (MAP_DEPTH - 4);
-      if (landValue(seed, x, z) < 0.18 || distanceToRiver(x, z, samples) < 1.75) continue;
-      const grove = new THREE.Sprite(forestMaterial.clone());
-      const scale = 1.7 + hash(seed + 303, i, 3) * 1.25;
-      const y = heightAt(seed, x, z, samples);
-      grove.scale.set(scale * 1.75, scale * 1.18, 1);
-      grove.position.set(x, y, z);
-      grove.center.set(0.5, 0);
-      grove.renderOrder = Math.round((z + MAP_DEPTH / 2) * 10);
-      if (hash(seed + 304, i, 4) > 0.5) grove.material.rotation = 0.025;
-      addContactShadow(x, y, z, scale * 1.48, scale * 0.84, 0.72);
-      scene.add(grove);
-    }
 
-    const mountainTexture = textureLoader.load("/assets/terrain/mountain-massif-real-v1.png");
-    mountainTexture.colorSpace = THREE.SRGBColorSpace;
-    const mountainMaterial = new THREE.SpriteMaterial({
-      map: mountainTexture,
-      transparent: true,
-      alphaTest: 0.08,
-      depthWrite: true,
-      toneMapped: true,
+    const trunkMesh = new THREE.InstancedMesh(
+      new THREE.CylinderGeometry(0.065, 0.095, 0.62, 8),
+      new THREE.MeshStandardMaterial({ color: "#4d3522", roughness: 1 }),
+      treeInstances.length,
+    );
+    const lowerCanopy = new THREE.InstancedMesh(
+      new THREE.ConeGeometry(0.5, 1.05, 10),
+      new THREE.MeshStandardMaterial({ color: "#2d5c36", roughness: 0.96, flatShading: true }),
+      treeInstances.length,
+    );
+    const upperCanopy = new THREE.InstancedMesh(
+      new THREE.ConeGeometry(0.36, 0.88, 10),
+      new THREE.MeshStandardMaterial({ color: "#477441", roughness: 0.94, flatShading: true }),
+      treeInstances.length,
+    );
+    const matrix = new THREE.Matrix4();
+    const quaternion = new THREE.Quaternion();
+    const scaleVector = new THREE.Vector3();
+    treeInstances.forEach((tree, index) => {
+      quaternion.setFromAxisAngle(new THREE.Vector3(0, 1, 0), tree.rotation);
+      matrix.compose(new THREE.Vector3(tree.x, tree.y + tree.scale * 0.3, tree.z), quaternion, scaleVector.setScalar(tree.scale));
+      trunkMesh.setMatrixAt(index, matrix);
+      matrix.compose(new THREE.Vector3(tree.x, tree.y + tree.scale * 0.83, tree.z), quaternion, scaleVector.setScalar(tree.scale));
+      lowerCanopy.setMatrixAt(index, matrix);
+      matrix.compose(new THREE.Vector3(tree.x, tree.y + tree.scale * 1.25, tree.z), quaternion, scaleVector.setScalar(tree.scale * 0.92));
+      upperCanopy.setMatrixAt(index, matrix);
     });
-    const mountainCenters = Array.from({ length: 5 }, (_, index) => [
-      -8.8 + (hash(seed + 411, index, 1) - 0.5) * 7.5,
-      3.4 + (hash(seed + 412, index, 2) - 0.5) * 7,
-      3.25 + hash(seed + 413, index, 3) * 1.65,
-    ] as const);
-    mountainCenters.forEach(([x, z, scale], index) => {
-      if (landValue(seed, x, z) < 0.22 || distanceToRiver(x, z, samples) < 1.55) return;
-      const mountain = new THREE.Sprite(mountainMaterial.clone());
-      const variation = 0.88 + hash(seed + 401, index, 2) * 0.24;
-      const y = heightAt(seed, x, z, samples);
-      mountain.scale.set(scale * 1.38 * variation, scale * variation, 1);
-      mountain.position.set(x, y, z);
-      mountain.center.set(0.5, 0);
-      mountain.renderOrder = Math.round((z + MAP_DEPTH / 2) * 10);
-      addContactShadow(x, y, z, scale * 1.2, scale * 0.67, 0.8);
-      scene.add(mountain);
+    [trunkMesh, lowerCanopy, upperCanopy].forEach((mesh) => {
+      mesh.instanceMatrix.needsUpdate = true;
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      scene.add(mesh);
+    });
+
+    const mountainMaterial = new THREE.MeshStandardMaterial({ color: "#77766f", roughness: 0.98, flatShading: true });
+    const snowMaterial = new THREE.MeshStandardMaterial({ color: "#e0ded2", roughness: 0.92, flatShading: true });
+    componentsFor("mountain").forEach((group, groupIndex) => {
+      group.forEach((cell, cellIndex) => {
+        const peaks = group.length >= 4 ? 2 : 1;
+        for (let peakIndex = 0; peakIndex < peaks; peakIndex += 1) {
+          const index = groupIndex * 1000 + cellIndex * 10 + peakIndex;
+          const x = cell.x + (hash(seed + 4401, index, 1) - 0.5) * HEX_SIZE * 0.55;
+          const z = cell.z + (hash(seed + 4402, index, 2) - 0.5) * HEX_SIZE * 0.55;
+          const y = heightAt(seed, x, z, samples);
+          const peakHeight = 1.25 + hash(seed + 4403, index, 3) * 0.75;
+          const radius = 0.55 + hash(seed + 4404, index, 4) * 0.23;
+          const mountain = new THREE.Mesh(new THREE.ConeGeometry(radius, peakHeight, 9, 4), mountainMaterial);
+          mountain.position.set(x, y + peakHeight * 0.46, z);
+          mountain.rotation.y = hash(seed + 4405, index, 5) * Math.PI;
+          mountain.castShadow = true;
+          mountain.receiveShadow = true;
+          scene.add(mountain);
+          if (peakHeight > 1.65) {
+            const snow = new THREE.Mesh(new THREE.ConeGeometry(radius * 0.34, peakHeight * 0.25, 9), snowMaterial);
+            snow.position.set(x, y + peakHeight * 0.88, z);
+            snow.rotation.y = mountain.rotation.y;
+            snow.castShadow = true;
+            scene.add(snow);
+          }
+        }
+      });
     });
 
     const rockMaterial = new THREE.MeshStandardMaterial({ color: "#716e61", roughness: 1, flatShading: true });
@@ -411,15 +483,10 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
       scene.add(rock);
     }
 
-    const hexCenter = (row: number, column: number) => {
-      const x = -MAP_WIDTH / 2 + HEX_WIDTH / 2 + column * HEX_WIDTH + (row % 2) * (HEX_WIDTH / 2);
-      const z = -MAP_DEPTH / 2 + HEX_SIZE + row * 1.5 * HEX_SIZE;
-      return { x, z };
-    };
     const gridPositions: number[] = [];
     for (let r = 0; r < HEX_ROWS; r += 1) {
       for (let q = 0; q < HEX_COLS; q += 1) {
-        const { x: cx, z: cz } = hexCenter(r, q);
+        const { x: cx, z: cz } = hexCenterAt(r, q);
         if (cx < -MAP_WIDTH / 2 - HEX_WIDTH || cx > MAP_WIDTH / 2 + HEX_WIDTH) continue;
         if (cz < -MAP_DEPTH / 2 - HEX_SIZE || cz > MAP_DEPTH / 2 + HEX_SIZE) continue;
         for (let edge = 0; edge < 6; edge += 1) {
@@ -481,7 +548,7 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
         0,
         HEX_COLS - 1,
       );
-      const center = hexCenter(row, column);
+      const center = hexCenterAt(row, column);
       const selectedPoints: THREE.Vector3[] = [];
       for (let edge = 0; edge < 6; edge += 1) {
         const angle = (Math.PI / 180) * (60 * edge - 30);
@@ -535,9 +602,6 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
       groundTexture.dispose();
       waterTexture.dispose();
       seaTexture.dispose();
-      contactShadowTexture.dispose();
-      forestTexture.dispose();
-      mountainTexture.dispose();
       renderer.dispose();
       renderer.domElement.remove();
     };
