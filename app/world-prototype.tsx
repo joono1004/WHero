@@ -107,10 +107,14 @@ export function WorldPrototype() {
     const mapHeight = size * (1.5 * ROWS + 0.5);
     const ox = (width - mapWidth) / 2 + SQRT3 * size / 2;
     const oy = (height - mapHeight) / 2 + size;
+    const centerOf = (cell: Cell) => ({
+      x: ox + SQRT3 * size * (cell.q + cell.r / 2),
+      y: oy + 1.5 * size * cell.r,
+    });
+    const cellByCoordinate = new Map(cells.map((cell) => [`${cell.q},${cell.r}`, cell]));
 
     for (const cell of cells) {
-      const cx = ox + SQRT3 * size * (cell.q + cell.r / 2);
-      const cy = oy + 1.5 * size * cell.r;
+      const { x: cx, y: cy } = centerOf(cell);
       hexPath(ctx, cx, cy, size + 0.6);
       const [dark, light] = colors[cell.terrain];
       const gradient = ctx.createLinearGradient(cx - size, cy - size, cx + size, cy + size);
@@ -185,9 +189,68 @@ export function WorldPrototype() {
         ctx.fillStyle = "rgba(238,236,218,.72)";
         ctx.beginPath(); ctx.moveTo(cx, cy - size * 0.68); ctx.lineTo(cx - size * 0.18, cy - size * 0.28); ctx.lineTo(cx, cy - size * 0.34); ctx.lineTo(cx + size * 0.15, cy - size * 0.18); ctx.lineTo(cx + size * 0.24, cy - size * 0.22); ctx.closePath(); ctx.fill();
       }
+    }
+
+    const neighborDirections = [[1, 0], [0, 1], [-1, 1]];
+    const isWater = (terrain: Terrain) => terrain === "ocean" || terrain === "coast";
+
+    for (const cell of cells) {
+      const a = centerOf(cell);
+      for (const [dq, dr] of neighborDirections) {
+        const neighbor = cellByCoordinate.get(`${cell.q + dq},${cell.r + dr}`);
+        if (!neighbor || neighbor.terrain === cell.terrain) continue;
+        const b = centerOf(neighbor);
+        const mx = (a.x + b.x) / 2;
+        const my = (a.y + b.y) / 2;
+        const vx = b.x - a.x;
+        const vy = b.y - a.y;
+        const length = Math.hypot(vx, vy);
+        const px = -vy / length;
+        const py = vx / length;
+        const pair = new Set([cell.terrain, neighbor.terrain]);
+
+        let band = "rgba(128,126,83,.42)";
+        if (pair.has("forest")) band = "rgba(64,102,65,.58)";
+        if (pair.has("hill") || pair.has("mountain")) band = "rgba(122,112,83,.56)";
+        if (isWater(cell.terrain) !== isWater(neighbor.terrain)) band = "rgba(209,193,132,.74)";
+        if (pair.has("ocean") && pair.has("coast")) band = "rgba(91,156,162,.48)";
+
+        ctx.save();
+        ctx.strokeStyle = band;
+        ctx.lineWidth = size * 0.3;
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(mx - px * size * 0.42, my - py * size * 0.42);
+        ctx.lineTo(mx + px * size * 0.42, my + py * size * 0.42);
+        ctx.stroke();
+
+        for (let i = 0; i < 9; i += 1) {
+          const along = (i / 8 - 0.5) * size * 0.92;
+          const scatter = (hash(seed + 500 + i, cell.q + neighbor.q, cell.r + neighbor.r) - 0.5) * size * 0.33;
+          const x = mx + px * along + (vx / length) * scatter;
+          const y = my + py * along + (vy / length) * scatter;
+          const radius = size * (0.035 + hash(seed + 620 + i, neighbor.q, cell.r) * 0.07);
+
+          if (pair.has("forest") && !isWater(cell.terrain) && !isWater(neighbor.terrain)) {
+            ctx.fillStyle = i % 2 ? "#42694a" : "#68805a";
+            ctx.beginPath(); ctx.arc(x, y, radius * 1.18, 0, Math.PI * 2); ctx.fill();
+          } else if ((pair.has("hill") || pair.has("mountain")) && !isWater(cell.terrain) && !isWater(neighbor.terrain)) {
+            ctx.fillStyle = i % 2 ? "#746f60" : "#9b8f72";
+            ctx.beginPath(); ctx.ellipse(x, y, radius * 1.35, radius * 0.72, i * 0.7, 0, Math.PI * 2); ctx.fill();
+          } else if (isWater(cell.terrain) !== isWater(neighbor.terrain)) {
+            ctx.fillStyle = i % 2 ? "rgba(229,216,169,.82)" : "rgba(130,183,177,.72)";
+            ctx.beginPath(); ctx.ellipse(x, y, radius * 1.5, radius * 0.6, Math.atan2(py, px), 0, Math.PI * 2); ctx.fill();
+          }
+        }
+        ctx.restore();
+      }
+    }
+
+    for (const cell of cells) {
+      const { x: cx, y: cy } = centerOf(cell);
       if (showGrid) {
         hexPath(ctx, cx, cy, size);
-        ctx.strokeStyle = cell.terrain === "ocean" || cell.terrain === "coast" ? "rgba(205,236,238,.24)" : "rgba(245,230,190,.28)";
+        ctx.strokeStyle = isWater(cell.terrain) ? "rgba(205,236,238,.29)" : "rgba(245,230,190,.34)";
         ctx.lineWidth = 1;
         ctx.stroke();
       }
@@ -206,8 +269,7 @@ export function WorldPrototype() {
       let best: Cell | null = null;
       let bestDistance = Infinity;
       for (const cell of cells) {
-        const cx = ox + SQRT3 * size * (cell.q + cell.r / 2);
-        const cy = oy + 1.5 * size * cell.r;
+        const { x: cx, y: cy } = centerOf(cell);
         const distance = Math.hypot(x - cx, y - cy);
         if (distance < bestDistance && distance < size) { best = cell; bestDistance = distance; }
       }
