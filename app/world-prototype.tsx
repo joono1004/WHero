@@ -256,6 +256,7 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
     scene.add(sun);
 
     const worldRoot = new THREE.Group();
+    worldRoot.rotation.order = "YXZ";
     scene.add(worldRoot);
 
     const textureLoader = new THREE.TextureLoader();
@@ -683,19 +684,28 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
     let pointerDown = new THREE.Vector2();
     let rightDragging = false;
     let lastRightX = 0;
+    let lastRightY = 0;
     const handlePointerDown = (event: PointerEvent) => {
       pointerDown = new THREE.Vector2(event.clientX, event.clientY);
       if (event.button === 2) {
         rightDragging = true;
         lastRightX = event.clientX;
+        lastRightY = event.clientY;
         renderer.domElement.setPointerCapture(event.pointerId);
       }
     };
     const handlePointerMove = (event: PointerEvent) => {
       if (!rightDragging) return;
       const deltaX = event.clientX - lastRightX;
+      const deltaY = event.clientY - lastRightY;
       lastRightX = event.clientX;
-      worldRoot.rotation.y += deltaX * 0.008;
+      lastRightY = event.clientY;
+      worldRoot.rotation.y += deltaX * 0.009;
+      worldRoot.rotation.x = THREE.MathUtils.clamp(
+        worldRoot.rotation.x + deltaY * 0.0065,
+        -Math.PI * 0.15,
+        Math.PI * 0.18,
+      );
     };
     const handlePointerUp = (event: PointerEvent) => {
       if (event.button === 2) {
