@@ -433,6 +433,7 @@ export function WorldPrototype() {
         const curve = (hash(seed + 1901 + i, route[0].q, route[0].r) - 0.5) * size * 0.32;
         const controlX = (start.x + end.x) / 2 + (-dy / length) * curve;
         const controlY = (start.y + end.y) / 2 + (dx / length) * curve;
+        const terrain = route[Math.min(i, route.length - 1)].terrain;
         const trace = (color: string, lineWidth: number) => {
           ctx.strokeStyle = color;
           ctx.lineWidth = lineWidth;
@@ -442,9 +443,46 @@ export function WorldPrototype() {
           ctx.quadraticCurveTo(controlX, controlY, end.x, end.y);
           ctx.stroke();
         };
-        trace("rgba(48,45,32,.38)", size * (0.085 + progress * 0.075));
-        trace("rgba(54,126,149,.96)", size * (0.052 + progress * 0.057));
-        trace("rgba(192,229,226,.48)", Math.max(0.55, size * (0.012 + progress * 0.009)));
+
+        const valleyStyle =
+          terrain === "forest" || terrain === "woodland"
+            ? { color: "rgba(103,119,76,.98)", width: 0.53 }
+            : terrain === "mountain"
+              ? { color: "rgba(105,101,89,.97)", width: 0.39 }
+              : terrain === "hill" || terrain === "foothill"
+                ? { color: "rgba(126,118,88,.97)", width: 0.43 }
+                : { color: "rgba(126,145,86,.96)", width: 0.34 };
+        const waterBase =
+          terrain === "plain" || terrain === "meadow"
+            ? 0.105
+            : terrain === "forest" || terrain === "woodland"
+              ? 0.068
+              : 0.052;
+        const waterWidth = size * (waterBase + progress * (terrain === "plain" || terrain === "meadow" ? 0.105 : 0.06));
+
+        // Draw an opaque valley first so forests and relief are visually split
+        // into two banks instead of leaving the river painted over their art.
+        trace(valleyStyle.color, size * valleyStyle.width);
+        trace("rgba(66,54,37,.5)", waterWidth + size * 0.085);
+        trace("rgba(54,126,149,.97)", waterWidth);
+        trace("rgba(192,229,226,.5)", Math.max(0.55, waterWidth * 0.18));
+
+        if (terrain === "forest" || terrain === "woodland") {
+          const nx = -dy / length;
+          const ny = dx / length;
+          for (const side of [-1, 1]) {
+            for (let tree = 0; tree < 3; tree += 1) {
+              const t = 0.24 + tree * 0.26;
+              const bankDistance = size * (valleyStyle.width * 0.55 + 0.055);
+              const tx = start.x + dx * t + nx * bankDistance * side;
+              const ty = start.y + dy * t + ny * bankDistance * side;
+              ctx.fillStyle = tree % 2 ? "#355f43" : "#4b7350";
+              ctx.beginPath();
+              ctx.arc(tx, ty, size * (0.055 + tree * 0.006), 0, Math.PI * 2);
+              ctx.fill();
+            }
+          }
+        }
       }
 
       const spring = points[0];
@@ -452,6 +490,39 @@ export function WorldPrototype() {
       ctx.beginPath();
       ctx.ellipse(spring.x, spring.y, size * 0.09, size * 0.055, -0.25, 0, Math.PI * 2);
       ctx.fill();
+
+      if (points.length >= 4) {
+        const deltaStart = points[points.length - 3];
+        const mouth = points[points.length - 1];
+        const dx = mouth.x - deltaStart.x;
+        const dy = mouth.y - deltaStart.y;
+        const length = Math.hypot(dx, dy);
+        const nx = -dy / length;
+        const ny = dx / length;
+        for (const branch of [-0.34, 0, 0.34]) {
+          const endX = mouth.x + nx * size * branch;
+          const endY = mouth.y + ny * size * branch;
+          ctx.strokeStyle = "rgba(62,137,157,.88)";
+          ctx.lineWidth = size * (branch === 0 ? 0.12 : 0.075);
+          ctx.lineCap = "round";
+          ctx.beginPath();
+          ctx.moveTo(deltaStart.x, deltaStart.y);
+          ctx.quadraticCurveTo(
+            (deltaStart.x + endX) / 2 + nx * size * branch * 0.5,
+            (deltaStart.y + endY) / 2 + ny * size * branch * 0.5,
+            endX,
+            endY,
+          );
+          ctx.stroke();
+        }
+        const plume = ctx.createRadialGradient(mouth.x, mouth.y, 0, mouth.x, mouth.y, size * 0.72);
+        plume.addColorStop(0, "rgba(83,155,167,.42)");
+        plume.addColorStop(1, "rgba(83,155,167,0)");
+        ctx.fillStyle = plume;
+        ctx.beginPath();
+        ctx.ellipse(mouth.x, mouth.y, size * 0.72, size * 0.38, Math.atan2(dy, dx), 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
     };
 
