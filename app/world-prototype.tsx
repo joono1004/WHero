@@ -382,21 +382,22 @@ function heightAt(seed: number, x: number, z: number, riverSamples: THREE.Vector
       THREE.MathUtils.smoothstep(land, DEEP_WATER_EDGE, SHORELINE),
     );
   }
-  if (land < BEACH_INNER_EDGE) {
-    return THREE.MathUtils.lerp(
+  const naturalSurface =
+    land < BEACH_INNER_EDGE
+      ? THREE.MathUtils.lerp(
       SEA_LEVEL + 0.022,
       base * 0.24,
       THREE.MathUtils.smoothstep(land, SHORELINE, BEACH_INNER_EDGE),
-    );
-  }
+        )
+      : base + ridge;
   const nearest = nearestRiverSample(x, z, riverSamples);
   const halfWidth = riverWidthAt(nearest.t) * 0.5;
   const outerBank = halfWidth + 0.76;
   if (nearest.distance < outerBank) {
     const bank = THREE.MathUtils.smoothstep(nearest.distance, halfWidth + 0.04, outerBank);
-    return THREE.MathUtils.lerp(nearest.point.y - 0.045, base + ridge, bank);
+    return THREE.MathUtils.lerp(nearest.point.y - 0.045, naturalSurface, bank);
   }
-  return base + ridge;
+  return naturalSurface;
 }
 
 function terrainColor(height: number, wetness: number, biome: number) {
@@ -466,8 +467,18 @@ function createBeachGeometry(seed: number, riverSamples: THREE.Vector3[]) {
             BEACH_VISUAL_EDGE,
           );
         const regionFade = beachRegionStrength(seed, vertex.x, vertex.z);
+        const nearestRiver = nearestRiverSample(vertex.x, vertex.z, riverSamples);
+        const riverHalfWidth = riverWidthAt(nearestRiver.t) * 0.5;
+        const riverMouthOpening = THREE.MathUtils.smoothstep(
+          nearestRiver.distance,
+          riverHalfWidth * 0.82,
+          riverHalfWidth + 0.34,
+        );
         const alpha = THREE.MathUtils.clamp(
-          waterFade * Math.min(landFade, naturalLandFade) * regionFade,
+          waterFade *
+            Math.min(landFade, naturalLandFade) *
+            regionFade *
+            riverMouthOpening,
           0,
           1,
         );
