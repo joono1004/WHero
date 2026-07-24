@@ -240,12 +240,15 @@ function createBeachGeometry(seed: number, riverSamples: THREE.Vector3[]) {
         const height = heightAt(seed, vertex.x, vertex.z, riverSamples) + 0.035;
         positions.push(vertex.x, height, vertex.z);
         uvs.push((vertex.x + MAP_WIDTH / 2) / MAP_WIDTH, (vertex.z + MAP_DEPTH / 2) / MAP_DEPTH);
+        const vertexCoast = landValue(seed, vertex.x, vertex.z);
+        const inland = THREE.MathUtils.smoothstep(vertexCoast, SHORELINE, BEACH_INNER_EDGE);
+        const sandColor = new THREE.Color("#c59b5d").lerp(new THREE.Color("#f0d69c"), inland);
         const variation = THREE.MathUtils.clamp(
           0.98 + terrainNoise(seed + 970, vertex.x * 2, vertex.z * 2) * 0.12,
           0.92,
           1.04,
         );
-        colors.push(variation, variation * 0.97, variation * 0.88);
+        colors.push(sandColor.r * variation, sandColor.g * variation, sandColor.b * variation);
       }
     }
   }
@@ -508,33 +511,18 @@ function WorldScene({
     shallowWater.renderOrder = 16;
     worldRoot.add(shallowWater);
 
-    const sandCanvas = document.createElement("canvas");
-    sandCanvas.width = 128;
-    sandCanvas.height = 128;
-    const sandContext = sandCanvas.getContext("2d");
-    if (sandContext) {
-      sandContext.fillStyle = "#f6d99a";
-      sandContext.fillRect(0, 0, 128, 128);
-      for (let index = 0; index < 420; index += 1) {
-        const shade = 210 + Math.floor(hash(seed + 8801, index, 1) * 36);
-        sandContext.fillStyle = `rgba(${shade}, ${shade - 11}, ${shade - 35}, 0.24)`;
-        const x = hash(seed + 8802, index, 2) * 128;
-        const y = hash(seed + 8803, index, 3) * 128;
-        const radius = 0.35 + hash(seed + 8804, index, 4) * 0.75;
-        sandContext.beginPath();
-        sandContext.arc(x, y, radius, 0, Math.PI * 2);
-        sandContext.fill();
-      }
-    }
-    const sandTexture = new THREE.CanvasTexture(sandCanvas);
+    const sandTexture = textureLoader.load("/assets/terrain/beach-sand-real-v1.png");
+    sandTexture.colorSpace = THREE.SRGBColorSpace;
     sandTexture.wrapS = THREE.RepeatWrapping;
     sandTexture.wrapT = THREE.RepeatWrapping;
-    sandTexture.repeat.set(12, 9);
+    sandTexture.repeat.set(10, 8);
+    sandTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
     const beach = new THREE.Mesh(
-      coastHexGeometries.beach,
+      debugCoast ? coastHexGeometries.beach : createBeachGeometry(seed, samples),
       new THREE.MeshStandardMaterial({
         color: debugCoast ? "#ffe500" : "#ffffff",
         map: debugCoast ? null : sandTexture,
+        vertexColors: !debugCoast,
         roughness: 0.98,
         metalness: 0,
         polygonOffset: true,
