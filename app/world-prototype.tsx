@@ -421,9 +421,11 @@ function createSurfGeometry(seed: number, riverSamples: THREE.Vector3[]) {
 }
 
 function createShallowCoastGeometry(seed: number) {
-  const columns = 144;
-  const rows = 112;
+  const columns = 320;
+  const rows = 250;
   const positions: number[] = [];
+  const colors: number[] = [];
+  const uvs: number[] = [];
   for (let row = 0; row < rows; row += 1) {
     for (let column = 0; column < columns; column += 1) {
       const x0 = -MAP_WIDTH / 2 + (column / columns) * MAP_WIDTH;
@@ -431,15 +433,42 @@ function createShallowCoastGeometry(seed: number) {
       const z0 = -MAP_DEPTH / 2 + (row / rows) * MAP_DEPTH;
       const z1 = -MAP_DEPTH / 2 + ((row + 1) / rows) * MAP_DEPTH;
       const coast = landValue(seed, (x0 + x1) / 2, (z0 + z1) / 2);
-      if (coast < DEEP_WATER_EDGE || coast > SHORELINE) continue;
-      positions.push(
-        x0, SEA_LEVEL + 0.022, z0, x1, SEA_LEVEL + 0.022, z0, x1, SEA_LEVEL + 0.022, z1,
-        x0, SEA_LEVEL + 0.022, z0, x1, SEA_LEVEL + 0.022, z1, x0, SEA_LEVEL + 0.022, z1,
-      );
+      if (coast < DEEP_WATER_EDGE - 0.035 || coast > SHORELINE + 0.035) continue;
+      const corners = [
+        { x: x0, z: z0 },
+        { x: x1, z: z0 },
+        { x: x1, z: z1 },
+        { x: x0, z: z1 },
+      ];
+      const triangles = [corners[0], corners[2], corners[1], corners[0], corners[3], corners[2]];
+      for (const vertex of triangles) {
+        const vertexCoast = landValue(seed, vertex.x, vertex.z);
+        const depth = THREE.MathUtils.smoothstep(vertexCoast, DEEP_WATER_EDGE, SHORELINE);
+        const deepFade = THREE.MathUtils.smoothstep(
+          vertexCoast,
+          DEEP_WATER_EDGE - 0.025,
+          DEEP_WATER_EDGE + 0.045,
+        );
+        const shoreFade =
+          1 - THREE.MathUtils.smoothstep(vertexCoast, SHORELINE - 0.012, SHORELINE + 0.025);
+        const alpha = THREE.MathUtils.clamp(deepFade * shoreFade * 0.82, 0, 0.82);
+        const waterColor = new THREE.Color("#2d708d").lerp(new THREE.Color("#78c9c0"), depth);
+        const variation = 0.96 + terrainNoise(seed + 1461, vertex.x * 1.8, vertex.z * 1.8) * 0.1;
+        positions.push(vertex.x, SEA_LEVEL + 0.028, vertex.z);
+        colors.push(
+          waterColor.r * variation,
+          waterColor.g * variation,
+          waterColor.b * variation,
+          alpha,
+        );
+        uvs.push((vertex.x + MAP_WIDTH / 2) / MAP_WIDTH, (vertex.z + MAP_DEPTH / 2) / MAP_DEPTH);
+      }
     }
   }
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setAttribute("color", new THREE.Float32BufferAttribute(colors, 4));
+  geometry.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
   geometry.computeVertexNormals();
   return geometry;
 }
@@ -630,9 +659,14 @@ function WorldScene({
     worldRoot.add(sea);
 
     const shallowWater = new THREE.Mesh(
-      coastHexGeometries.shallow,
+      debugCoast ? coastHexGeometries.shallow : createShallowCoastGeometry(seed),
       new THREE.MeshStandardMaterial({
-        color: debugCoast ? "#00f5ff" : "#69cfd0",
+        color: debugCoast ? "#00f5ff" : "#ffffff",
+        map: debugCoast ? null : seaTexture,
+        vertexColors: !debugCoast,
+        transparent: !debugCoast,
+        alphaTest: debugCoast ? 0 : 0.01,
+        depthWrite: debugCoast,
         roughness: 0.62,
         metalness: 0,
       }),
