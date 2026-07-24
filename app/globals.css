@@ -29,6 +29,7 @@ canvas { display:block; width:100%; height:calc(100vh - 148px); min-height:620px
 .coast-debug p b { color:#fff3a1; }
 .debug-land { background:#4f934d; }
 .debug-beach { background:#ffe500; }
+.debug-cliff { background:#676b70; }
 .debug-shallow { background:#00f5ff; }
 .debug-deep { background:#123b70; }
 .legend { left:18px; bottom:18px; display:grid; grid-template-columns:repeat(2,auto); gap:8px 16px; font-size:11px; color:#becac6; }

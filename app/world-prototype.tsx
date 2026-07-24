@@ -15,7 +15,7 @@ const DEEP_WATER_EDGE = -0.18;
 const SHORELINE = -0.02;
 const BEACH_INNER_EDGE = 0.16;
 const COAST_TRANSITION_EDGE = 0.3;
-const BEACH_VISUAL_EDGE = SHORELINE + (BEACH_INNER_EDGE - SHORELINE) * 0.3;
+const BEACH_VISUAL_EDGE = SHORELINE + (BEACH_INNER_EDGE - SHORELINE) * 0.15;
 const BEACH_FADE_START = SHORELINE + (BEACH_VISUAL_EDGE - SHORELINE) * 0.52;
 const PLAIN_VISUAL_RULE = {
   textureRepeatX: 8,
@@ -24,8 +24,10 @@ const PLAIN_VISUAL_RULE = {
   roughness: 0.96,
 } as const;
 
-type CoastKind = "land" | "beach" | "shallow" | "deep";
+type CoastKind = "land" | "beach" | "cliff" | "shallow" | "deep";
 type CoastCell = { row: number; column: number; x: number; z: number; kind: CoastKind };
+type WaterBody = { size: number; ocean: boolean };
+type WaterBodyIndex = Map<string, WaterBody>;
 type HexDiagnostic = {
   row: number;
   column: number;
@@ -39,6 +41,21 @@ function hexCenterAt(row: number, column: number) {
     x: -MAP_WIDTH / 2 + HEX_WIDTH / 2 + column * HEX_WIDTH + (row % 2) * (HEX_WIDTH / 2),
     z: -MAP_DEPTH / 2 + HEX_SIZE + row * 1.5 * HEX_SIZE,
   };
+}
+
+function hexCoordinatesAt(x: number, z: number) {
+  const row = THREE.MathUtils.clamp(
+    Math.round((z + MAP_DEPTH / 2 - HEX_SIZE) / (1.5 * HEX_SIZE)),
+    0,
+    HEX_ROWS - 1,
+  );
+  const rowOffset = (row % 2) * (HEX_WIDTH / 2);
+  const column = THREE.MathUtils.clamp(
+    Math.round((x + MAP_WIDTH / 2 - HEX_WIDTH / 2 - rowOffset) / HEX_WIDTH),
+    0,
+    HEX_COLS - 1,
+  );
+  return { row, column };
 }
 
 function isInsideMap(row: number, column: number) {
@@ -59,7 +76,68 @@ function neighborsOf(row: number, column: number) {
   ] as const;
 }
 
-function coastKindAt(seed: number, row: number, column: number): CoastKind {
+function createWaterBodyIndex(seed: number): WaterBodyIndex {
+  const result: WaterBodyIndex = new Map();
+  const visited = new Set<string>();
+  for (let row = 0; row < HEX_ROWS; row += 1) {
+    for (let column = 0; column < HEX_COLS; column += 1) {
+      const startKey = `${row}:${column}`;
+      if (visited.has(startKey) || !isInsideMap(row, column)) continue;
+      const start = hexCenterAt(row, column);
+      if (landValue(seed, start.x, start.z) >= SHORELINE) continue;
+      const queue: [number, number][] = [[row, column]];
+      const bodyKeys: string[] = [];
+      let ocean = false;
+      visited.add(startKey);
+      while (queue.length > 0) {
+        const [currentRow, currentColumn] = queue.shift()!;
+        bodyKeys.push(`${currentRow}:${currentColumn}`);
+        for (const [neighborRow, neighborColumn] of neighborsOf(currentRow, currentColumn)) {
+          if (!isInsideMap(neighborRow, neighborColumn)) {
+            ocean = true;
+            continue;
+          }
+          const key = `${neighborRow}:${neighborColumn}`;
+          if (visited.has(key)) continue;
+          const center = hexCenterAt(neighborRow, neighborColumn);
+          if (landValue(seed, center.x, center.z) >= SHORELINE) continue;
+          visited.add(key);
+          queue.push([neighborRow, neighborColumn]);
+        }
+      }
+      const body = { size: bodyKeys.length, ocean };
+      bodyKeys.forEach((key) => result.set(key, body));
+    }
+  }
+  return result;
+}
+
+function beachRegionAllows(seed: number, x: number, z: number) {
+  const region =
+    Math.sin(x * 0.17 + seed * 0.00019) +
+    Math.cos(z * 0.14 - seed * 0.00023) +
+    Math.sin((x + z) * 0.075 + seed * 0.00011) * 0.45;
+  return region < 0.72;
+}
+
+function adjacentWaterBody(
+  row: number,
+  column: number,
+  waterBodies: WaterBodyIndex,
+) {
+  for (const [neighborRow, neighborColumn] of neighborsOf(row, column)) {
+    const body = waterBodies.get(`${neighborRow}:${neighborColumn}`);
+    if (body) return body;
+  }
+  return waterBodies.get(`${row}:${column}`);
+}
+
+function coastKindAt(
+  seed: number,
+  row: number,
+  column: number,
+  waterBodies = createWaterBodyIndex(seed),
+): CoastKind {
   const center = hexCenterAt(row, column);
   const land = landValue(seed, center.x, center.z) >= SHORELINE;
   const touchesOppositeTerrain = neighborsOf(row, column).some(([neighborRow, neighborColumn]) => {
@@ -67,18 +145,24 @@ function coastKindAt(seed: number, row: number, column: number): CoastKind {
     const neighbor = hexCenterAt(neighborRow, neighborColumn);
     return (landValue(seed, neighbor.x, neighbor.z) >= SHORELINE) !== land;
   });
-  if (land) return touchesOppositeTerrain ? "beach" : "land";
+  if (land && touchesOppositeTerrain) {
+    const body = adjacentWaterBody(row, column, waterBodies);
+    const largeEnough = body ? body.ocean || body.size >= 36 : false;
+    return largeEnough && beachRegionAllows(seed, center.x, center.z) ? "beach" : "cliff";
+  }
+  if (land) return "land";
   return touchesOppositeTerrain ? "shallow" : "deep";
 }
 
 function classifyCoastHexes(seed: number) {
   const cells: CoastCell[] = [];
-  const counts: Record<CoastKind, number> = { land: 0, beach: 0, shallow: 0, deep: 0 };
+  const counts: Record<CoastKind, number> = { land: 0, beach: 0, cliff: 0, shallow: 0, deep: 0 };
+  const waterBodies = createWaterBodyIndex(seed);
   for (let row = 0; row < HEX_ROWS; row += 1) {
     for (let column = 0; column < HEX_COLS; column += 1) {
       if (!isInsideMap(row, column)) continue;
       const center = hexCenterAt(row, column);
-      const kind = coastKindAt(seed, row, column);
+      const kind = coastKindAt(seed, row, column, waterBodies);
       cells.push({ row, column, ...center, kind });
       counts[kind] += 1;
     }
@@ -221,6 +305,7 @@ function createBeachGeometry(seed: number, riverSamples: THREE.Vector3[]) {
   const positions: number[] = [];
   const colors: number[] = [];
   const uvs: number[] = [];
+  const waterBodies = createWaterBodyIndex(seed);
   const point = (column: number, row: number) => ({
     x: -MAP_WIDTH / 2 + (column / columns) * MAP_WIDTH,
     z: -MAP_DEPTH / 2 + (row / rows) * MAP_DEPTH,
@@ -237,6 +322,14 @@ function createBeachGeometry(seed: number, riverSamples: THREE.Vector3[]) {
       const centerZ = (corners[0].z + corners[2].z) / 2;
       const coast = landValue(seed, centerX, centerZ);
       if (coast < SHORELINE - 0.025 || coast > BEACH_VISUAL_EDGE) continue;
+      const nearest = hexCoordinatesAt(centerX, centerZ);
+      const beachCellNearby = [
+        [nearest.row, nearest.column] as const,
+        ...neighborsOf(nearest.row, nearest.column),
+      ].some(([row, column]) =>
+        isInsideMap(row, column) && coastKindAt(seed, row, column, waterBodies) === "beach"
+      );
+      if (!beachCellNearby) continue;
       // Clockwise x/z winding points the face downward. Reverse it so the
       // beach is front-facing for the camera above the world.
       const triangles = [corners[0], corners[2], corners[1], corners[0], corners[3], corners[2]];
@@ -336,6 +429,7 @@ function createShallowCoastGeometry(seed: number) {
 function createCoastHexGeometries(seed: number, riverSamples: THREE.Vector3[]) {
   const classification = classifyCoastHexes(seed);
   const beachCells = classification.cells.filter((cell) => cell.kind === "beach");
+  const cliffCells = classification.cells.filter((cell) => cell.kind === "cliff");
   const shallowCells = classification.cells.filter((cell) => cell.kind === "shallow");
 
   const makeGeometry = (cells: { x: number; z: number }[], shallow: boolean) => {
@@ -371,6 +465,7 @@ function createCoastHexGeometries(seed: number, riverSamples: THREE.Vector3[]) {
 
   return {
     beach: makeGeometry(beachCells, false),
+    cliff: makeGeometry(cliffCells, false),
     shallow: makeGeometry(shallowCells, true),
   };
 }
@@ -551,6 +646,15 @@ function WorldScene({
     beach.receiveShadow = true;
     beach.renderOrder = 18;
     worldRoot.add(beach);
+
+    if (debugCoast) {
+      const cliffCoast = new THREE.Mesh(
+        coastHexGeometries.cliff,
+        new THREE.MeshStandardMaterial({ color: "#676b70", roughness: 1 }),
+      );
+      cliffCoast.renderOrder = 17;
+      worldRoot.add(cliffCoast);
+    }
 
     const river = new THREE.Mesh(
       createRiverRibbon(curve),
@@ -899,6 +1003,8 @@ function WorldScene({
         layer:
           kind === "beach"
             ? "beach-hex"
+            : kind === "cliff"
+              ? "cliff-coast-hex"
             : kind === "shallow"
               ? "shallow-water-hex"
               : kind === "deep"
@@ -1004,6 +1110,7 @@ export function WorldPrototype() {
           <strong>MAP DEBUG v33</strong>
           <span><i className="debug-land" />육지 <b>{coastStats.land}</b></span>
           <span><i className="debug-beach" />백사장 <b>{coastStats.beach}</b></span>
+          <span><i className="debug-cliff" />바위 해안 <b>{coastStats.cliff}</b></span>
           <span><i className="debug-shallow" />얕은 바다 <b>{coastStats.shallow}</b></span>
           <span><i className="debug-deep" />깊은 바다 <b>{coastStats.deep}</b></span>
           {selectedDiagnostic ? (
