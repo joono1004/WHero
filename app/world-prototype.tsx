@@ -15,6 +15,12 @@ const DEEP_WATER_EDGE = -0.18;
 const SHORELINE = -0.02;
 const BEACH_INNER_EDGE = 0.16;
 const COAST_TRANSITION_EDGE = 0.3;
+const PLAIN_VISUAL_RULE = {
+  textureRepeatX: 8,
+  textureRepeatZ: 6,
+  baseColor: "#ffffff",
+  roughness: 0.96,
+} as const;
 
 type CoastKind = "land" | "beach" | "shallow" | "deep";
 type CoastCell = { row: number; column: number; x: number; z: number; kind: CoastKind };
@@ -454,15 +460,15 @@ function WorldScene({
     groundTexture.colorSpace = THREE.SRGBColorSpace;
     groundTexture.wrapS = THREE.RepeatWrapping;
     groundTexture.wrapT = THREE.RepeatWrapping;
-    groundTexture.repeat.set(8, 6);
+    groundTexture.repeat.set(PLAIN_VISUAL_RULE.textureRepeatX, PLAIN_VISUAL_RULE.textureRepeatZ);
     groundTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
     const terrain = new THREE.Mesh(
       terrainGeometry,
       new THREE.MeshStandardMaterial({
-        color: debugCoast ? "#4f934d" : "#ffffff",
+        color: debugCoast ? "#4f934d" : PLAIN_VISUAL_RULE.baseColor,
         map: debugCoast ? null : groundTexture,
         vertexColors: !debugCoast,
-        roughness: 0.96,
+        roughness: PLAIN_VISUAL_RULE.roughness,
         metalness: 0,
       }),
     );
@@ -952,7 +958,7 @@ export function WorldPrototype() {
   const [seedText, setSeedText] = useState("20260723");
   const [seed, setSeed] = useState(20260723);
   const [showGrid, setShowGrid] = useState(true);
-  const [debugCoast, setDebugCoast] = useState(true);
+  const [debugCoast, setDebugCoast] = useState(false);
   const [selectedDiagnostic, setSelectedDiagnostic] = useState<HexDiagnostic | null>(null);
   const coastStats = useMemo(() => classifyCoastHexes(seed).counts, [seed]);
   const handleHexSelected = useCallback((diagnostic: HexDiagnostic) => {
@@ -987,7 +993,7 @@ export function WorldPrototype() {
       </header>
       <section className="stage">
         <WorldScene seed={seed} showGrid={showGrid} debugCoast={debugCoast} onHexSelected={handleHexSelected} />
-        <aside className="coast-debug">
+        {debugCoast && <aside className="coast-debug">
           <strong>MAP DEBUG v33</strong>
           <span><i className="debug-land" />육지 <b>{coastStats.land}</b></span>
           <span><i className="debug-beach" />백사장 <b>{coastStats.beach}</b></span>
@@ -1000,7 +1006,7 @@ export function WorldPrototype() {
               렌더층 {selectedDiagnostic.layer}
             </p>
           ) : <p>Hex를 클릭하면 실제 판정값을 표시합니다.</p>}
-        </aside>
+        </aside>}
         <aside className="legend">
           <strong>2.5D 지도</strong>
           <span><i style={{ background: "#91a55d" }} />연속 지형</span>
