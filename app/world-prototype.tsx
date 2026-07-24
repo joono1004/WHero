@@ -253,6 +253,77 @@ function createShallowCoastGeometry(seed: number) {
   return geometry;
 }
 
+function createCoastHexGeometries(seed: number, riverSamples: THREE.Vector3[]) {
+  const beachCells: { x: number; z: number }[] = [];
+  const shallowCells: { x: number; z: number }[] = [];
+  const isLandHex = (row: number, column: number) => {
+    if (row < 0 || row >= HEX_ROWS || column < 0 || column >= HEX_COLS) return false;
+    const center = hexCenterAt(row, column);
+    if (Math.abs(center.x) > MAP_WIDTH / 2 || Math.abs(center.z) > MAP_DEPTH / 2) return false;
+    return landValue(seed, center.x, center.z) >= SHORELINE;
+  };
+  const neighborsOf = (row: number, column: number) => {
+    const diagonal = row % 2 === 0 ? -1 : 1;
+    return [
+      [row, column - 1],
+      [row, column + 1],
+      [row - 1, column],
+      [row + 1, column],
+      [row - 1, column + diagonal],
+      [row + 1, column + diagonal],
+    ];
+  };
+
+  for (let row = 0; row < HEX_ROWS; row += 1) {
+    for (let column = 0; column < HEX_COLS; column += 1) {
+      const center = hexCenterAt(row, column);
+      if (Math.abs(center.x) > MAP_WIDTH / 2 || Math.abs(center.z) > MAP_DEPTH / 2) continue;
+      const land = isLandHex(row, column);
+      const touchesOppositeTerrain = neighborsOf(row, column).some(
+        ([neighborRow, neighborColumn]) => isLandHex(neighborRow, neighborColumn) !== land,
+      );
+      if (!touchesOppositeTerrain) continue;
+      (land ? beachCells : shallowCells).push(center);
+    }
+  }
+
+  const makeGeometry = (cells: { x: number; z: number }[], shallow: boolean) => {
+    const positions: number[] = [];
+    const uvs: number[] = [];
+    const pushVertex = (x: number, z: number) => {
+      const y = shallow
+        ? SEA_LEVEL + 0.026
+        : Math.max(heightAt(seed, x, z, riverSamples) + 0.055, SEA_LEVEL + 0.045);
+      positions.push(x, y, z);
+      uvs.push((x + MAP_WIDTH / 2) / MAP_WIDTH, (z + MAP_DEPTH / 2) / MAP_DEPTH);
+    };
+    for (const cell of cells) {
+      const corners = Array.from({ length: 6 }, (_, edge) => {
+        const angle = (Math.PI / 180) * (60 * edge - 30);
+        return {
+          x: cell.x + Math.cos(angle) * HEX_SIZE * 0.995,
+          z: cell.z + Math.sin(angle) * HEX_SIZE * 0.995,
+        };
+      });
+      for (let edge = 0; edge < 6; edge += 1) {
+        pushVertex(cell.x, cell.z);
+        pushVertex(corners[edge].x, corners[edge].z);
+        pushVertex(corners[(edge + 1) % 6].x, corners[(edge + 1) % 6].z);
+      }
+    }
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+    geometry.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
+    geometry.computeVertexNormals();
+    return geometry;
+  };
+
+  return {
+    beach: makeGeometry(beachCells, false),
+    shallow: makeGeometry(shallowCells, true),
+  };
+}
+
 function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
   const hostRef = useRef<HTMLDivElement>(null);
 
@@ -320,6 +391,7 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
 
     const textureLoader = new THREE.TextureLoader();
     const { curve, samples } = buildRiver(seed);
+    const coastHexGeometries = createCoastHexGeometries(seed, samples);
     const terrainGeometry = new THREE.PlaneGeometry(MAP_WIDTH, MAP_DEPTH, 180, 142);
     terrainGeometry.rotateX(-Math.PI / 2);
     const position = terrainGeometry.attributes.position;
@@ -383,9 +455,9 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
     worldRoot.add(sea);
 
     const shallowWater = new THREE.Mesh(
-      createShallowCoastGeometry(seed),
+      coastHexGeometries.shallow,
       new THREE.MeshStandardMaterial({
-        color: "#72d2cc",
+        color: "#69cfd0",
         roughness: 0.62,
         metalness: 0,
       }),
@@ -416,11 +488,10 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
     sandTexture.wrapT = THREE.RepeatWrapping;
     sandTexture.repeat.set(12, 9);
     const beach = new THREE.Mesh(
-      createBeachGeometry(seed, samples),
+      coastHexGeometries.beach,
       new THREE.MeshStandardMaterial({
         color: "#ffffff",
         map: sandTexture,
-        vertexColors: true,
         roughness: 0.98,
         metalness: 0,
         polygonOffset: true,
@@ -430,23 +501,6 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
     beach.receiveShadow = true;
     beach.renderOrder = 18;
     worldRoot.add(beach);
-
-    const surf = new THREE.Mesh(
-      createSurfGeometry(seed, samples),
-      new THREE.MeshStandardMaterial({
-        color: "#fff8df",
-        roughness: 1,
-        metalness: 0,
-        transparent: true,
-        opacity: 0.72,
-        depthWrite: false,
-        polygonOffset: true,
-        polygonOffsetFactor: -3,
-      }),
-    );
-    surf.receiveShadow = true;
-    surf.renderOrder = 20;
-    worldRoot.add(surf);
 
     const river = new THREE.Mesh(
       createRiverRibbon(curve),
