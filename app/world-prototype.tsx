@@ -10,6 +10,11 @@ const HEX_SIZE = 0.92;
 const HEX_WIDTH = Math.sqrt(3) * HEX_SIZE;
 const HEX_COLS = Math.ceil(MAP_WIDTH / HEX_WIDTH) + 1;
 const HEX_ROWS = Math.ceil(MAP_DEPTH / (1.5 * HEX_SIZE)) + 1;
+const SEA_LEVEL = -0.32;
+const DEEP_WATER_EDGE = -0.18;
+const SHORELINE = -0.02;
+const BEACH_INNER_EDGE = 0.16;
+const COAST_TRANSITION_EDGE = 0.3;
 
 function hexCenterAt(row: number, column: number) {
   return {
@@ -113,8 +118,21 @@ function heightAt(seed: number, x: number, z: number, riverSamples: THREE.Vector
   const base = terrainNoise(seed, x, z);
   const ridge = Math.max(0, Math.sin(x * 0.22 - z * 0.12 + seed * 0.0001)) * 0.18;
   const land = landValue(seed, x, z);
-  if (land < -0.08) return -0.72 + terrainNoise(seed + 811, x, z) * 0.12;
-  if (land < 0.08) return THREE.MathUtils.lerp(-0.42, base * 0.35, THREE.MathUtils.smoothstep(land, -0.08, 0.08));
+  if (land < DEEP_WATER_EDGE) return -0.72 + terrainNoise(seed + 811, x, z) * 0.12;
+  if (land < SHORELINE) {
+    return THREE.MathUtils.lerp(
+      -0.62,
+      SEA_LEVEL - 0.018,
+      THREE.MathUtils.smoothstep(land, DEEP_WATER_EDGE, SHORELINE),
+    );
+  }
+  if (land < BEACH_INNER_EDGE) {
+    return THREE.MathUtils.lerp(
+      SEA_LEVEL + 0.022,
+      base * 0.24,
+      THREE.MathUtils.smoothstep(land, SHORELINE, BEACH_INNER_EDGE),
+    );
+  }
   const distance = distanceToRiver(x, z, riverSamples);
   if (distance < 1.55) {
     const bank = THREE.MathUtils.smoothstep(distance, 0.62, 1.55);
@@ -155,10 +173,10 @@ function createBeachGeometry(seed: number, riverSamples: THREE.Vector3[]) {
       const centerX = (corners[0].x + corners[2].x) / 2;
       const centerZ = (corners[0].z + corners[2].z) / 2;
       const coast = landValue(seed, centerX, centerZ);
-      if (coast < -0.045 || coast > 0.52) continue;
+      if (coast < SHORELINE || coast > BEACH_INNER_EDGE) continue;
       const triangles = [corners[0], corners[1], corners[2], corners[0], corners[2], corners[3]];
       for (const vertex of triangles) {
-        const height = Math.max(heightAt(seed, vertex.x, vertex.z, riverSamples) + 0.08, -0.225);
+        const height = heightAt(seed, vertex.x, vertex.z, riverSamples) + 0.035;
         positions.push(vertex.x, height, vertex.z);
         uvs.push((vertex.x + MAP_WIDTH / 2) / MAP_WIDTH, (vertex.z + MAP_DEPTH / 2) / MAP_DEPTH);
         const variation = THREE.MathUtils.clamp(
@@ -189,7 +207,7 @@ function createSurfGeometry(seed: number, riverSamples: THREE.Vector3[]) {
       const z0 = -MAP_DEPTH / 2 + (row / rows) * MAP_DEPTH;
       const z1 = -MAP_DEPTH / 2 + ((row + 1) / rows) * MAP_DEPTH;
       const coast = landValue(seed, (x0 + x1) / 2, (z0 + z1) / 2);
-      if (coast < -0.065 || coast > 0.022) continue;
+      if (coast < SHORELINE - 0.025 || coast > SHORELINE + 0.018) continue;
       const corners = [
         new THREE.Vector3(x0, 0, z0),
         new THREE.Vector3(x1, 0, z0),
@@ -197,7 +215,10 @@ function createSurfGeometry(seed: number, riverSamples: THREE.Vector3[]) {
         new THREE.Vector3(x0, 0, z1),
       ];
       for (const vertex of [corners[0], corners[1], corners[2], corners[0], corners[2], corners[3]]) {
-        vertex.y = Math.max(heightAt(seed, vertex.x, vertex.z, riverSamples) + 0.1, -0.205);
+        vertex.y = Math.max(
+          heightAt(seed, vertex.x, vertex.z, riverSamples) + 0.055,
+          SEA_LEVEL + 0.038,
+        );
         positions.push(vertex.x, vertex.y, vertex.z);
       }
     }
@@ -219,10 +240,10 @@ function createShallowCoastGeometry(seed: number) {
       const z0 = -MAP_DEPTH / 2 + (row / rows) * MAP_DEPTH;
       const z1 = -MAP_DEPTH / 2 + ((row + 1) / rows) * MAP_DEPTH;
       const coast = landValue(seed, (x0 + x1) / 2, (z0 + z1) / 2);
-      if (coast < -0.22 || coast > 0.045) continue;
+      if (coast < DEEP_WATER_EDGE || coast > SHORELINE) continue;
       positions.push(
-        x0, -0.282, z0, x1, -0.282, z0, x1, -0.282, z1,
-        x0, -0.282, z0, x1, -0.282, z1, x0, -0.282, z1,
+        x0, SEA_LEVEL + 0.022, z0, x1, SEA_LEVEL + 0.022, z0, x1, SEA_LEVEL + 0.022, z1,
+        x0, SEA_LEVEL + 0.022, z0, x1, SEA_LEVEL + 0.022, z1, x0, SEA_LEVEL + 0.022, z1,
       );
     }
   }
@@ -312,9 +333,10 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
       const biome = biomeNoise(seed, x, z);
       const color = terrainColor(height, wetness, biome);
       const coast = landValue(seed, x, z);
-      if (coast < 0.24) {
-        const beachStrength = THREE.MathUtils.clamp((0.24 - coast) / 0.24, 0, 1);
-        color.lerp(new THREE.Color("#d2bd82"), beachStrength * 0.92);
+      if (coast >= SHORELINE && coast < COAST_TRANSITION_EDGE) {
+        const beachStrength =
+          1 - THREE.MathUtils.smoothstep(coast, BEACH_INNER_EDGE * 0.72, COAST_TRANSITION_EDGE);
+        color.lerp(new THREE.Color("#e2c27a"), beachStrength * 0.94);
       }
       colorValues.push(color.r, color.g, color.b);
     }
@@ -356,7 +378,7 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
       }),
     );
     sea.rotation.x = -Math.PI / 2;
-    sea.position.y = -0.32;
+    sea.position.y = SEA_LEVEL;
     sea.receiveShadow = true;
     worldRoot.add(sea);
 
