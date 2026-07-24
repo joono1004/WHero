@@ -355,7 +355,7 @@ function createRiverRibbon(curve: THREE.CatmullRomCurve3) {
     }
     if (i < segments) {
       const base = i * 2;
-      indices.push(base, base + 2, base + 1, base + 1, base + 2, base + 3);
+      indices.push(base, base + 1, base + 2, base + 1, base + 3, base + 2);
     }
   }
   const geometry = new THREE.BufferGeometry();
