@@ -18,6 +18,7 @@ const COAST_TRANSITION_EDGE = 0.3;
 const BEACH_CORE_EDGE = SHORELINE + (BEACH_INNER_EDGE - SHORELINE) * 0.15;
 const BEACH_VISUAL_EDGE = SHORELINE + (BEACH_INNER_EDGE - SHORELINE) * 0.38;
 const BEACH_FADE_START = SHORELINE + (BEACH_CORE_EDGE - SHORELINE) * 0.72;
+const BEACH_LOGICAL_EDGE = BEACH_VISUAL_EDGE + 0.018;
 const PLAIN_VISUAL_RULE = {
   textureRepeatX: 8,
   textureRepeatZ: 6,
@@ -153,7 +154,10 @@ function coastKindAt(
   if (land && touchesOppositeTerrain) {
     const body = adjacentWaterBody(row, column, waterBodies);
     const largeEnough = body ? body.ocean || body.size >= 36 : false;
-    return largeEnough && beachRegionAllows(seed, center.x, center.z) ? "beach" : "cliff";
+    const closeEnoughToWater = landValue(seed, center.x, center.z) <= BEACH_LOGICAL_EDGE;
+    return largeEnough && closeEnoughToWater && beachRegionAllows(seed, center.x, center.z)
+      ? "beach"
+      : "cliff";
   }
   if (land) return "land";
   return touchesOppositeTerrain ? "shallow" : "deep";
@@ -709,12 +713,6 @@ function WorldScene({
       const wetness = 0.45 + terrainNoise(seed + 91, x * 1.7, z * 1.7) * 1.8;
       const biome = biomeNoise(seed, x, z);
       const color = terrainColor(height, wetness, biome);
-      const coast = landValue(seed, x, z);
-      if (coast >= SHORELINE && coast < COAST_TRANSITION_EDGE) {
-        const beachStrength =
-          1 - THREE.MathUtils.smoothstep(coast, BEACH_INNER_EDGE * 0.72, COAST_TRANSITION_EDGE);
-        color.lerp(new THREE.Color("#e2c27a"), beachStrength * 0.94);
-      }
       colorValues.push(color.r, color.g, color.b);
     }
     terrainGeometry.setAttribute("color", new THREE.Float32BufferAttribute(colorValues, 3));
@@ -783,14 +781,14 @@ function WorldScene({
     sandTexture.repeat.set(10, 8);
     sandTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
     const beach = new THREE.Mesh(
-      debugCoast ? coastHexGeometries.beach : createBeachGeometry(seed, samples),
+      createBeachGeometry(seed, samples),
       new THREE.MeshStandardMaterial({
         color: debugCoast ? "#ffe500" : "#ffffff",
         map: debugCoast ? null : sandTexture,
-        vertexColors: !debugCoast,
-        transparent: !debugCoast,
-        alphaTest: debugCoast ? 0 : 0.015,
-        depthWrite: debugCoast,
+        vertexColors: true,
+        transparent: true,
+        alphaTest: 0.015,
+        depthWrite: false,
         roughness: 0.98,
         metalness: 0,
         polygonOffset: true,
@@ -1156,7 +1154,7 @@ function WorldScene({
         height: heightAt(seed, center.x, center.z, samples),
         layer:
           kind === "beach"
-            ? "beach-hex"
+            ? "beach-edge-overlay"
             : kind === "cliff"
               ? "cliff-coast-hex"
             : kind === "shallow"
