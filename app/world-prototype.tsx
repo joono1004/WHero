@@ -14,6 +14,19 @@ type MapTier = {
   columns: number;
   rows: number;
 };
+type MapTypeId = "inland" | "continent" | "archipelago" | "highlands" | "riverlands";
+type WorldMapType = {
+  id: MapTypeId;
+  label: string;
+  description: string;
+};
+const MAP_TYPES: WorldMapType[] = [
+  { id: "inland", label: "내륙", description: "바다 없이 넓게 이어진 육지" },
+  { id: "continent", label: "대륙", description: "하나의 큰 대륙과 외곽 바다" },
+  { id: "archipelago", label: "군도", description: "여러 섬과 넓은 바다" },
+  { id: "highlands", label: "고산", description: "산맥·고원·협곡 중심" },
+  { id: "riverlands", label: "대하천", description: "큰 강·호수·습지 중심" },
+];
 const MAP_TIERS: MapTier[] = [
   { id: "mini", label: "미니", factions: 2, columns: 30, rows: 26 },
   { id: "small", label: "소형", factions: 3, columns: 36, rows: 33 },
@@ -27,6 +40,7 @@ let MAP_WIDTH = 42 * HEX_WIDTH;
 let MAP_DEPTH = HEX_SIZE * 2 + 37 * 1.5 * HEX_SIZE;
 let HEX_COLS = 42;
 let HEX_ROWS = 38;
+let ACTIVE_MAP_TYPE: MapTypeId = "continent";
 
 function configureMapTier(tierId: MapTierId) {
   const tier = MAP_TIERS.find((candidate) => candidate.id === tierId) ?? MAP_TIERS[2];
@@ -35,6 +49,13 @@ function configureMapTier(tierId: MapTierId) {
   MAP_WIDTH = tier.columns * HEX_WIDTH;
   MAP_DEPTH = HEX_SIZE * 2 + (tier.rows - 1) * 1.5 * HEX_SIZE;
   return tier;
+}
+
+function configureMapType(mapTypeId: MapTypeId) {
+  ACTIVE_MAP_TYPE = MAP_TYPES.some((candidate) => candidate.id === mapTypeId)
+    ? mapTypeId
+    : "continent";
+  return MAP_TYPES.find((candidate) => candidate.id === ACTIVE_MAP_TYPE) ?? MAP_TYPES[1];
 }
 const SEA_LEVEL = -0.32;
 const DEEP_WATER_EDGE = -0.18;
@@ -228,6 +249,32 @@ function biomeNoise(seed: number, x: number, z: number) {
 }
 
 function landValue(seed: number, x: number, z: number) {
+  if (ACTIVE_MAP_TYPE === "inland") {
+    const broadRelief =
+      Math.sin(x * 0.22 + seed * 0.00017) * 0.12 +
+      Math.cos(z * 0.25 - seed * 0.00013) * 0.1 +
+      Math.sin((x + z) * 0.11 + seed * 0.00021) * 0.08;
+    return 0.42 + broadRelief;
+  }
+
+  if (ACTIVE_MAP_TYPE === "archipelago") {
+    let islandValue = -1;
+    const islandCount = 7;
+    for (let island = 0; island < islandCount; island += 1) {
+      const centerX = (hash(seed + 620, island, 1) - 0.5) * MAP_WIDTH * 0.72;
+      const centerZ = (hash(seed + 621, island, 2) - 0.5) * MAP_DEPTH * 0.7;
+      const radiusX = MAP_WIDTH * (0.09 + hash(seed + 622, island, 3) * 0.1);
+      const radiusZ = MAP_DEPTH * (0.1 + hash(seed + 623, island, 4) * 0.11);
+      const distance = Math.hypot((x - centerX) / radiusX, (z - centerZ) / radiusZ);
+      islandValue = Math.max(islandValue, 0.72 - distance);
+    }
+    const coastNoise =
+      Math.sin(x * 0.7 + seed * 0.00031) * 0.11 +
+      Math.cos(z * 0.76 - seed * 0.00027) * 0.1 +
+      Math.sin((x - z) * 0.43) * 0.06;
+    return islandValue + coastNoise;
+  }
+
   const xRadius = MAP_WIDTH * (0.37 + hash(seed + 71, 1, 1) * 0.07);
   const zRadius = MAP_DEPTH * (0.34 + hash(seed + 72, 1, 2) * 0.08);
   const offsetX = (hash(seed + 73, 1, 3) - 0.5) * 2.4;
@@ -239,7 +286,13 @@ function landValue(seed: number, x: number, z: number) {
     Math.sin(x * 0.58 + phaseA) * 0.12 +
     Math.cos(z * 0.66 + phaseB) * 0.11 +
     Math.sin((x - z) * 0.38 + phaseA * 0.7) * 0.08;
-  return 1 - radial + coastline;
+  const typeBias =
+    ACTIVE_MAP_TYPE === "highlands"
+      ? 0.08
+      : ACTIVE_MAP_TYPE === "riverlands"
+        ? 0.04
+        : 0;
+  return 1 - radial + coastline + typeBias;
 }
 
 function distanceToRiver(x: number, z: number, samples: THREE.Vector3[]) {
@@ -250,16 +303,33 @@ function distanceToRiver(x: number, z: number, samples: THREE.Vector3[]) {
 
 function riverWidthAt(t: number) {
   const maximumWidth = Math.min(HEX_WIDTH * 0.74, HEX_SIZE * 1.28);
-  return THREE.MathUtils.lerp(0.34, maximumWidth, Math.pow(THREE.MathUtils.clamp(t, 0, 1), 0.82));
+  const sourceWidth = ACTIVE_MAP_TYPE === "riverlands" ? 0.42 : 0.34;
+  return THREE.MathUtils.lerp(
+    sourceWidth,
+    maximumWidth,
+    Math.pow(THREE.MathUtils.clamp(t, 0, 1), 0.82),
+  );
 }
 
 function naturalLandHeight(seed: number, x: number, z: number) {
   const base = terrainNoise(seed, x, z);
   const ridge = Math.max(0, Math.sin(x * 0.22 - z * 0.12 + seed * 0.0001)) * 0.18;
-  return base + ridge;
+  const highlandLift =
+    ACTIVE_MAP_TYPE === "highlands"
+      ? 0.16 + Math.max(0, Math.sin(x * 0.16 + z * 0.1)) * 0.18
+      : 0;
+  return base + ridge + highlandLift;
 }
 
 function nearestRiverSample(x: number, z: number, samples: THREE.Vector3[]) {
+  if (samples.length === 0) {
+    return {
+      point: new THREE.Vector3(x, naturalLandHeight(0, x, z), z),
+      index: 0,
+      distance: Infinity,
+      t: 0,
+    };
+  }
   let index = 0;
   let distance = Infinity;
   for (let sampleIndex = 0; sampleIndex < samples.length; sampleIndex += 1) {
@@ -312,7 +382,8 @@ function buildRiver(seed: number) {
 
   landCandidates.sort((a, b) => b.height - a.height);
   const largeLakes = [...lakeGroups.values()].sort((a, b) => b.length - a.length);
-  const useLakeSource = largeLakes.length > 0 && hash(seed + 2021, 3, 9) > 0.52;
+  const lakeThreshold = ACTIVE_MAP_TYPE === "riverlands" ? 0.24 : 0.52;
+  const useLakeSource = largeLakes.length > 0 && hash(seed + 2021, 3, 9) > lakeThreshold;
   const mountainSource =
     landCandidates[Math.min(landCandidates.length - 1, Math.floor(hash(seed + 2022, 5, 4) * 5))] ??
     { x: -MAP_WIDTH * 0.16, z: MAP_DEPTH * 0.2, height: 0.42 };
@@ -398,7 +469,7 @@ function createRiverRibbon(curve: THREE.CatmullRomCurve3) {
 
 function heightAt(seed: number, x: number, z: number, riverSamples: THREE.Vector3[]) {
   const base = terrainNoise(seed, x, z);
-  const ridge = Math.max(0, Math.sin(x * 0.22 - z * 0.12 + seed * 0.0001)) * 0.18;
+  const raisedSurface = naturalLandHeight(seed, x, z);
   const land = landValue(seed, x, z);
   if (land < DEEP_WATER_EDGE) return -0.72 + terrainNoise(seed + 811, x, z) * 0.12;
   if (land < SHORELINE) {
@@ -415,7 +486,7 @@ function heightAt(seed: number, x: number, z: number, riverSamples: THREE.Vector
       base * 0.24,
       THREE.MathUtils.smoothstep(land, SHORELINE, BEACH_INNER_EDGE),
         )
-      : base + ridge;
+      : raisedSurface;
   const nearest = nearestRiverSample(x, z, riverSamples);
   const halfWidth = riverWidthAt(nearest.t) * 0.5;
   const outerBank = halfWidth + 0.76;
@@ -663,12 +734,14 @@ function createCoastHexGeometries(seed: number, riverSamples: THREE.Vector3[]) {
 function WorldScene({
   seed,
   mapTierId,
+  mapTypeId,
   showGrid,
   debugCoast,
   onHexSelected,
 }: {
   seed: number;
   mapTierId: MapTierId;
+  mapTypeId: MapTypeId;
   showGrid: boolean;
   debugCoast: boolean;
   onHexSelected: (diagnostic: HexDiagnostic) => void;
@@ -679,6 +752,7 @@ function WorldScene({
     const host = hostRef.current;
     if (!host) return;
     configureMapTier(mapTierId);
+    configureMapType(mapTypeId);
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color("#b9c8b0");
@@ -744,7 +818,9 @@ function WorldScene({
     scene.add(worldRoot);
 
     const textureLoader = new THREE.TextureLoader();
-    const { curve, samples } = buildRiver(seed);
+    const riverSystem = ACTIVE_MAP_TYPE === "inland" ? null : buildRiver(seed);
+    const curve = riverSystem?.curve ?? null;
+    const samples = riverSystem?.samples ?? [];
     const coastHexGeometries = createCoastHexGeometries(seed, samples);
     const terrainGeometry = new THREE.PlaneGeometry(
       MAP_WIDTH,
@@ -858,19 +934,21 @@ function WorldScene({
       worldRoot.add(cliffCoast);
     }
 
-    const river = new THREE.Mesh(
-      createRiverRibbon(curve),
-      new THREE.MeshStandardMaterial({
-        color: "#477f99",
-        map: waterTexture,
-        roughness: 0.55,
-        metalness: 0,
-        transparent: true,
-        opacity: 0.96,
-      }),
-    );
-    river.receiveShadow = true;
-    worldRoot.add(river);
+    if (curve) {
+      const river = new THREE.Mesh(
+        createRiverRibbon(curve),
+        new THREE.MeshStandardMaterial({
+          color: ACTIVE_MAP_TYPE === "riverlands" ? "#3f8fa7" : "#477f99",
+          map: waterTexture,
+          roughness: 0.55,
+          metalness: 0,
+          transparent: true,
+          opacity: 0.96,
+        }),
+      );
+      river.receiveShadow = true;
+      worldRoot.add(river);
+    }
 
     type TerrainCell = {
       row: number;
@@ -894,9 +972,12 @@ function WorldScene({
         const wetlandScore =
           Math.cos(x * 0.21 + z * 0.2 + seed * 0.00053) * 0.56 +
           Math.sin(x * 0.12 - z * 0.25 + seed * 0.00047) * 0.44;
-        if (mountainScore > 0.7) terrainCells.set(`${row}:${column}`, { row, column, x, z, type: "mountain" });
-        else if (mountainScore > 0.38) terrainCells.set(`${row}:${column}`, { row, column, x, z, type: "hill" });
-        else if (wetlandScore > 0.72) terrainCells.set(`${row}:${column}`, { row, column, x, z, type: "wetland" });
+        const mountainEdge = ACTIVE_MAP_TYPE === "highlands" ? 0.36 : 0.7;
+        const hillEdge = ACTIVE_MAP_TYPE === "highlands" ? 0.08 : 0.38;
+        const wetlandEdge = ACTIVE_MAP_TYPE === "riverlands" ? 0.38 : 0.72;
+        if (mountainScore > mountainEdge) terrainCells.set(`${row}:${column}`, { row, column, x, z, type: "mountain" });
+        else if (mountainScore > hillEdge) terrainCells.set(`${row}:${column}`, { row, column, x, z, type: "hill" });
+        else if (wetlandScore > wetlandEdge) terrainCells.set(`${row}:${column}`, { row, column, x, z, type: "wetland" });
         else if (forestScore > 0.38) terrainCells.set(`${row}:${column}`, { row, column, x, z, type: "forest" });
       }
     }
@@ -1264,7 +1345,7 @@ function WorldScene({
       renderer.dispose();
       renderer.domElement.remove();
     };
-  }, [debugCoast, mapTierId, onHexSelected, seed, showGrid]);
+  }, [debugCoast, mapTierId, mapTypeId, onHexSelected, seed, showGrid]);
 
   return <div className="world-3d" ref={hostRef} aria-label="WebGL로 렌더링한 2.5D 육각형 세계 지도" />;
 }
@@ -1274,14 +1355,18 @@ export function WorldPrototype() {
   const [seed, setSeed] = useState(20260723);
   const [selectedTierId, setSelectedTierId] = useState<MapTierId>("medium");
   const [appliedTierId, setAppliedTierId] = useState<MapTierId>("medium");
+  const [selectedMapTypeId, setSelectedMapTypeId] = useState<MapTypeId>("continent");
+  const [appliedMapTypeId, setAppliedMapTypeId] = useState<MapTypeId>("continent");
   const [showGrid, setShowGrid] = useState(true);
   const [debugCoast, setDebugCoast] = useState(false);
   const [selectedDiagnostic, setSelectedDiagnostic] = useState<HexDiagnostic | null>(null);
   const activeTier = configureMapTier(appliedTierId);
+  const activeMapType = configureMapType(appliedMapTypeId);
   const coastStats = useMemo(() => {
     configureMapTier(appliedTierId);
+    configureMapType(appliedMapTypeId);
     return classifyCoastHexes(seed).counts;
-  }, [appliedTierId, seed]);
+  }, [appliedMapTypeId, appliedTierId, seed]);
   const handleHexSelected = useCallback((diagnostic: HexDiagnostic) => {
     setSelectedDiagnostic(diagnostic);
   }, []);
@@ -1289,6 +1374,7 @@ export function WorldPrototype() {
   const regenerate = () => {
     const parsed = Number(seedText);
     setAppliedTierId(selectedTierId);
+    setAppliedMapTypeId(selectedMapTypeId);
     setSelectedDiagnostic(null);
     setSeed(Number.isFinite(parsed) ? Math.trunc(parsed) : Date.now());
   };
@@ -1297,6 +1383,7 @@ export function WorldPrototype() {
     const next = Math.floor(Math.random() * 99999999);
     setSeedText(String(next));
     setAppliedTierId(selectedTierId);
+    setAppliedMapTypeId(selectedMapTypeId);
     setSelectedDiagnostic(null);
     setSeed(next);
   };
@@ -1309,6 +1396,19 @@ export function WorldPrototype() {
           <h1>World in Hero</h1>
         </div>
         <div className="controls">
+          <label>
+            맵 타입
+            <select
+              value={selectedMapTypeId}
+              onChange={(event) => setSelectedMapTypeId(event.target.value as MapTypeId)}
+            >
+              {MAP_TYPES.map((mapType) => (
+                <option key={mapType.id} value={mapType.id}>
+                  {mapType.label} · {mapType.description}
+                </option>
+              ))}
+            </select>
+          </label>
           <label>
             맵 등급
             <select
@@ -1323,7 +1423,7 @@ export function WorldPrototype() {
             </select>
           </label>
           <span className="map-tier-active">
-            적용 중: {activeTier.label} · 세력 {activeTier.factions} · {activeTier.columns}×{activeTier.rows}
+            적용 중: {activeMapType.label} · {activeTier.label} · 세력 {activeTier.factions} · {activeTier.columns}×{activeTier.rows}
           </span>
           <label>월드 시드<input value={seedText} onChange={(event) => setSeedText(event.target.value)} onKeyDown={(event) => event.key === "Enter" && regenerate()} /></label>
           <button onClick={regenerate}>이 시드로 생성</button>
@@ -1336,6 +1436,7 @@ export function WorldPrototype() {
         <WorldScene
           seed={seed}
           mapTierId={appliedTierId}
+          mapTypeId={appliedMapTypeId}
           showGrid={showGrid}
           debugCoast={debugCoast}
           onHexSelected={handleHexSelected}
