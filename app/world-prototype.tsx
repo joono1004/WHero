@@ -218,27 +218,127 @@ function distanceToRiver(x: number, z: number, samples: THREE.Vector3[]) {
   return nearest;
 }
 
+function riverWidthAt(t: number) {
+  const maximumWidth = Math.min(HEX_WIDTH * 0.74, HEX_SIZE * 1.28);
+  return THREE.MathUtils.lerp(0.34, maximumWidth, Math.pow(THREE.MathUtils.clamp(t, 0, 1), 0.82));
+}
+
+function naturalLandHeight(seed: number, x: number, z: number) {
+  const base = terrainNoise(seed, x, z);
+  const ridge = Math.max(0, Math.sin(x * 0.22 - z * 0.12 + seed * 0.0001)) * 0.18;
+  return base + ridge;
+}
+
+function nearestRiverSample(x: number, z: number, samples: THREE.Vector3[]) {
+  let index = 0;
+  let distance = Infinity;
+  for (let sampleIndex = 0; sampleIndex < samples.length; sampleIndex += 1) {
+    const point = samples[sampleIndex];
+    const candidate = Math.hypot(x - point.x, z - point.z);
+    if (candidate >= distance) continue;
+    index = sampleIndex;
+    distance = candidate;
+  }
+  return { point: samples[index], index, distance, t: index / Math.max(1, samples.length - 1) };
+}
+
 function buildRiver(seed: number) {
-  const scaleX = MAP_WIDTH / 28;
-  const scaleZ = MAP_DEPTH / 22;
-  const bend = (index: number, strength = 1) => (hash(seed + 2000, index, 7) - 0.5) * strength;
-  const drift = (hash(seed + 2010, 1, 1) - 0.5) * 5;
-  const controlPoints = [
-    new THREE.Vector3(-6.8 + drift * 0.25, 0, 8.7),
-    new THREE.Vector3(-5.8 + drift * 0.45 + bend(1, 2.6), 0, 6.2),
-    new THREE.Vector3(-3.3 + drift * 0.55 + bend(2, 3), 0, 3.7),
-    new THREE.Vector3(-0.4 + drift * 0.7 + bend(3, 3.4), 0, 1.1),
-    new THREE.Vector3(2.7 + drift * 0.55 + bend(4, 3.2), 0, -1.7),
-    new THREE.Vector3(4.4 + drift * 0.35 + bend(5, 2.7), 0, -4.6),
-    new THREE.Vector3(5.7 + drift * 0.2 + bend(6, 2), 0, -7.6),
-    new THREE.Vector3(6.3 + drift * 0.12, 0, -10.6),
-  ].map((point) => new THREE.Vector3(point.x * scaleX, point.y, point.z * scaleZ));
+  const waterBodies = createWaterBodyIndex(seed);
+  const landCandidates: { x: number; z: number; height: number }[] = [];
+  const oceanMouths: { x: number; z: number }[] = [];
+  const lakeGroups = new Map<WaterBody, { x: number; z: number }[]>();
+
+  for (let row = 0; row < HEX_ROWS; row += 1) {
+    for (let column = 0; column < HEX_COLS; column += 1) {
+      if (!isInsideMap(row, column)) continue;
+      const center = hexCenterAt(row, column);
+      const body = waterBodies.get(`${row}:${column}`);
+      if (body) {
+        if (!body.ocean && body.size >= 6) {
+          const cells = lakeGroups.get(body) ?? [];
+          cells.push(center);
+          lakeGroups.set(body, cells);
+        }
+        if (
+          body.ocean &&
+          neighborsOf(row, column).some(([neighborRow, neighborColumn]) => {
+            if (!isInsideMap(neighborRow, neighborColumn)) return false;
+            const neighbor = hexCenterAt(neighborRow, neighborColumn);
+            return landValue(seed, neighbor.x, neighbor.z) >= SHORELINE;
+          })
+        ) {
+          oceanMouths.push(center);
+        }
+        continue;
+      }
+      const coast = landValue(seed, center.x, center.z);
+      if (coast < 0.24) continue;
+      landCandidates.push({
+        ...center,
+        height: naturalLandHeight(seed, center.x, center.z) + coast * 0.22,
+      });
+    }
+  }
+
+  landCandidates.sort((a, b) => b.height - a.height);
+  const largeLakes = [...lakeGroups.values()].sort((a, b) => b.length - a.length);
+  const useLakeSource = largeLakes.length > 0 && hash(seed + 2021, 3, 9) > 0.52;
+  const mountainSource =
+    landCandidates[Math.min(landCandidates.length - 1, Math.floor(hash(seed + 2022, 5, 4) * 5))] ??
+    { x: -MAP_WIDTH * 0.16, z: MAP_DEPTH * 0.2, height: 0.42 };
+  const lake = useLakeSource ? largeLakes[0] : null;
+  const source = lake
+    ? lake.reduce((best, cell) =>
+        oceanMouths.length > 0 &&
+        Math.min(...oceanMouths.map((mouth) => Math.hypot(cell.x - mouth.x, cell.z - mouth.z))) <
+          Math.min(...oceanMouths.map((mouth) => Math.hypot(best.x - mouth.x, best.z - mouth.z)))
+          ? cell
+          : best,
+      )
+    : mountainSource;
+  const mouth =
+    oceanMouths.reduce(
+      (best, cell) =>
+        Math.hypot(cell.x - source.x, cell.z - source.z) <
+        Math.hypot(best.x - source.x, best.z - source.z)
+          ? cell
+          : best,
+      oceanMouths[0] ?? { x: source.x, z: -MAP_DEPTH / 2 },
+    );
+
+  const direction = new THREE.Vector2(mouth.x - source.x, mouth.z - source.z);
+  const length = Math.max(1, direction.length());
+  direction.normalize();
+  const normal = new THREE.Vector2(-direction.y, direction.x);
+  const controlPoints: THREE.Vector3[] = [];
+  const pointCount = 9;
+  let previousHeight = lake ? SEA_LEVEL + 0.055 : Math.max(0.28, naturalLandHeight(seed, source.x, source.z) + 0.035);
+  for (let index = 0; index < pointCount; index += 1) {
+    const t = index / (pointCount - 1);
+    const envelope = Math.sin(Math.PI * t);
+    const bend =
+      (hash(seed + 2030, index, 11) - 0.5) *
+      Math.min(4.2, length * 0.13) *
+      envelope;
+    const x = THREE.MathUtils.lerp(source.x, mouth.x, t) + normal.x * bend;
+    const z = THREE.MathUtils.lerp(source.z, mouth.z, t) + normal.y * bend;
+    const terrainHeight = naturalLandHeight(seed, x, z) + 0.025;
+    const targetHeight = THREE.MathUtils.lerp(previousHeight, SEA_LEVEL + 0.045, Math.pow(t, 1.18));
+    const y =
+      index === 0
+        ? previousHeight
+        : index === pointCount - 1
+          ? SEA_LEVEL + 0.035
+          : Math.max(SEA_LEVEL + 0.045, Math.min(terrainHeight, targetHeight, previousHeight - 0.012));
+    previousHeight = y;
+    controlPoints.push(new THREE.Vector3(x, y, z));
+  }
   const curve = new THREE.CatmullRomCurve3(controlPoints, false, "centripetal", 0.42);
-  return { curve, samples: curve.getPoints(150) };
+  return { curve, samples: curve.getPoints(180), sourceType: lake ? "lake" : "mountain" };
 }
 
 function createRiverRibbon(curve: THREE.CatmullRomCurve3) {
-  const segments = 150;
+  const segments = 180;
   const positions: number[] = [];
   const uvs: number[] = [];
   const indices: number[] = [];
@@ -247,10 +347,10 @@ function createRiverRibbon(curve: THREE.CatmullRomCurve3) {
     const point = curve.getPoint(t);
     const tangent = curve.getTangent(t).normalize();
     const normal = new THREE.Vector3(-tangent.z, 0, tangent.x).normalize();
-    const width = 0.62 + t * 0.25 + Math.sin(t * Math.PI * 7) * 0.035;
+    const fullWidth = riverWidthAt(t) + Math.sin(t * Math.PI * 7) * 0.018;
     for (const side of [-1, 1]) {
-      const edge = point.clone().addScaledVector(normal, width * side);
-      positions.push(edge.x, -0.17, edge.z);
+      const edge = point.clone().addScaledVector(normal, fullWidth * 0.5 * side);
+      positions.push(edge.x, point.y, edge.z);
       uvs.push(side < 0 ? 0 : 1, t * 9);
     }
     if (i < segments) {
@@ -285,10 +385,12 @@ function heightAt(seed: number, x: number, z: number, riverSamples: THREE.Vector
       THREE.MathUtils.smoothstep(land, SHORELINE, BEACH_INNER_EDGE),
     );
   }
-  const distance = distanceToRiver(x, z, riverSamples);
-  if (distance < 1.55) {
-    const bank = THREE.MathUtils.smoothstep(distance, 0.62, 1.55);
-    return THREE.MathUtils.lerp(-0.24, base + ridge, bank);
+  const nearest = nearestRiverSample(x, z, riverSamples);
+  const halfWidth = riverWidthAt(nearest.t) * 0.5;
+  const outerBank = halfWidth + 0.76;
+  if (nearest.distance < outerBank) {
+    const bank = THREE.MathUtils.smoothstep(nearest.distance, halfWidth + 0.04, outerBank);
+    return THREE.MathUtils.lerp(nearest.point.y - 0.045, base + ridge, bank);
   }
   return base + ridge;
 }
