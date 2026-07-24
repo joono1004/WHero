@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 
@@ -16,11 +16,66 @@ const SHORELINE = -0.02;
 const BEACH_INNER_EDGE = 0.16;
 const COAST_TRANSITION_EDGE = 0.3;
 
+type CoastKind = "land" | "beach" | "shallow" | "deep";
+type CoastCell = { row: number; column: number; x: number; z: number; kind: CoastKind };
+type HexDiagnostic = {
+  row: number;
+  column: number;
+  kind: CoastKind;
+  height: number;
+  layer: string;
+};
+
 function hexCenterAt(row: number, column: number) {
   return {
     x: -MAP_WIDTH / 2 + HEX_WIDTH / 2 + column * HEX_WIDTH + (row % 2) * (HEX_WIDTH / 2),
     z: -MAP_DEPTH / 2 + HEX_SIZE + row * 1.5 * HEX_SIZE,
   };
+}
+
+function isInsideMap(row: number, column: number) {
+  if (row < 0 || row >= HEX_ROWS || column < 0 || column >= HEX_COLS) return false;
+  const center = hexCenterAt(row, column);
+  return Math.abs(center.x) <= MAP_WIDTH / 2 && Math.abs(center.z) <= MAP_DEPTH / 2;
+}
+
+function neighborsOf(row: number, column: number) {
+  const diagonal = row % 2 === 0 ? -1 : 1;
+  return [
+    [row, column - 1],
+    [row, column + 1],
+    [row - 1, column],
+    [row + 1, column],
+    [row - 1, column + diagonal],
+    [row + 1, column + diagonal],
+  ] as const;
+}
+
+function coastKindAt(seed: number, row: number, column: number): CoastKind {
+  const center = hexCenterAt(row, column);
+  const land = landValue(seed, center.x, center.z) >= SHORELINE;
+  const touchesOppositeTerrain = neighborsOf(row, column).some(([neighborRow, neighborColumn]) => {
+    if (!isInsideMap(neighborRow, neighborColumn)) return false;
+    const neighbor = hexCenterAt(neighborRow, neighborColumn);
+    return (landValue(seed, neighbor.x, neighbor.z) >= SHORELINE) !== land;
+  });
+  if (land) return touchesOppositeTerrain ? "beach" : "land";
+  return touchesOppositeTerrain ? "shallow" : "deep";
+}
+
+function classifyCoastHexes(seed: number) {
+  const cells: CoastCell[] = [];
+  const counts: Record<CoastKind, number> = { land: 0, beach: 0, shallow: 0, deep: 0 };
+  for (let row = 0; row < HEX_ROWS; row += 1) {
+    for (let column = 0; column < HEX_COLS; column += 1) {
+      if (!isInsideMap(row, column)) continue;
+      const center = hexCenterAt(row, column);
+      const kind = coastKindAt(seed, row, column);
+      cells.push({ row, column, ...center, kind });
+      counts[kind] += 1;
+    }
+  }
+  return { cells, counts };
 }
 
 function hash(seed: number, x: number, y: number) {
@@ -254,38 +309,9 @@ function createShallowCoastGeometry(seed: number) {
 }
 
 function createCoastHexGeometries(seed: number, riverSamples: THREE.Vector3[]) {
-  const beachCells: { x: number; z: number }[] = [];
-  const shallowCells: { x: number; z: number }[] = [];
-  const isLandHex = (row: number, column: number) => {
-    if (row < 0 || row >= HEX_ROWS || column < 0 || column >= HEX_COLS) return false;
-    const center = hexCenterAt(row, column);
-    if (Math.abs(center.x) > MAP_WIDTH / 2 || Math.abs(center.z) > MAP_DEPTH / 2) return false;
-    return landValue(seed, center.x, center.z) >= SHORELINE;
-  };
-  const neighborsOf = (row: number, column: number) => {
-    const diagonal = row % 2 === 0 ? -1 : 1;
-    return [
-      [row, column - 1],
-      [row, column + 1],
-      [row - 1, column],
-      [row + 1, column],
-      [row - 1, column + diagonal],
-      [row + 1, column + diagonal],
-    ];
-  };
-
-  for (let row = 0; row < HEX_ROWS; row += 1) {
-    for (let column = 0; column < HEX_COLS; column += 1) {
-      const center = hexCenterAt(row, column);
-      if (Math.abs(center.x) > MAP_WIDTH / 2 || Math.abs(center.z) > MAP_DEPTH / 2) continue;
-      const land = isLandHex(row, column);
-      const touchesOppositeTerrain = neighborsOf(row, column).some(
-        ([neighborRow, neighborColumn]) => isLandHex(neighborRow, neighborColumn) !== land,
-      );
-      if (!touchesOppositeTerrain) continue;
-      (land ? beachCells : shallowCells).push(center);
-    }
-  }
+  const classification = classifyCoastHexes(seed);
+  const beachCells = classification.cells.filter((cell) => cell.kind === "beach");
+  const shallowCells = classification.cells.filter((cell) => cell.kind === "shallow");
 
   const makeGeometry = (cells: { x: number; z: number }[], shallow: boolean) => {
     const positions: number[] = [];
@@ -324,7 +350,17 @@ function createCoastHexGeometries(seed: number, riverSamples: THREE.Vector3[]) {
   };
 }
 
-function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
+function WorldScene({
+  seed,
+  showGrid,
+  debugCoast,
+  onHexSelected,
+}: {
+  seed: number;
+  showGrid: boolean;
+  debugCoast: boolean;
+  onHexSelected: (diagnostic: HexDiagnostic) => void;
+}) {
   const hostRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -423,8 +459,9 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
     const terrain = new THREE.Mesh(
       terrainGeometry,
       new THREE.MeshStandardMaterial({
-        map: groundTexture,
-        vertexColors: true,
+        color: debugCoast ? "#4f934d" : "#ffffff",
+        map: debugCoast ? null : groundTexture,
+        vertexColors: !debugCoast,
         roughness: 0.96,
         metalness: 0,
       }),
@@ -443,8 +480,8 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
     const sea = new THREE.Mesh(
       new THREE.PlaneGeometry(MAP_WIDTH + 14, MAP_DEPTH + 14),
       new THREE.MeshStandardMaterial({
-        color: "#286987",
-        map: seaTexture,
+        color: debugCoast ? "#123b70" : "#286987",
+        map: debugCoast ? null : seaTexture,
         roughness: 0.68,
         metalness: 0,
       }),
@@ -457,7 +494,7 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
     const shallowWater = new THREE.Mesh(
       coastHexGeometries.shallow,
       new THREE.MeshStandardMaterial({
-        color: "#69cfd0",
+        color: debugCoast ? "#00f5ff" : "#69cfd0",
         roughness: 0.62,
         metalness: 0,
       }),
@@ -490,8 +527,8 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
     const beach = new THREE.Mesh(
       coastHexGeometries.beach,
       new THREE.MeshStandardMaterial({
-        color: "#ffffff",
-        map: sandTexture,
+        color: debugCoast ? "#ffe500" : "#ffffff",
+        map: debugCoast ? null : sandTexture,
         roughness: 0.98,
         metalness: 0,
         polygonOffset: true,
@@ -840,6 +877,21 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
       }
       selectionGeometry.setFromPoints(selectedPoints);
       selection.visible = true;
+      const kind = coastKindAt(seed, row, column);
+      onHexSelected({
+        row,
+        column,
+        kind,
+        height: heightAt(seed, center.x, center.z, samples),
+        layer:
+          kind === "beach"
+            ? "beach-hex"
+            : kind === "shallow"
+              ? "shallow-water-hex"
+              : kind === "deep"
+                ? "deep-sea"
+                : "terrain",
+      });
     };
     const handleContextMenu = (event: MouseEvent) => event.preventDefault();
     renderer.domElement.addEventListener("pointerdown", handlePointerDown);
@@ -891,7 +943,7 @@ function WorldScene({ seed, showGrid }: { seed: number; showGrid: boolean }) {
       renderer.dispose();
       renderer.domElement.remove();
     };
-  }, [seed, showGrid]);
+  }, [debugCoast, onHexSelected, seed, showGrid]);
 
   return <div className="world-3d" ref={hostRef} aria-label="WebGL로 렌더링한 2.5D 육각형 세계 지도" />;
 }
@@ -900,6 +952,12 @@ export function WorldPrototype() {
   const [seedText, setSeedText] = useState("20260723");
   const [seed, setSeed] = useState(20260723);
   const [showGrid, setShowGrid] = useState(true);
+  const [debugCoast, setDebugCoast] = useState(true);
+  const [selectedDiagnostic, setSelectedDiagnostic] = useState<HexDiagnostic | null>(null);
+  const coastStats = useMemo(() => classifyCoastHexes(seed).counts, [seed]);
+  const handleHexSelected = useCallback((diagnostic: HexDiagnostic) => {
+    setSelectedDiagnostic(diagnostic);
+  }, []);
 
   const regenerate = () => {
     const parsed = Number(seedText);
@@ -924,10 +982,25 @@ export function WorldPrototype() {
           <button onClick={regenerate}>이 시드로 생성</button>
           <button className="secondary" onClick={randomize}>새로운 세계</button>
           <label className="toggle"><input type="checkbox" checked={showGrid} onChange={(event) => setShowGrid(event.target.checked)} />Hex 경계</label>
+          <label className="toggle"><input type="checkbox" checked={debugCoast} onChange={(event) => setDebugCoast(event.target.checked)} />해안 진단</label>
         </div>
       </header>
       <section className="stage">
-        <WorldScene seed={seed} showGrid={showGrid} />
+        <WorldScene seed={seed} showGrid={showGrid} debugCoast={debugCoast} onHexSelected={handleHexSelected} />
+        <aside className="coast-debug">
+          <strong>MAP DEBUG v33</strong>
+          <span><i className="debug-land" />육지 <b>{coastStats.land}</b></span>
+          <span><i className="debug-beach" />백사장 <b>{coastStats.beach}</b></span>
+          <span><i className="debug-shallow" />얕은 바다 <b>{coastStats.shallow}</b></span>
+          <span><i className="debug-deep" />깊은 바다 <b>{coastStats.deep}</b></span>
+          {selectedDiagnostic ? (
+            <p>
+              선택 Hex {selectedDiagnostic.column}, {selectedDiagnostic.row}<br />
+              판정 <b>{selectedDiagnostic.kind}</b> · 높이 {selectedDiagnostic.height.toFixed(3)}<br />
+              렌더층 {selectedDiagnostic.layer}
+            </p>
+          ) : <p>Hex를 클릭하면 실제 판정값을 표시합니다.</p>}
+        </aside>
         <aside className="legend">
           <strong>2.5D 지도</strong>
           <span><i style={{ background: "#91a55d" }} />연속 지형</span>
