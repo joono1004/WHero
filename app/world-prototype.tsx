@@ -4,12 +4,38 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 
-const MAP_WIDTH = 64;
-const MAP_DEPTH = 50;
 const HEX_SIZE = 0.92;
 const HEX_WIDTH = Math.sqrt(3) * HEX_SIZE;
-const HEX_COLS = Math.ceil(MAP_WIDTH / HEX_WIDTH) + 1;
-const HEX_ROWS = Math.ceil(MAP_DEPTH / (1.5 * HEX_SIZE)) + 1;
+type MapTierId = "mini" | "small" | "medium" | "large" | "huge" | "colossal" | "world";
+type MapTier = {
+  id: MapTierId;
+  label: string;
+  factions: number;
+  columns: number;
+  rows: number;
+};
+const MAP_TIERS: MapTier[] = [
+  { id: "mini", label: "미니", factions: 2, columns: 30, rows: 26 },
+  { id: "small", label: "소형", factions: 3, columns: 36, rows: 33 },
+  { id: "medium", label: "중형", factions: 4, columns: 42, rows: 38 },
+  { id: "large", label: "대형", factions: 5, columns: 47, rows: 42 },
+  { id: "huge", label: "거대", factions: 6, columns: 52, rows: 46 },
+  { id: "colossal", label: "초거대", factions: 7, columns: 57, rows: 49 },
+  { id: "world", label: "월드", factions: 8, columns: 62, rows: 52 },
+];
+let MAP_WIDTH = 42 * HEX_WIDTH;
+let MAP_DEPTH = HEX_SIZE * 2 + 37 * 1.5 * HEX_SIZE;
+let HEX_COLS = 42;
+let HEX_ROWS = 38;
+
+function configureMapTier(tierId: MapTierId) {
+  const tier = MAP_TIERS.find((candidate) => candidate.id === tierId) ?? MAP_TIERS[2];
+  HEX_COLS = tier.columns;
+  HEX_ROWS = tier.rows;
+  MAP_WIDTH = tier.columns * HEX_WIDTH;
+  MAP_DEPTH = HEX_SIZE * 2 + (tier.rows - 1) * 1.5 * HEX_SIZE;
+  return tier;
+}
 const SEA_LEVEL = -0.32;
 const DEEP_WATER_EDGE = -0.18;
 const SHORELINE = -0.02;
@@ -412,8 +438,8 @@ function terrainColor(height: number, wetness: number, biome: number) {
 }
 
 function createBeachGeometry(seed: number, riverSamples: THREE.Vector3[]) {
-  const columns = 320;
-  const rows = 250;
+  const columns = Math.min(440, Math.max(220, HEX_COLS * 8));
+  const rows = Math.min(350, Math.max(180, HEX_ROWS * 7));
   const positions: number[] = [];
   const colors: number[] = [];
   const uvs: number[] = [];
@@ -505,8 +531,8 @@ function createBeachGeometry(seed: number, riverSamples: THREE.Vector3[]) {
 }
 
 function createSurfGeometry(seed: number, riverSamples: THREE.Vector3[]) {
-  const columns = 144;
-  const rows = 112;
+  const columns = Math.min(260, Math.max(120, HEX_COLS * 4));
+  const rows = Math.min(220, Math.max(100, HEX_ROWS * 4));
   const positions: number[] = [];
   for (let row = 0; row < rows; row += 1) {
     for (let column = 0; column < columns; column += 1) {
@@ -538,8 +564,8 @@ function createSurfGeometry(seed: number, riverSamples: THREE.Vector3[]) {
 }
 
 function createShallowCoastGeometry(seed: number) {
-  const columns = 320;
-  const rows = 250;
+  const columns = Math.min(440, Math.max(220, HEX_COLS * 8));
+  const rows = Math.min(350, Math.max(180, HEX_ROWS * 7));
   const positions: number[] = [];
   const colors: number[] = [];
   const uvs: number[] = [];
@@ -636,11 +662,13 @@ function createCoastHexGeometries(seed: number, riverSamples: THREE.Vector3[]) {
 
 function WorldScene({
   seed,
+  mapTierId,
   showGrid,
   debugCoast,
   onHexSelected,
 }: {
   seed: number;
+  mapTierId: MapTierId;
   showGrid: boolean;
   debugCoast: boolean;
   onHexSelected: (diagnostic: HexDiagnostic) => void;
@@ -650,6 +678,7 @@ function WorldScene({
   useEffect(() => {
     const host = hostRef.current;
     if (!host) return;
+    configureMapTier(mapTierId);
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color("#b9c8b0");
@@ -667,16 +696,21 @@ function WorldScene({
     host.appendChild(renderer.domElement);
 
     const aspect = host.clientWidth / host.clientHeight;
-    const viewHeight = 44;
+    const viewHeight = Math.max(38, MAP_DEPTH * 0.88);
     const camera = new THREE.OrthographicCamera(
       (-viewHeight * aspect) / 2,
       (viewHeight * aspect) / 2,
       viewHeight / 2,
       -viewHeight / 2,
       0.1,
-      100,
+      220,
     );
-    camera.position.set(17, 18, 19);
+    const cameraDistanceScale = Math.max(0.9, MAP_DEPTH / 52);
+    camera.position.set(
+      17 * cameraDistanceScale,
+      18 * cameraDistanceScale,
+      19 * cameraDistanceScale,
+    );
     camera.lookAt(0, 0, 0);
     camera.zoom = 0.88;
     camera.updateProjectionMatrix();
@@ -699,10 +733,10 @@ function WorldScene({
     sun.position.set(-12, 19, -9);
     sun.castShadow = true;
     sun.shadow.mapSize.set(2048, 2048);
-    sun.shadow.camera.left = -36;
-    sun.shadow.camera.right = 36;
-    sun.shadow.camera.top = 30;
-    sun.shadow.camera.bottom = -30;
+    sun.shadow.camera.left = -MAP_WIDTH * 0.58;
+    sun.shadow.camera.right = MAP_WIDTH * 0.58;
+    sun.shadow.camera.top = MAP_DEPTH * 0.6;
+    sun.shadow.camera.bottom = -MAP_DEPTH * 0.6;
     sun.shadow.bias = -0.0005;
     scene.add(sun);
 
@@ -712,7 +746,12 @@ function WorldScene({
     const textureLoader = new THREE.TextureLoader();
     const { curve, samples } = buildRiver(seed);
     const coastHexGeometries = createCoastHexGeometries(seed, samples);
-    const terrainGeometry = new THREE.PlaneGeometry(MAP_WIDTH, MAP_DEPTH, 180, 142);
+    const terrainGeometry = new THREE.PlaneGeometry(
+      MAP_WIDTH,
+      MAP_DEPTH,
+      Math.min(260, Math.max(132, HEX_COLS * 4)),
+      Math.min(220, Math.max(110, HEX_ROWS * 4)),
+    );
     terrainGeometry.rotateX(-Math.PI / 2);
     const position = terrainGeometry.attributes.position;
     const colorValues: number[] = [];
@@ -1225,7 +1264,7 @@ function WorldScene({
       renderer.dispose();
       renderer.domElement.remove();
     };
-  }, [debugCoast, onHexSelected, seed, showGrid]);
+  }, [debugCoast, mapTierId, onHexSelected, seed, showGrid]);
 
   return <div className="world-3d" ref={hostRef} aria-label="WebGL로 렌더링한 2.5D 육각형 세계 지도" />;
 }
@@ -1233,22 +1272,32 @@ function WorldScene({
 export function WorldPrototype() {
   const [seedText, setSeedText] = useState("20260723");
   const [seed, setSeed] = useState(20260723);
+  const [selectedTierId, setSelectedTierId] = useState<MapTierId>("medium");
+  const [appliedTierId, setAppliedTierId] = useState<MapTierId>("medium");
   const [showGrid, setShowGrid] = useState(true);
   const [debugCoast, setDebugCoast] = useState(false);
   const [selectedDiagnostic, setSelectedDiagnostic] = useState<HexDiagnostic | null>(null);
-  const coastStats = useMemo(() => classifyCoastHexes(seed).counts, [seed]);
+  const activeTier = configureMapTier(appliedTierId);
+  const coastStats = useMemo(() => {
+    configureMapTier(appliedTierId);
+    return classifyCoastHexes(seed).counts;
+  }, [appliedTierId, seed]);
   const handleHexSelected = useCallback((diagnostic: HexDiagnostic) => {
     setSelectedDiagnostic(diagnostic);
   }, []);
 
   const regenerate = () => {
     const parsed = Number(seedText);
+    setAppliedTierId(selectedTierId);
+    setSelectedDiagnostic(null);
     setSeed(Number.isFinite(parsed) ? Math.trunc(parsed) : Date.now());
   };
 
   const randomize = () => {
     const next = Math.floor(Math.random() * 99999999);
     setSeedText(String(next));
+    setAppliedTierId(selectedTierId);
+    setSelectedDiagnostic(null);
     setSeed(next);
   };
 
@@ -1260,6 +1309,22 @@ export function WorldPrototype() {
           <h1>World in Hero</h1>
         </div>
         <div className="controls">
+          <label>
+            맵 등급
+            <select
+              value={selectedTierId}
+              onChange={(event) => setSelectedTierId(event.target.value as MapTierId)}
+            >
+              {MAP_TIERS.map((tier) => (
+                <option key={tier.id} value={tier.id}>
+                  {tier.label} · 세력 {tier.factions} · {tier.columns}×{tier.rows}
+                </option>
+              ))}
+            </select>
+          </label>
+          <span className="map-tier-active">
+            적용 중: {activeTier.label} · 세력 {activeTier.factions} · {activeTier.columns}×{activeTier.rows}
+          </span>
           <label>월드 시드<input value={seedText} onChange={(event) => setSeedText(event.target.value)} onKeyDown={(event) => event.key === "Enter" && regenerate()} /></label>
           <button onClick={regenerate}>이 시드로 생성</button>
           <button className="secondary" onClick={randomize}>새로운 세계</button>
@@ -1268,7 +1333,13 @@ export function WorldPrototype() {
         </div>
       </header>
       <section className="stage">
-        <WorldScene seed={seed} showGrid={showGrid} debugCoast={debugCoast} onHexSelected={handleHexSelected} />
+        <WorldScene
+          seed={seed}
+          mapTierId={appliedTierId}
+          showGrid={showGrid}
+          debugCoast={debugCoast}
+          onHexSelected={handleHexSelected}
+        />
         {debugCoast && <aside className="coast-debug">
           <strong>MAP DEBUG v33</strong>
           <span><i className="debug-land" />육지 <b>{coastStats.land}</b></span>
