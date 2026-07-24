@@ -235,9 +235,14 @@ function createBeachGeometry(seed: number, riverSamples: THREE.Vector3[]) {
       const centerZ = (corners[0].z + corners[2].z) / 2;
       const coast = landValue(seed, centerX, centerZ);
       if (coast < SHORELINE || coast > BEACH_INNER_EDGE) continue;
-      const triangles = [corners[0], corners[1], corners[2], corners[0], corners[2], corners[3]];
+      // Clockwise x/z winding points the face downward. Reverse it so the
+      // beach is front-facing for the camera above the world.
+      const triangles = [corners[0], corners[2], corners[1], corners[0], corners[3], corners[2]];
       for (const vertex of triangles) {
-        const height = heightAt(seed, vertex.x, vertex.z, riverSamples) + 0.035;
+        const height = Math.max(
+          heightAt(seed, vertex.x, vertex.z, riverSamples) + 0.065,
+          SEA_LEVEL + 0.045,
+        );
         positions.push(vertex.x, height, vertex.z);
         uvs.push((vertex.x + MAP_WIDTH / 2) / MAP_WIDTH, (vertex.z + MAP_DEPTH / 2) / MAP_DEPTH);
         const vertexCoast = landValue(seed, vertex.x, vertex.z);
