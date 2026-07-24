@@ -15,8 +15,9 @@ const DEEP_WATER_EDGE = -0.18;
 const SHORELINE = -0.02;
 const BEACH_INNER_EDGE = 0.16;
 const COAST_TRANSITION_EDGE = 0.3;
-const BEACH_VISUAL_EDGE = SHORELINE + (BEACH_INNER_EDGE - SHORELINE) * 0.15;
-const BEACH_FADE_START = SHORELINE + (BEACH_VISUAL_EDGE - SHORELINE) * 0.52;
+const BEACH_CORE_EDGE = SHORELINE + (BEACH_INNER_EDGE - SHORELINE) * 0.15;
+const BEACH_VISUAL_EDGE = SHORELINE + (BEACH_INNER_EDGE - SHORELINE) * 0.38;
+const BEACH_FADE_START = SHORELINE + (BEACH_CORE_EDGE - SHORELINE) * 0.72;
 const PLAIN_VISUAL_RULE = {
   textureRepeatX: 8,
   textureRepeatZ: 6,
@@ -112,12 +113,16 @@ function createWaterBodyIndex(seed: number): WaterBodyIndex {
   return result;
 }
 
-function beachRegionAllows(seed: number, x: number, z: number) {
+function beachRegionStrength(seed: number, x: number, z: number) {
   const region =
     Math.sin(x * 0.17 + seed * 0.00019) +
     Math.cos(z * 0.14 - seed * 0.00023) +
     Math.sin((x + z) * 0.075 + seed * 0.00011) * 0.45;
-  return region < 0.72;
+  return 1 - THREE.MathUtils.smoothstep(region, 0.52, 0.92);
+}
+
+function beachRegionAllows(seed: number, x: number, z: number) {
+  return beachRegionStrength(seed, x, z) > 0.35;
 }
 
 function adjacentWaterBody(
@@ -300,8 +305,8 @@ function terrainColor(height: number, wetness: number, biome: number) {
 }
 
 function createBeachGeometry(seed: number, riverSamples: THREE.Vector3[]) {
-  const columns = 240;
-  const rows = 188;
+  const columns = 320;
+  const rows = 250;
   const positions: number[] = [];
   const colors: number[] = [];
   const uvs: number[] = [];
@@ -321,7 +326,7 @@ function createBeachGeometry(seed: number, riverSamples: THREE.Vector3[]) {
       const centerX = (corners[0].x + corners[2].x) / 2;
       const centerZ = (corners[0].z + corners[2].z) / 2;
       const coast = landValue(seed, centerX, centerZ);
-      if (coast < SHORELINE - 0.025 || coast > BEACH_VISUAL_EDGE) continue;
+      if (coast < SHORELINE - 0.04 || coast > BEACH_VISUAL_EDGE + 0.035) continue;
       const nearest = hexCoordinatesAt(centerX, centerZ);
       const beachCellNearby = [
         [nearest.row, nearest.column] as const,
@@ -346,7 +351,20 @@ function createBeachGeometry(seed: number, riverSamples: THREE.Vector3[]) {
         const waterFade = THREE.MathUtils.smoothstep(vertexCoast, SHORELINE - 0.025, SHORELINE);
         const landFade =
           1 - THREE.MathUtils.smoothstep(vertexCoast, BEACH_FADE_START, BEACH_VISUAL_EDGE);
-        const alpha = THREE.MathUtils.clamp(waterFade * landFade, 0, 1);
+        const irregularEdge =
+          terrainNoise(seed + 1131, vertex.x * 2.4, vertex.z * 2.4) * 0.035;
+        const naturalLandFade =
+          1 - THREE.MathUtils.smoothstep(
+            vertexCoast + irregularEdge,
+            BEACH_FADE_START,
+            BEACH_VISUAL_EDGE,
+          );
+        const regionFade = beachRegionStrength(seed, vertex.x, vertex.z);
+        const alpha = THREE.MathUtils.clamp(
+          waterFade * Math.min(landFade, naturalLandFade) * regionFade,
+          0,
+          1,
+        );
         const variation = THREE.MathUtils.clamp(
           0.98 + terrainNoise(seed + 970, vertex.x * 2, vertex.z * 2) * 0.12,
           0.92,
