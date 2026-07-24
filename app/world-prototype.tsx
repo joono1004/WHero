@@ -24,8 +24,8 @@ const MAP_TYPES: WorldMapType[] = [
   { id: "inland", label: "내륙", description: "바다 없이 넓게 이어진 육지" },
   { id: "continent", label: "대륙", description: "하나의 큰 대륙과 외곽 바다" },
   { id: "archipelago", label: "군도", description: "여러 섬과 넓은 바다" },
-  { id: "highlands", label: "고산", description: "산맥·고원·협곡 중심" },
-  { id: "riverlands", label: "대하천", description: "큰 강·호수·습지 중심" },
+  { id: "highlands", label: "고산", description: "바다 없는 산맥·고원·협곡" },
+  { id: "riverlands", label: "대하천", description: "바다 5% 미만의 강·호수·습지" },
 ];
 const MAP_TIERS: MapTier[] = [
   { id: "mini", label: "미니", factions: 2, columns: 30, rows: 26 },
@@ -249,12 +249,25 @@ function biomeNoise(seed: number, x: number, z: number) {
 }
 
 function landValue(seed: number, x: number, z: number) {
-  if (ACTIVE_MAP_TYPE === "inland") {
+  if (ACTIVE_MAP_TYPE === "inland" || ACTIVE_MAP_TYPE === "highlands") {
     const broadRelief =
       Math.sin(x * 0.22 + seed * 0.00017) * 0.12 +
       Math.cos(z * 0.25 - seed * 0.00013) * 0.1 +
       Math.sin((x + z) * 0.11 + seed * 0.00021) * 0.08;
-    return 0.42 + broadRelief;
+    return (ACTIVE_MAP_TYPE === "highlands" ? 0.48 : 0.42) + broadRelief;
+  }
+
+  if (ACTIVE_MAP_TYPE === "riverlands") {
+    const broadRelief =
+      Math.sin(x * 0.18 + seed * 0.00017) * 0.07 +
+      Math.cos(z * 0.2 - seed * 0.00013) * 0.06 +
+      Math.sin((x + z) * 0.09 + seed * 0.00021) * 0.05;
+    const oceanAtNorth = hash(seed + 624, 2, 5) > 0.5;
+    const edgeDistance = oceanAtNorth ? MAP_DEPTH / 2 - z : z + MAP_DEPTH / 2;
+    const seaBandWidth = MAP_DEPTH * 0.055;
+    const narrowSeaBand =
+      (1 - THREE.MathUtils.smoothstep(edgeDistance, 0, seaBandWidth)) * 0.8;
+    return 0.36 + broadRelief - narrowSeaBand;
   }
 
   if (ACTIVE_MAP_TYPE === "archipelago") {
@@ -286,13 +299,7 @@ function landValue(seed: number, x: number, z: number) {
     Math.sin(x * 0.58 + phaseA) * 0.12 +
     Math.cos(z * 0.66 + phaseB) * 0.11 +
     Math.sin((x - z) * 0.38 + phaseA * 0.7) * 0.08;
-  const typeBias =
-    ACTIVE_MAP_TYPE === "highlands"
-      ? 0.08
-      : ACTIVE_MAP_TYPE === "riverlands"
-        ? 0.04
-        : 0;
-  return 1 - radial + coastline + typeBias;
+  return 1 - radial + coastline;
 }
 
 function distanceToRiver(x: number, z: number, samples: THREE.Vector3[]) {
@@ -818,7 +825,10 @@ function WorldScene({
     scene.add(worldRoot);
 
     const textureLoader = new THREE.TextureLoader();
-    const riverSystem = ACTIVE_MAP_TYPE === "inland" ? null : buildRiver(seed);
+    const riverSystem =
+      ACTIVE_MAP_TYPE === "inland" || ACTIVE_MAP_TYPE === "highlands"
+        ? null
+        : buildRiver(seed);
     const curve = riverSystem?.curve ?? null;
     const samples = riverSystem?.samples ?? [];
     const coastHexGeometries = createCoastHexGeometries(seed, samples);
