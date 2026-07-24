@@ -15,6 +15,8 @@ const DEEP_WATER_EDGE = -0.18;
 const SHORELINE = -0.02;
 const BEACH_INNER_EDGE = 0.16;
 const COAST_TRANSITION_EDGE = 0.3;
+const BEACH_VISUAL_EDGE = SHORELINE + (BEACH_INNER_EDGE - SHORELINE) * 0.3;
+const BEACH_FADE_START = SHORELINE + (BEACH_VISUAL_EDGE - SHORELINE) * 0.52;
 const PLAIN_VISUAL_RULE = {
   textureRepeatX: 8,
   textureRepeatZ: 6,
@@ -214,8 +216,8 @@ function terrainColor(height: number, wetness: number, biome: number) {
 }
 
 function createBeachGeometry(seed: number, riverSamples: THREE.Vector3[]) {
-  const columns = 144;
-  const rows = 112;
+  const columns = 240;
+  const rows = 188;
   const positions: number[] = [];
   const colors: number[] = [];
   const uvs: number[] = [];
@@ -234,7 +236,7 @@ function createBeachGeometry(seed: number, riverSamples: THREE.Vector3[]) {
       const centerX = (corners[0].x + corners[2].x) / 2;
       const centerZ = (corners[0].z + corners[2].z) / 2;
       const coast = landValue(seed, centerX, centerZ);
-      if (coast < SHORELINE || coast > BEACH_INNER_EDGE) continue;
+      if (coast < SHORELINE - 0.025 || coast > BEACH_VISUAL_EDGE) continue;
       // Clockwise x/z winding points the face downward. Reverse it so the
       // beach is front-facing for the camera above the world.
       const triangles = [corners[0], corners[2], corners[1], corners[0], corners[3], corners[2]];
@@ -246,20 +248,29 @@ function createBeachGeometry(seed: number, riverSamples: THREE.Vector3[]) {
         positions.push(vertex.x, height, vertex.z);
         uvs.push((vertex.x + MAP_WIDTH / 2) / MAP_WIDTH, (vertex.z + MAP_DEPTH / 2) / MAP_DEPTH);
         const vertexCoast = landValue(seed, vertex.x, vertex.z);
-        const inland = THREE.MathUtils.smoothstep(vertexCoast, SHORELINE, BEACH_INNER_EDGE);
+        const inland = THREE.MathUtils.smoothstep(vertexCoast, SHORELINE, BEACH_VISUAL_EDGE);
         const sandColor = new THREE.Color("#c59b5d").lerp(new THREE.Color("#f0d69c"), inland);
+        const waterFade = THREE.MathUtils.smoothstep(vertexCoast, SHORELINE - 0.025, SHORELINE);
+        const landFade =
+          1 - THREE.MathUtils.smoothstep(vertexCoast, BEACH_FADE_START, BEACH_VISUAL_EDGE);
+        const alpha = THREE.MathUtils.clamp(waterFade * landFade, 0, 1);
         const variation = THREE.MathUtils.clamp(
           0.98 + terrainNoise(seed + 970, vertex.x * 2, vertex.z * 2) * 0.12,
           0.92,
           1.04,
         );
-        colors.push(sandColor.r * variation, sandColor.g * variation, sandColor.b * variation);
+        colors.push(
+          sandColor.r * variation,
+          sandColor.g * variation,
+          sandColor.b * variation,
+          alpha,
+        );
       }
     }
   }
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
-  geometry.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
+  geometry.setAttribute("color", new THREE.Float32BufferAttribute(colors, 4));
   geometry.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
   geometry.computeVertexNormals();
   return geometry;
@@ -528,6 +539,9 @@ function WorldScene({
         color: debugCoast ? "#ffe500" : "#ffffff",
         map: debugCoast ? null : sandTexture,
         vertexColors: !debugCoast,
+        transparent: !debugCoast,
+        alphaTest: debugCoast ? 0 : 0.015,
+        depthWrite: debugCoast,
         roughness: 0.98,
         metalness: 0,
         polygonOffset: true,
