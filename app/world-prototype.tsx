@@ -249,16 +249,21 @@ function biomeNoise(seed: number, x: number, z: number) {
   );
 }
 
-function outerOceanPenalty(x: number, z: number) {
-  const edgeDistance = Math.min(MAP_WIDTH / 2 - Math.abs(x), MAP_DEPTH / 2 - Math.abs(z));
-  return (
-    1 -
-    THREE.MathUtils.smoothstep(
-      edgeDistance,
-      HEX_SIZE * 1.05,
-      HEX_SIZE * 3.1,
-    )
-  ) * 4;
+function outerOceanPenalty(seed: number, x: number, z: number) {
+  const normalizedX = x / (MAP_WIDTH * 0.5);
+  const normalizedZ = z / (MAP_DEPTH * 0.5);
+  const ellipticalDistance = Math.hypot(normalizedX, normalizedZ);
+  const coastlineWobble =
+    Math.sin(z * 0.18 + seed * 0.00031) * 0.025 +
+    Math.cos(x * 0.16 - seed * 0.00027) * 0.022 +
+    Math.sin((x + z) * 0.09 + seed * 0.00017) * 0.014;
+  const naturalCoastRadius = 0.955 + coastlineWobble;
+  const broadCoastFade = THREE.MathUtils.smoothstep(
+    ellipticalDistance,
+    naturalCoastRadius - 0.115,
+    naturalCoastRadius + 0.035,
+  );
+  return broadCoastFade * 4.5;
 }
 
 function archipelagoChannelPenalty(seed: number, x: number, z: number) {
@@ -293,7 +298,7 @@ function rawArchipelagoValue(seed: number, x: number, z: number) {
   return (
     islandValue +
     coastNoise -
-    outerOceanPenalty(x, z) -
+    outerOceanPenalty(seed, x, z) -
     archipelagoChannelPenalty(seed, x, z)
   );
 }
@@ -310,7 +315,7 @@ function rawContinentValue(seed: number, x: number, z: number) {
     Math.sin(x * 0.58 + phaseA) * 0.12 +
     Math.cos(z * 0.66 + phaseB) * 0.11 +
     Math.sin((x - z) * 0.38 + phaseA * 0.7) * 0.08;
-  return 1 - radial + coastline - outerOceanPenalty(x, z);
+  return 1 - radial + coastline - outerOceanPenalty(seed, x, z);
 }
 
 const landRatioThresholdCache = new Map<string, number>();
