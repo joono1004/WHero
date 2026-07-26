@@ -506,13 +506,13 @@ function heightAt(seed: number, x: number, z: number, riverSamples: THREE.Vector
 }
 
 function terrainColor(height: number, wetness: number, biome: number) {
-  const dry = new THREE.Color("#c3ad68");
-  const grass = new THREE.Color("#879d57");
-  const deep = new THREE.Color("#617c4d");
+  const dry = new THREE.Color("#d4bf78");
+  const grass = new THREE.Color("#9dbb68");
+  const deep = new THREE.Color("#78955d");
   const color = dry.clone().lerp(grass, THREE.MathUtils.clamp(wetness, 0, 1));
-  if (biome > 0.48) color.lerp(new THREE.Color("#c8ad61"), THREE.MathUtils.smoothstep(biome, 0.48, 0.9));
-  if (biome < -0.48) color.lerp(new THREE.Color("#668f67"), THREE.MathUtils.smoothstep(-biome, 0.48, 0.9));
-  if (height > 0.2) color.lerp(deep, Math.min(0.35, height));
+  if (biome > 0.48) color.lerp(new THREE.Color("#d7bb72"), THREE.MathUtils.smoothstep(biome, 0.48, 0.9));
+  if (biome < -0.48) color.lerp(new THREE.Color("#7aa579"), THREE.MathUtils.smoothstep(-biome, 0.48, 0.9));
+  if (height > 0.2) color.lerp(deep, Math.min(0.3, height));
   return color;
 }
 
@@ -763,7 +763,7 @@ function WorldScene({
     configureMapType(mapTypeId);
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color("#b9c8b0");
+    scene.background = new THREE.Color("#d8e5cf");
     // Fog of war must be rendered as a per-hex exploration overlay.
     // A global scene fog would also wash out terrain the player has revealed.
 
@@ -772,7 +772,7 @@ function WorldScene({
     renderer.setSize(host.clientWidth, host.clientHeight);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1;
+    renderer.toneMappingExposure = 1.14;
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     host.appendChild(renderer.domElement);
@@ -810,8 +810,8 @@ function WorldScene({
     controls.minPolarAngle = Math.PI * 0.18;
     controls.maxPolarAngle = Math.PI * 0.48;
 
-    scene.add(new THREE.HemisphereLight("#fff6d7", "#465649", 2.3));
-    const sun = new THREE.DirectionalLight("#fff0c1", 3.4);
+    scene.add(new THREE.HemisphereLight("#fffbea", "#697967", 2.65));
+    const sun = new THREE.DirectionalLight("#fff4cf", 3.65);
     sun.position.set(-12, 19, -9);
     sun.castShadow = true;
     sun.shadow.mapSize.set(2048, 2048);
@@ -884,7 +884,7 @@ function WorldScene({
     const sea = new THREE.Mesh(
       new THREE.PlaneGeometry(MAP_WIDTH + 14, MAP_DEPTH + 14),
       new THREE.MeshStandardMaterial({
-        color: debugCoast ? "#123b70" : "#286987",
+        color: debugCoast ? "#194d83" : "#3a7f9d",
         map: debugCoast ? null : seaTexture,
         roughness: 0.68,
         metalness: 0,
@@ -949,7 +949,7 @@ function WorldScene({
       const river = new THREE.Mesh(
         createRiverRibbon(curve),
         new THREE.MeshStandardMaterial({
-          color: ACTIVE_MAP_TYPE === "riverlands" ? "#3f8fa7" : "#477f99",
+          color: ACTIVE_MAP_TYPE === "riverlands" ? "#58a8bd" : "#5b96ac",
           map: waterTexture,
           roughness: 0.55,
           metalness: 0,
@@ -1083,17 +1083,17 @@ function WorldScene({
 
     const trunkMesh = new THREE.InstancedMesh(
       new THREE.CylinderGeometry(0.065, 0.095, 0.62, 8),
-      new THREE.MeshStandardMaterial({ color: "#4d3522", roughness: 1 }),
+      new THREE.MeshStandardMaterial({ color: "#684b31", roughness: 1 }),
       treeInstances.length,
     );
     const lowerCanopy = new THREE.InstancedMesh(
       new THREE.ConeGeometry(0.5, 1.05, 10),
-      new THREE.MeshStandardMaterial({ color: "#2d5c36", roughness: 0.96, flatShading: true }),
+      new THREE.MeshStandardMaterial({ color: "#3f7547", roughness: 0.96, flatShading: true }),
       treeInstances.length,
     );
     const upperCanopy = new THREE.InstancedMesh(
       new THREE.ConeGeometry(0.36, 0.88, 10),
-      new THREE.MeshStandardMaterial({ color: "#477441", roughness: 0.94, flatShading: true }),
+      new THREE.MeshStandardMaterial({ color: "#609151", roughness: 0.94, flatShading: true }),
       treeInstances.length,
     );
     const matrix = new THREE.Matrix4();
@@ -1115,8 +1115,8 @@ function WorldScene({
       worldRoot.add(mesh);
     });
 
-    const mountainMaterial = new THREE.MeshStandardMaterial({ color: "#77766f", roughness: 0.98, flatShading: true });
-    const snowMaterial = new THREE.MeshStandardMaterial({ color: "#e0ded2", roughness: 0.92, flatShading: true });
+    const mountainMaterial = new THREE.MeshStandardMaterial({ color: "#918f86", roughness: 0.98, flatShading: true });
+    const snowMaterial = new THREE.MeshStandardMaterial({ color: "#f2f0e8", roughness: 0.92, flatShading: true });
     componentsFor("mountain").forEach((group, groupIndex) => {
       group.forEach((cell, cellIndex) => {
         const peaks = group.length >= 4 ? 2 : 1;
@@ -1147,7 +1147,7 @@ function WorldScene({
     const hillCells = componentsFor("hill").flat();
     const hillMesh = new THREE.InstancedMesh(
       new THREE.SphereGeometry(0.72, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2),
-      new THREE.MeshStandardMaterial({ color: "#7f8758", roughness: 0.98, flatShading: true }),
+      new THREE.MeshStandardMaterial({ color: "#9ca46c", roughness: 0.98, flatShading: true }),
       hillCells.length,
     );
     hillCells.forEach((cell, index) => {
@@ -1167,7 +1167,7 @@ function WorldScene({
 
     const wetlandCells = componentsFor("wetland").flat();
     const wetlandMaterial = new THREE.MeshStandardMaterial({
-      color: "#5d8f82",
+      color: "#72aa9b",
       roughness: 0.68,
       metalness: 0,
       transparent: true,
@@ -1186,7 +1186,7 @@ function WorldScene({
         const radius = 0.28 + hash(seed + 5603, index, reedIndex) * HEX_SIZE * 0.28;
         const reed = new THREE.Mesh(
           new THREE.CylinderGeometry(0.018, 0.024, 0.38, 5),
-          new THREE.MeshStandardMaterial({ color: "#7e7b3d", roughness: 1 }),
+          new THREE.MeshStandardMaterial({ color: "#99934f", roughness: 1 }),
         );
         reed.position.set(
           cell.x + Math.cos(angle) * radius,
@@ -1198,7 +1198,7 @@ function WorldScene({
       }
     });
 
-    const rockMaterial = new THREE.MeshStandardMaterial({ color: "#716e61", roughness: 1, flatShading: true });
+    const rockMaterial = new THREE.MeshStandardMaterial({ color: "#8b8879", roughness: 1, flatShading: true });
     for (let i = 0; i < 26; i += 1) {
       const x = (hash(seed + 501, i, 1) - 0.5) * (MAP_WIDTH - 2);
       const z = (hash(seed + 502, i, 2) - 0.5) * (MAP_DEPTH - 2);
