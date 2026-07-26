@@ -81,6 +81,7 @@ type HexDiagnostic = {
   row: number;
   column: number;
   kind: CoastKind;
+  terrain: string;
   height: number;
   layer: string;
 };
@@ -1288,13 +1289,41 @@ function WorldScene({
       selectionGeometry.setFromPoints(selectedPoints);
       selection.visible = true;
       const kind = coastKindAt(seed, row, column);
+      const terrainCell = terrainCells.get(`${row}:${column}`);
+      const nearestRiver = nearestRiverSample(center.x, center.z, samples);
+      const isRiver =
+        Boolean(curve) &&
+        nearestRiver.distance <= riverWidthAt(nearestRiver.t) * 0.5 + 0.12;
+      const terrain =
+        kind === "beach"
+          ? "백사장"
+          : kind === "cliff"
+            ? "바위 해안"
+            : kind === "shallow"
+              ? "얕은 바다"
+              : kind === "deep"
+                ? "깊은 바다"
+                : isRiver
+                  ? "강"
+                  : terrainCell?.type === "forest"
+                    ? "숲"
+                    : terrainCell?.type === "wetland"
+                      ? "습지"
+                      : terrainCell?.type === "hill"
+                        ? "언덕"
+                        : terrainCell?.type === "mountain"
+                          ? "산악"
+                          : "평원·일반 육지";
       onHexSelected({
         row,
         column,
         kind,
+        terrain,
         height: heightAt(seed, center.x, center.z, samples),
         layer:
-          kind === "beach"
+          isRiver
+            ? "river-channel"
+            : kind === "beach"
             ? "beach-edge-overlay"
             : kind === "cliff"
               ? "cliff-coast-hex"
@@ -1458,13 +1487,7 @@ export function WorldPrototype() {
           <span><i className="debug-cliff" />바위 해안 <b>{coastStats.cliff}</b></span>
           <span><i className="debug-shallow" />얕은 바다 <b>{coastStats.shallow}</b></span>
           <span><i className="debug-deep" />깊은 바다 <b>{coastStats.deep}</b></span>
-          {selectedDiagnostic ? (
-            <p>
-              선택 Hex {selectedDiagnostic.column}, {selectedDiagnostic.row}<br />
-              판정 <b>{selectedDiagnostic.kind}</b> · 높이 {selectedDiagnostic.height.toFixed(3)}<br />
-              렌더층 {selectedDiagnostic.layer}
-            </p>
-          ) : <p>Hex를 클릭하면 실제 판정값을 표시합니다.</p>}
+          <p>해안 지형별 Hex 개수를 표시합니다.</p>
         </aside>}
         <aside className="legend">
           <strong>2.5D 지형 범례</strong>
@@ -1481,9 +1504,22 @@ export function WorldPrototype() {
           <span><i className="legend-snow" />설산 정상</span>
         </aside>
         <div className="selection-card">
-          <span>조작 방법</span>
-          <strong>휠 확대 · 드래그 이동</strong>
-          <em>지형과 강이 실제 높이를 가진 WebGL 장면입니다.</em>
+          <span>{selectedDiagnostic ? "선택한 Hex 지형 정보" : "조작 방법"}</span>
+          {selectedDiagnostic ? (
+            <>
+              <strong>{selectedDiagnostic.terrain}</strong>
+              <em>
+                좌표 {selectedDiagnostic.column}, {selectedDiagnostic.row}<br />
+                해안 판정 {selectedDiagnostic.kind} · 높이 {selectedDiagnostic.height.toFixed(3)}<br />
+                렌더층 {selectedDiagnostic.layer}
+              </em>
+            </>
+          ) : (
+            <>
+              <strong>휠 확대 · 드래그 이동</strong>
+              <em>Hex를 클릭하면 지형 정보를 표시합니다.</em>
+            </>
+          )}
         </div>
       </section>
       <footer><span>현재 검증</span><b>2.5D 연속 지면</b><b>지형을 파낸 강</b><b>입체 그림자</b><small>이 버전에서 시점과 그래픽 방향을 먼저 확인합니다.</small></footer>
