@@ -22,8 +22,8 @@ type WorldMapType = {
 };
 const MAP_TYPES: WorldMapType[] = [
   { id: "inland", label: "내륙", description: "바다 없이 넓게 이어진 육지" },
-  { id: "continent", label: "대륙", description: "하나의 큰 대륙과 외곽 바다" },
-  { id: "archipelago", label: "군도", description: "여러 섬과 넓은 바다" },
+  { id: "continent", label: "대륙", description: "육지가 넓은 하나의 대륙과 외곽 바다" },
+  { id: "archipelago", label: "군도", description: "섬 70%·바다 30%의 넓은 군도" },
   { id: "highlands", label: "고산", description: "바다 없는 산맥·고원·협곡" },
   { id: "riverlands", label: "대하천", description: "바다 5% 미만의 강·호수·습지" },
 ];
@@ -249,6 +249,71 @@ function biomeNoise(seed: number, x: number, z: number) {
   );
 }
 
+function rawArchipelagoValue(seed: number, x: number, z: number) {
+  let islandValue = -1;
+  const islandCount = 10;
+  for (let island = 0; island < islandCount; island += 1) {
+    const centerX = (hash(seed + 620, island, 1) - 0.5) * MAP_WIDTH * 0.78;
+    const centerZ = (hash(seed + 621, island, 2) - 0.5) * MAP_DEPTH * 0.76;
+    const radiusX = MAP_WIDTH * (0.12 + hash(seed + 622, island, 3) * 0.1);
+    const radiusZ = MAP_DEPTH * (0.13 + hash(seed + 623, island, 4) * 0.11);
+    const distance = Math.hypot((x - centerX) / radiusX, (z - centerZ) / radiusZ);
+    islandValue = Math.max(islandValue, 1.03 - distance);
+  }
+  const coastNoise =
+    Math.sin(x * 0.7 + seed * 0.00031) * 0.11 +
+    Math.cos(z * 0.76 - seed * 0.00027) * 0.1 +
+    Math.sin((x - z) * 0.43) * 0.06;
+  return islandValue + coastNoise;
+}
+
+function rawContinentValue(seed: number, x: number, z: number) {
+  const xRadius = MAP_WIDTH * (0.46 + hash(seed + 71, 1, 1) * 0.05);
+  const zRadius = MAP_DEPTH * (0.44 + hash(seed + 72, 1, 2) * 0.05);
+  const offsetX = (hash(seed + 73, 1, 3) - 0.5) * 2.4;
+  const offsetZ = (hash(seed + 74, 1, 4) - 0.5) * 1.8;
+  const radial = Math.hypot((x - offsetX) / xRadius, (z - offsetZ) / zRadius);
+  const phaseA = hash(seed + 75, 1, 5) * Math.PI * 2;
+  const phaseB = hash(seed + 76, 1, 6) * Math.PI * 2;
+  const coastline =
+    Math.sin(x * 0.58 + phaseA) * 0.12 +
+    Math.cos(z * 0.66 + phaseB) * 0.11 +
+    Math.sin((x - z) * 0.38 + phaseA * 0.7) * 0.08;
+  return 1 - radial + coastline;
+}
+
+const landRatioThresholdCache = new Map<string, number>();
+function targetLandThreshold(
+  seed: number,
+  mapType: "continent" | "archipelago",
+  targetLandRatio: number,
+) {
+  const cacheKey = `${mapType}:${seed}:${HEX_COLS}:${HEX_ROWS}:${targetLandRatio}`;
+  const cached = landRatioThresholdCache.get(cacheKey);
+  if (cached !== undefined) return cached;
+  const values: number[] = [];
+  for (let row = 0; row < HEX_ROWS; row += 1) {
+    for (let column = 0; column < HEX_COLS; column += 1) {
+      if (!isInsideMap(row, column)) continue;
+      const center = hexCenterAt(row, column);
+      values.push(
+        mapType === "archipelago"
+          ? rawArchipelagoValue(seed, center.x, center.z)
+          : rawContinentValue(seed, center.x, center.z),
+      );
+    }
+  }
+  values.sort((a, b) => a - b);
+  const thresholdIndex = THREE.MathUtils.clamp(
+    Math.floor(values.length * (1 - targetLandRatio)),
+    0,
+    Math.max(0, values.length - 1),
+  );
+  const threshold = values[thresholdIndex] ?? SHORELINE;
+  landRatioThresholdCache.set(cacheKey, threshold);
+  return threshold;
+}
+
 function landValue(seed: number, x: number, z: number) {
   if (ACTIVE_MAP_TYPE === "inland" || ACTIVE_MAP_TYPE === "highlands") {
     const broadRelief =
@@ -272,35 +337,10 @@ function landValue(seed: number, x: number, z: number) {
   }
 
   if (ACTIVE_MAP_TYPE === "archipelago") {
-    let islandValue = -1;
-    const islandCount = 7;
-    for (let island = 0; island < islandCount; island += 1) {
-      const centerX = (hash(seed + 620, island, 1) - 0.5) * MAP_WIDTH * 0.72;
-      const centerZ = (hash(seed + 621, island, 2) - 0.5) * MAP_DEPTH * 0.7;
-      const radiusX = MAP_WIDTH * (0.09 + hash(seed + 622, island, 3) * 0.1);
-      const radiusZ = MAP_DEPTH * (0.1 + hash(seed + 623, island, 4) * 0.11);
-      const distance = Math.hypot((x - centerX) / radiusX, (z - centerZ) / radiusZ);
-      islandValue = Math.max(islandValue, 0.72 - distance);
-    }
-    const coastNoise =
-      Math.sin(x * 0.7 + seed * 0.00031) * 0.11 +
-      Math.cos(z * 0.76 - seed * 0.00027) * 0.1 +
-      Math.sin((x - z) * 0.43) * 0.06;
-    return islandValue + coastNoise;
+    return rawArchipelagoValue(seed, x, z) - targetLandThreshold(seed, "archipelago", 0.7) + SHORELINE;
   }
 
-  const xRadius = MAP_WIDTH * (0.37 + hash(seed + 71, 1, 1) * 0.07);
-  const zRadius = MAP_DEPTH * (0.34 + hash(seed + 72, 1, 2) * 0.08);
-  const offsetX = (hash(seed + 73, 1, 3) - 0.5) * 2.4;
-  const offsetZ = (hash(seed + 74, 1, 4) - 0.5) * 1.8;
-  const radial = Math.hypot((x - offsetX) / xRadius, (z - offsetZ) / zRadius);
-  const phaseA = hash(seed + 75, 1, 5) * Math.PI * 2;
-  const phaseB = hash(seed + 76, 1, 6) * Math.PI * 2;
-  const coastline =
-    Math.sin(x * 0.58 + phaseA) * 0.12 +
-    Math.cos(z * 0.66 + phaseB) * 0.11 +
-    Math.sin((x - z) * 0.38 + phaseA * 0.7) * 0.08;
-  return 1 - radial + coastline;
+  return rawContinentValue(seed, x, z) - targetLandThreshold(seed, "continent", 0.75) + SHORELINE;
 }
 
 function distanceToRiver(x: number, z: number, samples: THREE.Vector3[]) {
@@ -347,7 +387,13 @@ function nearestRiverSample(x: number, z: number, samples: THREE.Vector3[]) {
     index = sampleIndex;
     distance = candidate;
   }
-  return { point: samples[index], index, distance, t: index / Math.max(1, samples.length - 1) };
+  const samplesPerRiver = 181;
+  return {
+    point: samples[index],
+    index,
+    distance,
+    t: (index % samplesPerRiver) / (samplesPerRiver - 1),
+  };
 }
 
 function buildRiver(seed: number) {
@@ -444,6 +490,67 @@ function buildRiver(seed: number) {
   }
   const curve = new THREE.CatmullRomCurve3(controlPoints, false, "centripetal", 0.42);
   return { curve, samples: curve.getPoints(180), sourceType: lake ? "lake" : "mountain" };
+}
+
+function buildTributary(
+  seed: number,
+  mainCurve: THREE.CatmullRomCurve3,
+  joinT: number,
+  side: -1 | 1,
+) {
+  const join = mainCurve.getPoint(joinT);
+  const tangent = mainCurve.getTangent(joinT).normalize();
+  const normal = new THREE.Vector2(-tangent.z, tangent.x);
+  const candidates: { x: number; z: number; height: number; score: number }[] = [];
+  const fallbackCandidates: { x: number; z: number; height: number; score: number }[] = [];
+  for (let row = 0; row < HEX_ROWS; row += 1) {
+    for (let column = 0; column < HEX_COLS; column += 1) {
+      if (!isInsideMap(row, column)) continue;
+      const center = hexCenterAt(row, column);
+      if (landValue(seed, center.x, center.z) < 0.22) continue;
+      const offsetX = center.x - join.x;
+      const offsetZ = center.z - join.z;
+      const sideDistance = (offsetX * normal.x + offsetZ * normal.y) * side;
+      const distance = Math.hypot(offsetX, offsetZ);
+      const minimumDistance = Math.min(MAP_WIDTH, MAP_DEPTH) * 0.2;
+      if (distance < minimumDistance) continue;
+      const height = naturalLandHeight(seed, center.x, center.z) + landValue(seed, center.x, center.z) * 0.2;
+      const score = height + sideDistance * 0.018 - Math.abs(distance - minimumDistance * 1.55) * 0.012;
+      const candidate = { ...center, height, score };
+      fallbackCandidates.push(candidate);
+      if (sideDistance >= minimumDistance * 0.48) candidates.push(candidate);
+    }
+  }
+  const sourcePool = candidates.length > 0 ? candidates : fallbackCandidates;
+  sourcePool.sort((a, b) => b.score - a.score);
+  const source = sourcePool[Math.min(sourcePool.length - 1, Math.floor(hash(seed + 2710, side, 4) * 4))];
+  if (!source) return null;
+
+  const direction = new THREE.Vector2(join.x - source.x, join.z - source.z);
+  const length = Math.max(1, direction.length());
+  direction.normalize();
+  const bendNormal = new THREE.Vector2(-direction.y, direction.x);
+  const points: THREE.Vector3[] = [];
+  const pointCount = 7;
+  let previousHeight = Math.max(join.y + 0.16, source.height + 0.04);
+  for (let index = 0; index < pointCount; index += 1) {
+    const t = index / (pointCount - 1);
+    const envelope = Math.sin(Math.PI * t);
+    const bend =
+      (hash(seed + 2720, index, side + 2) - 0.5) *
+      Math.min(3.2, length * 0.12) *
+      envelope;
+    const x = THREE.MathUtils.lerp(source.x, join.x, t) + bendNormal.x * bend;
+    const z = THREE.MathUtils.lerp(source.z, join.z, t) + bendNormal.y * bend;
+    const targetHeight = THREE.MathUtils.lerp(previousHeight, join.y + 0.012, Math.pow(t, 1.12));
+    const y =
+      index === pointCount - 1
+        ? join.y + 0.012
+        : Math.max(join.y + 0.025, Math.min(naturalLandHeight(seed, x, z) + 0.025, targetHeight));
+    previousHeight = y;
+    points.push(new THREE.Vector3(x, y, z));
+  }
+  return new THREE.CatmullRomCurve3(points, false, "centripetal", 0.42);
 }
 
 function createRiverRibbon(curve: THREE.CatmullRomCurve3) {
@@ -826,12 +933,18 @@ function WorldScene({
     scene.add(worldRoot);
 
     const textureLoader = new THREE.TextureLoader();
-    const riverSystem =
+    const primaryRiver =
       ACTIVE_MAP_TYPE === "inland" || ACTIVE_MAP_TYPE === "highlands"
         ? null
         : buildRiver(seed);
-    const curve = riverSystem?.curve ?? null;
-    const samples = riverSystem?.samples ?? [];
+    const riverCurves = primaryRiver ? [primaryRiver.curve] : [];
+    if (ACTIVE_MAP_TYPE === "riverlands" && primaryRiver) {
+      const firstTributary = buildTributary(seed, primaryRiver.curve, 0.46, -1);
+      const secondTributary = buildTributary(seed, primaryRiver.curve, 0.63, 1);
+      if (firstTributary) riverCurves.push(firstTributary);
+      if (secondTributary) riverCurves.push(secondTributary);
+    }
+    const samples = riverCurves.flatMap((riverCurve) => riverCurve.getPoints(180));
     const coastHexGeometries = createCoastHexGeometries(seed, samples);
     const terrainGeometry = new THREE.PlaneGeometry(
       MAP_WIDTH,
@@ -945,9 +1058,9 @@ function WorldScene({
       worldRoot.add(cliffCoast);
     }
 
-    if (curve) {
+    riverCurves.forEach((riverCurve) => {
       const river = new THREE.Mesh(
-        createRiverRibbon(curve),
+        createRiverRibbon(riverCurve),
         new THREE.MeshStandardMaterial({
           color: ACTIVE_MAP_TYPE === "riverlands" ? "#58a8bd" : "#5b96ac",
           map: waterTexture,
@@ -959,7 +1072,7 @@ function WorldScene({
       );
       river.receiveShadow = true;
       worldRoot.add(river);
-    }
+    });
 
     type TerrainCell = {
       row: number;
@@ -1252,12 +1365,25 @@ function WorldScene({
 
     const raycaster = new THREE.Raycaster();
     const pointer = new THREE.Vector2();
-    let pointerDown = new THREE.Vector2();
+    let pointerDown: THREE.Vector2 | null = null;
+    let pointerId: number | null = null;
     const handlePointerDown = (event: PointerEvent) => {
+      if (event.button !== 0) return;
       pointerDown = new THREE.Vector2(event.clientX, event.clientY);
+      pointerId = event.pointerId;
+      controls.enabled = false;
+      renderer.domElement.setPointerCapture(event.pointerId);
     };
     const handlePointerUp = (event: PointerEvent) => {
-      if (event.button !== 0 || pointerDown.distanceTo(new THREE.Vector2(event.clientX, event.clientY)) > 5) return;
+      if (event.button !== 0 || !pointerDown) return;
+      const movement = pointerDown.distanceTo(new THREE.Vector2(event.clientX, event.clientY));
+      controls.enabled = true;
+      if (pointerId !== null && renderer.domElement.hasPointerCapture(pointerId)) {
+        renderer.domElement.releasePointerCapture(pointerId);
+      }
+      pointerDown = null;
+      pointerId = null;
+      if (movement > 12) return;
       const bounds = renderer.domElement.getBoundingClientRect();
       pointer.set(
         ((event.clientX - bounds.left) / bounds.width) * 2 - 1,
@@ -1292,7 +1418,7 @@ function WorldScene({
       const terrainCell = terrainCells.get(`${row}:${column}`);
       const nearestRiver = nearestRiverSample(center.x, center.z, samples);
       const isRiver =
-        Boolean(curve) &&
+        riverCurves.length > 0 &&
         nearestRiver.distance <= riverWidthAt(nearestRiver.t) * 0.5 + 0.12;
       const terrain =
         kind === "beach"
@@ -1334,9 +1460,18 @@ function WorldScene({
                 : "terrain",
       });
     };
+    const handlePointerCancel = (event: PointerEvent) => {
+      controls.enabled = true;
+      if (pointerId !== null && renderer.domElement.hasPointerCapture(pointerId)) {
+        renderer.domElement.releasePointerCapture(pointerId);
+      }
+      pointerDown = null;
+      pointerId = null;
+    };
     const handleContextMenu = (event: MouseEvent) => event.preventDefault();
     renderer.domElement.addEventListener("pointerdown", handlePointerDown);
     renderer.domElement.addEventListener("pointerup", handlePointerUp);
+    renderer.domElement.addEventListener("pointercancel", handlePointerCancel);
     renderer.domElement.addEventListener("contextmenu", handleContextMenu);
 
     const animate = () => {
@@ -1363,6 +1498,7 @@ function WorldScene({
       observer.disconnect();
       renderer.domElement.removeEventListener("pointerdown", handlePointerDown);
       renderer.domElement.removeEventListener("pointerup", handlePointerUp);
+      renderer.domElement.removeEventListener("pointercancel", handlePointerCancel);
       renderer.domElement.removeEventListener("contextmenu", handleContextMenu);
       renderer.setAnimationLoop(null);
       controls.dispose();
