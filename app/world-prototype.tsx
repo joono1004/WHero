@@ -779,6 +779,86 @@ function createBeachGeometry(seed: number, riverSamples: THREE.Vector3[]) {
   return geometry;
 }
 
+function createRockyCoastGeometry(seed: number, riverSamples: THREE.Vector3[]) {
+  const columns = Math.min(440, Math.max(220, HEX_COLS * 8));
+  const rows = Math.min(350, Math.max(180, HEX_ROWS * 7));
+  const positions: number[] = [];
+  const colors: number[] = [];
+  const waterBodies = createWaterBodyIndex(seed);
+  const point = (column: number, row: number) => ({
+    x: -MAP_WIDTH / 2 + (column / columns) * MAP_WIDTH,
+    z: -MAP_DEPTH / 2 + (row / rows) * MAP_DEPTH,
+  });
+
+  for (let row = 0; row < rows; row += 1) {
+    for (let column = 0; column < columns; column += 1) {
+      const corners = [
+        point(column, row),
+        point(column + 1, row),
+        point(column + 1, row + 1),
+        point(column, row + 1),
+      ];
+      const centerX = (corners[0].x + corners[2].x) / 2;
+      const centerZ = (corners[0].z + corners[2].z) / 2;
+      const coast = landValue(seed, centerX, centerZ);
+      if (coast < SHORELINE - 0.035 || coast > SHORELINE + 0.085) continue;
+
+      const nearest = hexCoordinatesAt(centerX, centerZ);
+      const rockyCellNearby = [
+        [nearest.row, nearest.column] as const,
+        ...neighborsOf(nearest.row, nearest.column),
+      ].some(([hexRow, hexColumn]) =>
+        isInsideMap(hexRow, hexColumn) &&
+        coastKindAt(seed, hexRow, hexColumn, waterBodies) === "cliff"
+      );
+      if (!rockyCellNearby) continue;
+
+      const triangles = [corners[0], corners[2], corners[1], corners[0], corners[3], corners[2]];
+      for (const vertex of triangles) {
+        const vertexCoast = landValue(seed, vertex.x, vertex.z);
+        const waterFade = THREE.MathUtils.smoothstep(
+          vertexCoast,
+          SHORELINE - 0.026,
+          SHORELINE + 0.006,
+        );
+        const inlandFade =
+          1 - THREE.MathUtils.smoothstep(
+            vertexCoast + terrainNoise(seed + 1741, vertex.x * 2.1, vertex.z * 2.1) * 0.025,
+            SHORELINE + 0.022,
+            SHORELINE + 0.078,
+          );
+        const alpha = THREE.MathUtils.clamp(waterFade * inlandFade, 0, 0.92);
+        const height = Math.max(
+          heightAt(seed, vertex.x, vertex.z, riverSamples) + 0.058,
+          SEA_LEVEL + 0.048,
+        );
+        const rockColor = new THREE.Color("#80735f").lerp(
+          new THREE.Color("#b79b72"),
+          THREE.MathUtils.smoothstep(vertexCoast, SHORELINE, SHORELINE + 0.07),
+        );
+        const variation = THREE.MathUtils.clamp(
+          0.92 + terrainNoise(seed + 1811, vertex.x * 2.8, vertex.z * 2.8) * 0.22,
+          0.78,
+          1.06,
+        );
+        positions.push(vertex.x, height, vertex.z);
+        colors.push(
+          rockColor.r * variation,
+          rockColor.g * variation,
+          rockColor.b * variation,
+          alpha,
+        );
+      }
+    }
+  }
+
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setAttribute("color", new THREE.Float32BufferAttribute(colors, 4));
+  geometry.computeVertexNormals();
+  return geometry;
+}
+
 function createSurfGeometry(seed: number, riverSamples: THREE.Vector3[]) {
   const columns = Math.min(260, Math.max(120, HEX_COLS * 4));
   const rows = Math.min(220, Math.max(100, HEX_ROWS * 4));
@@ -1088,6 +1168,24 @@ function WorldScene({
     );
     shallowWater.renderOrder = 16;
     worldRoot.add(shallowWater);
+
+    const rockyCoast = new THREE.Mesh(
+      createRockyCoastGeometry(seed, samples),
+      new THREE.MeshStandardMaterial({
+        color: debugCoast ? "#676b70" : "#ffffff",
+        vertexColors: true,
+        transparent: true,
+        alphaTest: 0.015,
+        depthWrite: false,
+        roughness: 1,
+        metalness: 0,
+        polygonOffset: true,
+        polygonOffsetFactor: -1.5,
+      }),
+    );
+    rockyCoast.receiveShadow = true;
+    rockyCoast.renderOrder = 17;
+    worldRoot.add(rockyCoast);
 
     const sandTexture = textureLoader.load("/assets/terrain/beach-sand-real-v1.png");
     sandTexture.colorSpace = THREE.SRGBColorSpace;
