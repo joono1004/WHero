@@ -249,6 +249,32 @@ function biomeNoise(seed: number, x: number, z: number) {
   );
 }
 
+function outerOceanPenalty(x: number, z: number) {
+  const edgeDistance = Math.min(MAP_WIDTH / 2 - Math.abs(x), MAP_DEPTH / 2 - Math.abs(z));
+  return (
+    1 -
+    THREE.MathUtils.smoothstep(
+      edgeDistance,
+      HEX_SIZE * 1.05,
+      HEX_SIZE * 3.1,
+    )
+  ) * 4;
+}
+
+function archipelagoChannelPenalty(seed: number, x: number, z: number) {
+  const verticalCenter =
+    Math.sin(z * 0.115 + seed * 0.00023) * MAP_WIDTH * 0.055;
+  const horizontalCenter =
+    Math.sin(x * 0.1 - seed * 0.00019) * MAP_DEPTH * 0.06;
+  const verticalDistance = Math.abs(x - verticalCenter);
+  const horizontalDistance = Math.abs(z - horizontalCenter);
+  const verticalChannel =
+    1 - THREE.MathUtils.smoothstep(verticalDistance, HEX_WIDTH * 0.24, HEX_WIDTH * 1.05);
+  const horizontalChannel =
+    1 - THREE.MathUtils.smoothstep(horizontalDistance, HEX_SIZE * 0.28, HEX_SIZE * 1.08);
+  return Math.max(verticalChannel, horizontalChannel) * 3.2;
+}
+
 function rawArchipelagoValue(seed: number, x: number, z: number) {
   let islandValue = -1;
   const islandCount = 10;
@@ -264,7 +290,12 @@ function rawArchipelagoValue(seed: number, x: number, z: number) {
     Math.sin(x * 0.7 + seed * 0.00031) * 0.11 +
     Math.cos(z * 0.76 - seed * 0.00027) * 0.1 +
     Math.sin((x - z) * 0.43) * 0.06;
-  return islandValue + coastNoise;
+  return (
+    islandValue +
+    coastNoise -
+    outerOceanPenalty(x, z) -
+    archipelagoChannelPenalty(seed, x, z)
+  );
 }
 
 function rawContinentValue(seed: number, x: number, z: number) {
@@ -279,7 +310,7 @@ function rawContinentValue(seed: number, x: number, z: number) {
     Math.sin(x * 0.58 + phaseA) * 0.12 +
     Math.cos(z * 0.66 + phaseB) * 0.11 +
     Math.sin((x - z) * 0.38 + phaseA * 0.7) * 0.08;
-  return 1 - radial + coastline;
+  return 1 - radial + coastline - outerOceanPenalty(x, z);
 }
 
 const landRatioThresholdCache = new Map<string, number>();
@@ -396,7 +427,8 @@ function nearestRiverSample(x: number, z: number, samples: THREE.Vector3[]) {
   };
 }
 
-function buildRiver(seed: number) {
+function buildRiver(seed: number, variant = 0) {
+  const riverSeed = seed + variant * 7919;
   const waterBodies = createWaterBodyIndex(seed);
   const landCandidates: { x: number; z: number; height: number }[] = [];
   const oceanMouths: { x: number; z: number }[] = [];
@@ -437,9 +469,15 @@ function buildRiver(seed: number) {
   landCandidates.sort((a, b) => b.height - a.height);
   const largeLakes = [...lakeGroups.values()].sort((a, b) => b.length - a.length);
   const lakeThreshold = ACTIVE_MAP_TYPE === "riverlands" ? 0.24 : 0.52;
-  const useLakeSource = largeLakes.length > 0 && hash(seed + 2021, 3, 9) > lakeThreshold;
+  const useLakeSource = largeLakes.length > 0 && hash(riverSeed + 2021, 3, 9) > lakeThreshold;
+  const sourceOffset = variant * 4;
   const mountainSource =
-    landCandidates[Math.min(landCandidates.length - 1, Math.floor(hash(seed + 2022, 5, 4) * 5))] ??
+    landCandidates[
+      Math.min(
+        landCandidates.length - 1,
+        sourceOffset + Math.floor(hash(riverSeed + 2022, 5, 4) * 4),
+      )
+    ] ??
     { x: -MAP_WIDTH * 0.16, z: MAP_DEPTH * 0.2, height: 0.42 };
   const lake = useLakeSource ? largeLakes[0] : null;
   const source = lake
@@ -472,7 +510,7 @@ function buildRiver(seed: number) {
     const t = index / (pointCount - 1);
     const envelope = Math.sin(Math.PI * t);
     const bend =
-      (hash(seed + 2030, index, 11) - 0.5) *
+      (hash(riverSeed + 2030, index, 11) - 0.5) *
       Math.min(4.2, length * 0.13) *
       envelope;
     const x = THREE.MathUtils.lerp(source.x, mouth.x, t) + normal.x * bend;
@@ -911,7 +949,7 @@ function WorldScene({
     controls.screenSpacePanning = true;
     controls.minZoom = 0.62;
     controls.maxZoom = 2.8;
-    controls.mouseButtons.LEFT = THREE.MOUSE.PAN;
+    controls.mouseButtons.LEFT = -1 as THREE.MOUSE;
     controls.mouseButtons.MIDDLE = THREE.MOUSE.PAN;
     controls.mouseButtons.RIGHT = THREE.MOUSE.ROTATE;
     controls.minPolarAngle = Math.PI * 0.18;
@@ -933,14 +971,16 @@ function WorldScene({
     scene.add(worldRoot);
 
     const textureLoader = new THREE.TextureLoader();
-    const primaryRiver =
-      ACTIVE_MAP_TYPE === "inland" || ACTIVE_MAP_TYPE === "highlands"
-        ? null
-        : buildRiver(seed);
-    const riverCurves = primaryRiver ? [primaryRiver.curve] : [];
-    if (ACTIVE_MAP_TYPE === "riverlands" && primaryRiver) {
-      const firstTributary = buildTributary(seed, primaryRiver.curve, 0.46, -1);
-      const secondTributary = buildTributary(seed, primaryRiver.curve, 0.63, 1);
+    const primaryRivers =
+      ACTIVE_MAP_TYPE === "inland"
+        ? []
+        : ACTIVE_MAP_TYPE === "riverlands"
+          ? [buildRiver(seed, 0), buildRiver(seed, 1)]
+          : [buildRiver(seed, 0)];
+    const riverCurves = primaryRivers.map((river) => river.curve);
+    if (ACTIVE_MAP_TYPE === "riverlands" && primaryRivers[0]) {
+      const firstTributary = buildTributary(seed, primaryRivers[0].curve, 0.46, -1);
+      const secondTributary = buildTributary(seed, primaryRivers[0].curve, 0.63, 1);
       if (firstTributary) riverCurves.push(firstTributary);
       if (secondTributary) riverCurves.push(secondTributary);
     }
@@ -1098,7 +1138,12 @@ function WorldScene({
           Math.sin(x * 0.12 - z * 0.25 + seed * 0.00047) * 0.44;
         const mountainEdge = ACTIVE_MAP_TYPE === "highlands" ? 0.36 : 0.7;
         const hillEdge = ACTIVE_MAP_TYPE === "highlands" ? 0.08 : 0.38;
-        const wetlandEdge = ACTIVE_MAP_TYPE === "riverlands" ? 0.38 : 0.72;
+        const wetlandEdge =
+          ACTIVE_MAP_TYPE === "riverlands"
+            ? 0.38
+            : ACTIVE_MAP_TYPE === "highlands"
+              ? 0.92
+              : 0.72;
         if (mountainScore > mountainEdge) terrainCells.set(`${row}:${column}`, { row, column, x, z, type: "mountain" });
         else if (mountainScore > hillEdge) terrainCells.set(`${row}:${column}`, { row, column, x, z, type: "hill" });
         else if (wetlandScore > wetlandEdge) terrainCells.set(`${row}:${column}`, { row, column, x, z, type: "wetland" });
