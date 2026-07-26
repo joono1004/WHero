@@ -250,20 +250,40 @@ function biomeNoise(seed: number, x: number, z: number) {
 }
 
 function outerOceanPenalty(seed: number, x: number, z: number) {
-  const normalizedX = x / (MAP_WIDTH * 0.5);
-  const normalizedZ = z / (MAP_DEPTH * 0.5);
-  const ellipticalDistance = Math.hypot(normalizedX, normalizedZ);
-  const coastlineWobble =
-    Math.sin(z * 0.18 + seed * 0.00031) * 0.025 +
-    Math.cos(x * 0.16 - seed * 0.00027) * 0.022 +
-    Math.sin((x + z) * 0.09 + seed * 0.00017) * 0.014;
-  const naturalCoastRadius = 0.955 + coastlineWobble;
-  const broadCoastFade = THREE.MathUtils.smoothstep(
-    ellipticalDistance,
-    naturalCoastRadius - 0.115,
-    naturalCoastRadius + 0.035,
+  const halfWidth = MAP_WIDTH * 0.5;
+  const halfDepth = MAP_DEPTH * 0.5;
+  const leftDistance = x + halfWidth;
+  const rightDistance = halfWidth - x;
+  const topDistance = z + halfDepth;
+  const bottomDistance = halfDepth - z;
+
+  // Preserve the map's broad rectangular extent, but vary how far the sea
+  // reaches inland along each side. This removes ruler-straight cutoffs
+  // without forcing the entire continent or archipelago into a rounded frame.
+  const leftWobble =
+    Math.sin(z * 0.18 + seed * 0.00031) * HEX_SIZE * 0.62 +
+    Math.sin(z * 0.071 - seed * 0.00019) * HEX_SIZE * 0.46;
+  const rightWobble =
+    Math.cos(z * 0.16 - seed * 0.00027) * HEX_SIZE * 0.58 +
+    Math.sin(z * 0.083 + seed * 0.00023) * HEX_SIZE * 0.5;
+  const topWobble =
+    Math.sin(x * 0.17 + seed * 0.00017) * HEX_SIZE * 0.62 +
+    Math.cos(x * 0.067 - seed * 0.00029) * HEX_SIZE * 0.44;
+  const bottomWobble =
+    Math.cos(x * 0.15 - seed * 0.00013) * HEX_SIZE * 0.6 +
+    Math.sin(x * 0.079 + seed * 0.00037) * HEX_SIZE * 0.48;
+  const irregularEdgeDistance = Math.min(
+    leftDistance - leftWobble,
+    rightDistance - rightWobble,
+    topDistance - topWobble,
+    bottomDistance - bottomWobble,
   );
-  return broadCoastFade * 4.5;
+  const coastalFade = 1 - THREE.MathUtils.smoothstep(
+    irregularEdgeDistance,
+    HEX_SIZE * 0.8,
+    HEX_SIZE * 4.1,
+  );
+  return coastalFade * 4.25;
 }
 
 function archipelagoChannelPenalty(seed: number, x: number, z: number) {
