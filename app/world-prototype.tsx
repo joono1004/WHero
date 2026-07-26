@@ -249,93 +249,108 @@ function biomeNoise(seed: number, x: number, z: number) {
   );
 }
 
-function outerOceanPenalty(seed: number, x: number, z: number) {
-  const halfWidth = MAP_WIDTH * 0.5;
-  const halfDepth = MAP_DEPTH * 0.5;
-  const leftDistance = x + halfWidth;
-  const rightDistance = halfWidth - x;
-  const topDistance = z + halfDepth;
-  const bottomDistance = halfDepth - z;
-
-  // Preserve the map's broad rectangular extent, but vary how far the sea
-  // reaches inland along each side. This removes ruler-straight cutoffs
-  // without forcing the entire continent or archipelago into a rounded frame.
-  const leftWobble =
-    Math.sin(z * 0.18 + seed * 0.00031) * HEX_SIZE * 0.62 +
-    Math.sin(z * 0.071 - seed * 0.00019) * HEX_SIZE * 0.46;
-  const rightWobble =
-    Math.cos(z * 0.16 - seed * 0.00027) * HEX_SIZE * 0.58 +
-    Math.sin(z * 0.083 + seed * 0.00023) * HEX_SIZE * 0.5;
-  const topWobble =
-    Math.sin(x * 0.17 + seed * 0.00017) * HEX_SIZE * 0.62 +
-    Math.cos(x * 0.067 - seed * 0.00029) * HEX_SIZE * 0.44;
-  const bottomWobble =
-    Math.cos(x * 0.15 - seed * 0.00013) * HEX_SIZE * 0.6 +
-    Math.sin(x * 0.079 + seed * 0.00037) * HEX_SIZE * 0.48;
-  const irregularEdgeDistance = Math.min(
-    leftDistance - leftWobble,
-    rightDistance - rightWobble,
-    topDistance - topWobble,
-    bottomDistance - bottomWobble,
+function organicCoastalEnvelope(
+  seed: number,
+  x: number,
+  z: number,
+  mapType: "continent" | "archipelago",
+) {
+  const normalizedX = x / (MAP_WIDTH * 0.5);
+  const normalizedZ = z / (MAP_DEPTH * 0.5);
+  const exponent = mapType === "continent" ? 3.35 : 3.05;
+  const superellipseDistance = Math.pow(
+    Math.pow(Math.abs(normalizedX), exponent) +
+      Math.pow(Math.abs(normalizedZ), exponent),
+    1 / exponent,
   );
-  const coastalFade = 1 - THREE.MathUtils.smoothstep(
-    irregularEdgeDistance,
-    HEX_SIZE * 0.8,
-    HEX_SIZE * 4.1,
-  );
-  return coastalFade * 4.25;
+  const angle = Math.atan2(normalizedZ, normalizedX);
+  const phaseA = hash(seed + 1691, 2, 3) * Math.PI * 2;
+  const phaseB = hash(seed + 1692, 4, 7) * Math.PI * 2;
+  const phaseC = hash(seed + 1693, 6, 11) * Math.PI * 2;
+  const coastlineWobble =
+    Math.sin(angle * 3 + phaseA) * 0.052 +
+    Math.sin(angle * 5 + phaseB) * 0.034 +
+    Math.cos(angle * 7 + phaseC) * 0.018 +
+    Math.sin(normalizedX * 5.4 + normalizedZ * 3.1 + phaseB) * 0.024;
+  const boundaryDetailFade =
+    1 - THREE.MathUtils.smoothstep(superellipseDistance, 0.84, 0.98);
+  const naturalCoastRadius =
+    (mapType === "continent" ? 0.91 : 0.895) +
+    coastlineWobble * boundaryDetailFade;
+  return (naturalCoastRadius - superellipseDistance) * 3.2;
 }
 
-function archipelagoChannelPenalty(seed: number, x: number, z: number) {
-  const verticalCenter =
-    Math.sin(z * 0.115 + seed * 0.00023) * MAP_WIDTH * 0.055;
-  const horizontalCenter =
-    Math.sin(x * 0.1 - seed * 0.00019) * MAP_DEPTH * 0.06;
-  const verticalDistance = Math.abs(x - verticalCenter);
-  const horizontalDistance = Math.abs(z - horizontalCenter);
-  const verticalChannel =
-    1 - THREE.MathUtils.smoothstep(verticalDistance, HEX_WIDTH * 0.24, HEX_WIDTH * 1.05);
-  const horizontalChannel =
-    1 - THREE.MathUtils.smoothstep(horizontalDistance, HEX_SIZE * 0.28, HEX_SIZE * 1.08);
-  return Math.max(verticalChannel, horizontalChannel) * 3.2;
+function archipelagoIslandField(seed: number, x: number, z: number) {
+  const normalizedX = x / (MAP_WIDTH * 0.5);
+  const normalizedZ = z / (MAP_DEPTH * 0.5);
+  const anchors = [
+    [-0.46, -0.45],
+    [0.46, -0.43],
+    [-0.45, 0.45],
+    [0.45, 0.44],
+  ] as const;
+  let strongestIsland = -4;
+
+  anchors.forEach(([anchorX, anchorZ], island) => {
+    const centerX =
+      anchorX + (hash(seed + 1701, island, 3) - 0.5) * 0.008;
+    const centerZ =
+      anchorZ + (hash(seed + 1702, island, 5) - 0.5) * 0.008;
+    const deltaX = normalizedX - centerX;
+    const deltaZ = normalizedZ - centerZ;
+    const pointsOutwardX = Math.sign(anchorX) * deltaX > 0;
+    const pointsOutwardZ = Math.sign(anchorZ) * deltaZ > 0;
+    const radiusX =
+      (pointsOutwardX ? 0.45 : 0.39) +
+      (hash(seed + 1731, island, 17) - 0.5) * 0.004;
+    const radiusZ =
+      (pointsOutwardZ ? 0.45 : 0.39) +
+      (hash(seed + 1741, island, 19) - 0.5) * 0.004;
+    const exponent = 4;
+    const distance = Math.pow(
+      Math.pow(Math.abs(deltaX / radiusX), exponent) +
+        Math.pow(Math.abs(deltaZ / radiusZ), exponent),
+      1 / exponent,
+    );
+    const angle = Math.atan2(deltaZ / radiusZ, deltaX / radiusX);
+    const phase = hash(seed + 1751, island, 23) * Math.PI * 2;
+    const coastlineWobble =
+      Math.sin(angle * 3 + phase) * 0.014 +
+      Math.sin(angle * 5 - phase * 0.7) * 0.007;
+
+    // Each island owns its coastline from the beginning. The asymmetric
+    // radius leaves a sea margin outside and preserves natural straits inside.
+    strongestIsland = Math.max(
+      strongestIsland,
+      1 - distance + coastlineWobble,
+    );
+  });
+  return strongestIsland;
 }
 
 function rawArchipelagoValue(seed: number, x: number, z: number) {
-  let islandValue = -1;
-  const islandCount = 10;
-  for (let island = 0; island < islandCount; island += 1) {
-    const centerX = (hash(seed + 620, island, 1) - 0.5) * MAP_WIDTH * 0.78;
-    const centerZ = (hash(seed + 621, island, 2) - 0.5) * MAP_DEPTH * 0.76;
-    const radiusX = MAP_WIDTH * (0.12 + hash(seed + 622, island, 3) * 0.1);
-    const radiusZ = MAP_DEPTH * (0.13 + hash(seed + 623, island, 4) * 0.11);
-    const distance = Math.hypot((x - centerX) / radiusX, (z - centerZ) / radiusZ);
-    islandValue = Math.max(islandValue, 1.03 - distance);
-  }
-  const coastNoise =
-    Math.sin(x * 0.7 + seed * 0.00031) * 0.11 +
-    Math.cos(z * 0.76 - seed * 0.00027) * 0.1 +
-    Math.sin((x - z) * 0.43) * 0.06;
-  return (
-    islandValue +
-    coastNoise -
-    outerOceanPenalty(seed, x, z) -
-    archipelagoChannelPenalty(seed, x, z)
-  );
+  return archipelagoIslandField(seed, x, z);
 }
 
 function rawContinentValue(seed: number, x: number, z: number) {
-  const xRadius = MAP_WIDTH * (0.46 + hash(seed + 71, 1, 1) * 0.05);
-  const zRadius = MAP_DEPTH * (0.44 + hash(seed + 72, 1, 2) * 0.05);
-  const offsetX = (hash(seed + 73, 1, 3) - 0.5) * 2.4;
-  const offsetZ = (hash(seed + 74, 1, 4) - 0.5) * 1.8;
-  const radial = Math.hypot((x - offsetX) / xRadius, (z - offsetZ) / zRadius);
+  const envelope = organicCoastalEnvelope(seed, x, z, "continent");
+  const normalizedX = x / (MAP_WIDTH * 0.5);
+  const normalizedZ = z / (MAP_DEPTH * 0.5);
+  const exponent = 3.35;
+  const boundaryDistance = Math.pow(
+    Math.pow(Math.abs(normalizedX), exponent) +
+      Math.pow(Math.abs(normalizedZ), exponent),
+    1 / exponent,
+  );
+  const boundaryDetailFade =
+    1 - THREE.MathUtils.smoothstep(boundaryDistance, 0.84, 0.98);
   const phaseA = hash(seed + 75, 1, 5) * Math.PI * 2;
   const phaseB = hash(seed + 76, 1, 6) * Math.PI * 2;
   const coastline =
-    Math.sin(x * 0.58 + phaseA) * 0.12 +
-    Math.cos(z * 0.66 + phaseB) * 0.11 +
-    Math.sin((x - z) * 0.38 + phaseA * 0.7) * 0.08;
-  return 1 - radial + coastline - outerOceanPenalty(seed, x, z);
+    Math.sin(x * 0.31 + phaseA) * 0.07 +
+    Math.cos(z * 0.34 + phaseB) * 0.065 +
+    Math.sin((x - z) * 0.21 + phaseA * 0.7) * 0.04;
+  return envelope + coastline * boundaryDetailFade;
 }
 
 const landRatioThresholdCache = new Map<string, number>();
