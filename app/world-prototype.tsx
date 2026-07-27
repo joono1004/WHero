@@ -85,6 +85,11 @@ type HexDiagnostic = {
   height: number;
   layer: string;
 };
+type SelectedHexPopup = {
+  diagnostic: HexDiagnostic;
+  x: number;
+  y: number;
+};
 
 function hexCenterAt(row: number, column: number) {
   return {
@@ -1027,64 +1032,21 @@ function createShallowCoastGeometry(seed: number) {
   return geometry;
 }
 
-function createCoastHexGeometries(seed: number, riverSamples: THREE.Vector3[]) {
-  const classification = classifyCoastHexes(seed);
-  const beachCells = classification.cells.filter((cell) => cell.kind === "beach");
-  const cliffCells = classification.cells.filter((cell) => cell.kind === "cliff");
-  const shallowCells = classification.cells.filter((cell) => cell.kind === "shallow");
-
-  const makeGeometry = (cells: { x: number; z: number }[], shallow: boolean) => {
-    const positions: number[] = [];
-    const uvs: number[] = [];
-    const pushVertex = (x: number, z: number) => {
-      const y = shallow
-        ? SEA_LEVEL + 0.026
-        : Math.max(heightAt(seed, x, z, riverSamples) + 0.055, SEA_LEVEL + 0.045);
-      positions.push(x, y, z);
-      uvs.push((x + MAP_WIDTH / 2) / MAP_WIDTH, (z + MAP_DEPTH / 2) / MAP_DEPTH);
-    };
-    for (const cell of cells) {
-      const corners = Array.from({ length: 6 }, (_, edge) => {
-        const angle = (Math.PI / 180) * (60 * edge - 30);
-        return {
-          x: cell.x + Math.cos(angle) * HEX_SIZE * 0.995,
-          z: cell.z + Math.sin(angle) * HEX_SIZE * 0.995,
-        };
-      });
-      for (let edge = 0; edge < 6; edge += 1) {
-        pushVertex(cell.x, cell.z);
-        pushVertex(corners[edge].x, corners[edge].z);
-        pushVertex(corners[(edge + 1) % 6].x, corners[(edge + 1) % 6].z);
-      }
-    }
-    const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
-    geometry.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
-    geometry.computeVertexNormals();
-    return geometry;
-  };
-
-  return {
-    beach: makeGeometry(beachCells, false),
-    cliff: makeGeometry(cliffCells, false),
-    shallow: makeGeometry(shallowCells, true),
-  };
-}
-
 function WorldScene({
   seed,
   mapTierId,
   mapTypeId,
   showGrid,
-  debugCoast,
   onHexSelected,
 }: {
   seed: number;
   mapTierId: MapTierId;
   mapTypeId: MapTypeId;
   showGrid: boolean;
-  debugCoast: boolean;
-  onHexSelected: (diagnostic: HexDiagnostic) => void;
+  onHexSelected: (
+    diagnostic: HexDiagnostic,
+    pointerPosition: { x: number; y: number },
+  ) => void;
 }) {
   const hostRef = useRef<HTMLDivElement>(null);
 
@@ -1136,7 +1098,7 @@ function WorldScene({
     controls.screenSpacePanning = true;
     controls.minZoom = 0.62;
     controls.maxZoom = 2.8;
-    controls.mouseButtons.LEFT = -1 as THREE.MOUSE;
+    controls.mouseButtons.LEFT = THREE.MOUSE.PAN;
     controls.mouseButtons.MIDDLE = THREE.MOUSE.PAN;
     controls.mouseButtons.RIGHT = THREE.MOUSE.ROTATE;
     controls.minPolarAngle = Math.PI * 0.18;
@@ -1172,7 +1134,6 @@ function WorldScene({
       if (secondTributary) riverCurves.push(secondTributary);
     }
     const samples = riverCurves.flatMap((riverCurve) => riverCurve.getPoints(180));
-    const coastHexGeometries = createCoastHexGeometries(seed, samples);
     const terrainGeometry = new THREE.PlaneGeometry(
       MAP_WIDTH,
       MAP_DEPTH,
@@ -1203,9 +1164,9 @@ function WorldScene({
     const terrain = new THREE.Mesh(
       terrainGeometry,
       new THREE.MeshStandardMaterial({
-        color: debugCoast ? "#4f934d" : PLAIN_VISUAL_RULE.baseColor,
-        map: debugCoast ? null : groundTexture,
-        vertexColors: !debugCoast,
+        color: PLAIN_VISUAL_RULE.baseColor,
+        map: groundTexture,
+        vertexColors: true,
         roughness: PLAIN_VISUAL_RULE.roughness,
         metalness: 0,
       }),
@@ -1224,8 +1185,8 @@ function WorldScene({
     const sea = new THREE.Mesh(
       new THREE.PlaneGeometry(MAP_WIDTH + 14, MAP_DEPTH + 14),
       new THREE.MeshStandardMaterial({
-        color: debugCoast ? "#194d83" : "#3a7f9d",
-        map: debugCoast ? null : seaTexture,
+        color: "#3a7f9d",
+        map: seaTexture,
         roughness: 0.68,
         metalness: 0,
       }),
@@ -1236,14 +1197,14 @@ function WorldScene({
     worldRoot.add(sea);
 
     const shallowWater = new THREE.Mesh(
-      debugCoast ? coastHexGeometries.shallow : createShallowCoastGeometry(seed),
+      createShallowCoastGeometry(seed),
       new THREE.MeshStandardMaterial({
-        color: debugCoast ? "#00f5ff" : "#ffffff",
-        map: debugCoast ? null : seaTexture,
-        vertexColors: !debugCoast,
-        transparent: !debugCoast,
-        alphaTest: debugCoast ? 0 : 0.01,
-        depthWrite: debugCoast,
+        color: "#ffffff",
+        map: seaTexture,
+        vertexColors: true,
+        transparent: true,
+        alphaTest: 0.01,
+        depthWrite: false,
         roughness: 0.62,
         metalness: 0,
       }),
@@ -1254,7 +1215,7 @@ function WorldScene({
     const rockyCoast = new THREE.Mesh(
       createRockyCoastGeometry(seed, samples),
       new THREE.MeshStandardMaterial({
-        color: debugCoast ? "#676b70" : "#ffffff",
+        color: "#ffffff",
         vertexColors: true,
         transparent: true,
         alphaTest: 0.015,
@@ -1278,8 +1239,8 @@ function WorldScene({
     const beach = new THREE.Mesh(
       createBeachGeometry(seed, samples),
       new THREE.MeshStandardMaterial({
-        color: debugCoast ? "#ffe500" : "#ffffff",
-        map: debugCoast ? null : sandTexture,
+        color: "#ffffff",
+        map: sandTexture,
         vertexColors: true,
         transparent: true,
         alphaTest: 0.015,
@@ -1293,15 +1254,6 @@ function WorldScene({
     beach.receiveShadow = true;
     beach.renderOrder = 18;
     worldRoot.add(beach);
-
-    if (debugCoast) {
-      const cliffCoast = new THREE.Mesh(
-        coastHexGeometries.cliff,
-        new THREE.MeshStandardMaterial({ color: "#676b70", roughness: 1 }),
-      );
-      cliffCoast.renderOrder = 17;
-      worldRoot.add(cliffCoast);
-    }
 
     riverCurves.forEach((riverCurve) => {
       const river = new THREE.Mesh(
@@ -1616,24 +1568,15 @@ function WorldScene({
     const raycaster = new THREE.Raycaster();
     const pointer = new THREE.Vector2();
     let pointerDown: THREE.Vector2 | null = null;
-    let pointerId: number | null = null;
     const handlePointerDown = (event: PointerEvent) => {
       if (event.button !== 0) return;
       pointerDown = new THREE.Vector2(event.clientX, event.clientY);
-      pointerId = event.pointerId;
-      controls.enabled = false;
-      renderer.domElement.setPointerCapture(event.pointerId);
     };
     const handlePointerUp = (event: PointerEvent) => {
       if (event.button !== 0 || !pointerDown) return;
       const movement = pointerDown.distanceTo(new THREE.Vector2(event.clientX, event.clientY));
-      controls.enabled = true;
-      if (pointerId !== null && renderer.domElement.hasPointerCapture(pointerId)) {
-        renderer.domElement.releasePointerCapture(pointerId);
-      }
       pointerDown = null;
-      pointerId = null;
-      if (movement > 12) return;
+      if (movement > 7) return;
       const bounds = renderer.domElement.getBoundingClientRect();
       pointer.set(
         ((event.clientX - bounds.left) / bounds.width) * 2 - 1,
@@ -1690,33 +1633,42 @@ function WorldScene({
                         : terrainCell?.type === "mountain"
                           ? "산악"
                           : "평원·일반 육지";
-      onHexSelected({
-        row,
-        column,
-        kind,
-        terrain,
-        height: heightAt(seed, center.x, center.z, samples),
-        layer:
-          isRiver
-            ? "river-channel"
-            : kind === "beach"
-            ? "beach-edge-overlay"
-            : kind === "cliff"
-              ? "cliff-coast-hex"
-            : kind === "shallow"
-              ? "shallow-water-hex"
-              : kind === "deep"
-                ? "deep-sea"
-                : "terrain",
-      });
+      onHexSelected(
+        {
+          row,
+          column,
+          kind,
+          terrain,
+          height: heightAt(seed, center.x, center.z, samples),
+          layer:
+            isRiver
+              ? "river-channel"
+              : kind === "beach"
+                ? "beach-edge-overlay"
+                : kind === "cliff"
+                  ? "cliff-coast-hex"
+                  : kind === "shallow"
+                    ? "shallow-water-hex"
+                    : kind === "deep"
+                      ? "deep-sea"
+                      : "terrain",
+        },
+        {
+          x: THREE.MathUtils.clamp(
+            event.clientX - host.getBoundingClientRect().left,
+            8,
+            Math.max(8, host.clientWidth - 240),
+          ),
+          y: THREE.MathUtils.clamp(
+            event.clientY - host.getBoundingClientRect().top,
+            8,
+            Math.max(8, host.clientHeight - 125),
+          ),
+        },
+      );
     };
-    const handlePointerCancel = (event: PointerEvent) => {
-      controls.enabled = true;
-      if (pointerId !== null && renderer.domElement.hasPointerCapture(pointerId)) {
-        renderer.domElement.releasePointerCapture(pointerId);
-      }
+    const handlePointerCancel = () => {
       pointerDown = null;
-      pointerId = null;
     };
     const handleContextMenu = (event: MouseEvent) => event.preventDefault();
     renderer.domElement.addEventListener("pointerdown", handlePointerDown);
@@ -1770,7 +1722,7 @@ function WorldScene({
       renderer.dispose();
       renderer.domElement.remove();
     };
-  }, [debugCoast, mapTierId, mapTypeId, onHexSelected, seed, showGrid]);
+  }, [mapTierId, mapTypeId, onHexSelected, seed, showGrid]);
 
   return <div className="world-3d" ref={hostRef} aria-label="WebGL로 렌더링한 2.5D 육각형 세계 지도" />;
 }
@@ -1783,8 +1735,8 @@ export function WorldPrototype() {
   const [selectedMapTypeId, setSelectedMapTypeId] = useState<MapTypeId>("continent");
   const [appliedMapTypeId, setAppliedMapTypeId] = useState<MapTypeId>("continent");
   const [showGrid, setShowGrid] = useState(true);
-  const [debugCoast, setDebugCoast] = useState(false);
-  const [selectedDiagnostic, setSelectedDiagnostic] = useState<HexDiagnostic | null>(null);
+  const [selectedHexPopup, setSelectedHexPopup] =
+    useState<SelectedHexPopup | null>(null);
   const activeTier = configureMapTier(appliedTierId);
   const activeMapType = configureMapType(appliedMapTypeId);
   const coastStats = useMemo(() => {
@@ -1792,15 +1744,22 @@ export function WorldPrototype() {
     configureMapType(appliedMapTypeId);
     return classifyCoastHexes(seed).counts;
   }, [appliedMapTypeId, appliedTierId, seed]);
-  const handleHexSelected = useCallback((diagnostic: HexDiagnostic) => {
-    setSelectedDiagnostic(diagnostic);
+  const handleHexSelected = useCallback((
+    diagnostic: HexDiagnostic,
+    pointerPosition: { x: number; y: number },
+  ) => {
+    setSelectedHexPopup({
+      diagnostic,
+      x: pointerPosition.x,
+      y: pointerPosition.y,
+    });
   }, []);
 
   const regenerate = () => {
     const parsed = Number(seedText);
     setAppliedTierId(selectedTierId);
     setAppliedMapTypeId(selectedMapTypeId);
-    setSelectedDiagnostic(null);
+    setSelectedHexPopup(null);
     setSeed(Number.isFinite(parsed) ? Math.trunc(parsed) : Date.now());
   };
 
@@ -1809,7 +1768,7 @@ export function WorldPrototype() {
     setSeedText(String(next));
     setAppliedTierId(selectedTierId);
     setAppliedMapTypeId(selectedMapTypeId);
-    setSelectedDiagnostic(null);
+    setSelectedHexPopup(null);
     setSeed(next);
   };
 
@@ -1854,7 +1813,6 @@ export function WorldPrototype() {
           <button onClick={regenerate}>이 시드로 생성</button>
           <button className="secondary" onClick={randomize}>새로운 세계</button>
           <label className="toggle"><input type="checkbox" checked={showGrid} onChange={(event) => setShowGrid(event.target.checked)} />Hex 경계</label>
-          <label className="toggle"><input type="checkbox" checked={debugCoast} onChange={(event) => setDebugCoast(event.target.checked)} />해안 진단</label>
         </div>
       </header>
       <section className="stage">
@@ -1863,25 +1821,15 @@ export function WorldPrototype() {
           mapTierId={appliedTierId}
           mapTypeId={appliedMapTypeId}
           showGrid={showGrid}
-          debugCoast={debugCoast}
           onHexSelected={handleHexSelected}
         />
-        {debugCoast && <aside className="coast-debug">
-          <strong>MAP DEBUG v33</strong>
-          <span><i className="debug-land" />육지 <b>{coastStats.land}</b></span>
-          <span><i className="debug-beach" />백사장 <b>{coastStats.beach}</b></span>
-          <span><i className="debug-cliff" />바위 해안 <b>{coastStats.cliff}</b></span>
-          <span><i className="debug-shallow" />얕은 바다 <b>{coastStats.shallow}</b></span>
-          <span><i className="debug-deep" />깊은 바다 <b>{coastStats.deep}</b></span>
-          <p>해안 지형별 Hex 개수를 표시합니다.</p>
-        </aside>}
         <aside className="legend">
           <strong>2.5D 지형 범례</strong>
-          <span><i className="legend-plain" />평원·일반 육지</span>
-          <span><i className="legend-beach" />백사장</span>
-          <span><i className="legend-cliff" />바위 해안</span>
-          <span><i className="legend-shallow" />얕은 바다</span>
-          <span><i className="legend-deep" />깊은 바다</span>
+          <span><i className="legend-plain" />평원·일반 육지 <b>{coastStats.land}</b></span>
+          <span><i className="legend-beach" />백사장 <b>{coastStats.beach}</b></span>
+          <span><i className="legend-cliff" />바위 해안 <b>{coastStats.cliff}</b></span>
+          <span><i className="legend-shallow" />얕은 바다 <b>{coastStats.shallow}</b></span>
+          <span><i className="legend-deep" />깊은 바다 <b>{coastStats.deep}</b></span>
           <span><i className="legend-river" />강</span>
           <span><i className="legend-forest" />숲</span>
           <span><i className="legend-wetland" />습지</span>
@@ -1889,24 +1837,23 @@ export function WorldPrototype() {
           <span><i className="legend-mountain" />산악</span>
           <span><i className="legend-snow" />설산 정상</span>
         </aside>
-        <div className="selection-card">
-          <span>{selectedDiagnostic ? "선택한 Hex 지형 정보" : "조작 방법"}</span>
-          {selectedDiagnostic ? (
-            <>
-              <strong>{selectedDiagnostic.terrain}</strong>
-              <em>
-                좌표 {selectedDiagnostic.column}, {selectedDiagnostic.row}<br />
-                해안 판정 {selectedDiagnostic.kind} · 높이 {selectedDiagnostic.height.toFixed(3)}<br />
-                렌더층 {selectedDiagnostic.layer}
-              </em>
-            </>
-          ) : (
-            <>
-              <strong>휠 확대 · 드래그 이동</strong>
-              <em>Hex를 클릭하면 지형 정보를 표시합니다.</em>
-            </>
-          )}
-        </div>
+        {selectedHexPopup && (
+          <div
+            className="hex-info-popup"
+            style={{
+              left: selectedHexPopup.x,
+              top: selectedHexPopup.y,
+            }}
+          >
+            <span>선택한 Hex 지형 정보</span>
+            <strong>{selectedHexPopup.diagnostic.terrain}</strong>
+            <em>
+              좌표 {selectedHexPopup.diagnostic.column}, {selectedHexPopup.diagnostic.row}<br />
+              해안 판정 {selectedHexPopup.diagnostic.kind} · 높이 {selectedHexPopup.diagnostic.height.toFixed(3)}<br />
+              렌더층 {selectedHexPopup.diagnostic.layer}
+            </em>
+          </div>
+        )}
       </section>
       <footer><span>현재 검증</span><b>2.5D 연속 지면</b><b>지형을 파낸 강</b><b>입체 그림자</b><small>이 버전에서 시점과 그래픽 방향을 먼저 확인합니다.</small></footer>
     </main>
