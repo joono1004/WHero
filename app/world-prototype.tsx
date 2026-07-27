@@ -1098,7 +1098,7 @@ function WorldScene({
     controls.screenSpacePanning = true;
     controls.minZoom = 0.62;
     controls.maxZoom = 2.8;
-    controls.mouseButtons.LEFT = THREE.MOUSE.PAN;
+    controls.mouseButtons.LEFT = -1 as THREE.MOUSE;
     controls.mouseButtons.MIDDLE = THREE.MOUSE.PAN;
     controls.mouseButtons.RIGHT = THREE.MOUSE.ROTATE;
     controls.minPolarAngle = Math.PI * 0.18;
@@ -1568,15 +1568,72 @@ function WorldScene({
     const raycaster = new THREE.Raycaster();
     const pointer = new THREE.Vector2();
     let pointerDown: THREE.Vector2 | null = null;
+    let previousPointer: THREE.Vector2 | null = null;
+    let pointerId: number | null = null;
+    let isDraggingMap = false;
     const handlePointerDown = (event: PointerEvent) => {
       if (event.button !== 0) return;
       pointerDown = new THREE.Vector2(event.clientX, event.clientY);
+      previousPointer = pointerDown.clone();
+      pointerId = event.pointerId;
+      isDraggingMap = false;
+      renderer.domElement.setPointerCapture(event.pointerId);
+    };
+    const handlePointerMove = (event: PointerEvent) => {
+      if (
+        pointerId !== event.pointerId ||
+        !pointerDown ||
+        !previousPointer
+      ) {
+        return;
+      }
+      const currentPointer = new THREE.Vector2(event.clientX, event.clientY);
+      if (!isDraggingMap && pointerDown.distanceTo(currentPointer) >= 6) {
+        isDraggingMap = true;
+      }
+      if (isDraggingMap) {
+        const deltaX = currentPointer.x - previousPointer.x;
+        const deltaY = currentPointer.y - previousPointer.y;
+        const visibleWidth =
+          (camera.right - camera.left) / camera.zoom;
+        const visibleHeight =
+          (camera.top - camera.bottom) / camera.zoom;
+        const cameraRight = new THREE.Vector3().setFromMatrixColumn(
+          camera.matrixWorld,
+          0,
+        );
+        const cameraUp = new THREE.Vector3().setFromMatrixColumn(
+          camera.matrixWorld,
+          1,
+        );
+        const panOffset = cameraRight
+          .multiplyScalar(
+            (-deltaX * visibleWidth) / renderer.domElement.clientWidth,
+          )
+          .add(
+            cameraUp.multiplyScalar(
+              (deltaY * visibleHeight) / renderer.domElement.clientHeight,
+            ),
+          );
+        camera.position.add(panOffset);
+        controls.target.add(panOffset);
+      }
+      previousPointer = currentPointer;
     };
     const handlePointerUp = (event: PointerEvent) => {
       if (event.button !== 0 || !pointerDown) return;
-      const movement = pointerDown.distanceTo(new THREE.Vector2(event.clientX, event.clientY));
+      const wasDraggingMap = isDraggingMap;
+      if (
+        pointerId !== null &&
+        renderer.domElement.hasPointerCapture(pointerId)
+      ) {
+        renderer.domElement.releasePointerCapture(pointerId);
+      }
       pointerDown = null;
-      if (movement > 7) return;
+      previousPointer = null;
+      pointerId = null;
+      isDraggingMap = false;
+      if (wasDraggingMap) return;
       const bounds = renderer.domElement.getBoundingClientRect();
       pointer.set(
         ((event.clientX - bounds.left) / bounds.width) * 2 - 1,
@@ -1668,10 +1725,20 @@ function WorldScene({
       );
     };
     const handlePointerCancel = () => {
+      if (
+        pointerId !== null &&
+        renderer.domElement.hasPointerCapture(pointerId)
+      ) {
+        renderer.domElement.releasePointerCapture(pointerId);
+      }
       pointerDown = null;
+      previousPointer = null;
+      pointerId = null;
+      isDraggingMap = false;
     };
     const handleContextMenu = (event: MouseEvent) => event.preventDefault();
     renderer.domElement.addEventListener("pointerdown", handlePointerDown);
+    renderer.domElement.addEventListener("pointermove", handlePointerMove);
     renderer.domElement.addEventListener("pointerup", handlePointerUp);
     renderer.domElement.addEventListener("pointercancel", handlePointerCancel);
     renderer.domElement.addEventListener("contextmenu", handleContextMenu);
@@ -1699,6 +1766,7 @@ function WorldScene({
     return () => {
       observer.disconnect();
       renderer.domElement.removeEventListener("pointerdown", handlePointerDown);
+      renderer.domElement.removeEventListener("pointermove", handlePointerMove);
       renderer.domElement.removeEventListener("pointerup", handlePointerUp);
       renderer.domElement.removeEventListener("pointercancel", handlePointerCancel);
       renderer.domElement.removeEventListener("contextmenu", handleContextMenu);
