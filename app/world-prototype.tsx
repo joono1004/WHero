@@ -289,7 +289,27 @@ function archipelagoIslandField(seed: number, x: number, z: number) {
     [-0.45, 0.45],
     [0.45, 0.44],
   ] as const;
+  const sizeProfiles = [
+    // A dominant island with three noticeably smaller satellites.
+    [0.485, 0.345, 0.315, 0.29],
+    // Two medium islands and two smaller islands.
+    [0.425, 0.405, 0.325, 0.295],
+    // A gradual large-to-small composition.
+    [0.46, 0.385, 0.335, 0.3],
+  ] as const;
+  const sizeProfile =
+    sizeProfiles[
+      Math.floor(hash(seed + 1761, 7, 29) * sizeProfiles.length) %
+        sizeProfiles.length
+    ];
+  const islandSizeOrder = anchors
+    .map((_, island) => island)
+    .sort(
+      (a, b) =>
+        hash(seed + 1762, a, 31) - hash(seed + 1762, b, 31),
+    );
   let strongestIsland = -4;
+  let secondStrongestIsland = -4;
 
   anchors.forEach(([anchorX, anchorZ], island) => {
     const centerX =
@@ -300,11 +320,13 @@ function archipelagoIslandField(seed: number, x: number, z: number) {
     const deltaZ = normalizedZ - centerZ;
     const pointsOutwardX = Math.sign(anchorX) * deltaX > 0;
     const pointsOutwardZ = Math.sign(anchorZ) * deltaZ > 0;
+    const sizeRank = islandSizeOrder.indexOf(island);
+    const inwardRadius = sizeProfile[sizeRank];
     const radiusX =
-      (pointsOutwardX ? 0.45 : 0.39) +
+      (pointsOutwardX ? 0.45 : inwardRadius) +
       (hash(seed + 1731, island, 17) - 0.5) * 0.004;
     const radiusZ =
-      (pointsOutwardZ ? 0.45 : 0.39) +
+      (pointsOutwardZ ? 0.45 : inwardRadius) +
       (hash(seed + 1741, island, 19) - 0.5) * 0.004;
     const exponent = 4;
     const distance = Math.pow(
@@ -318,14 +340,33 @@ function archipelagoIslandField(seed: number, x: number, z: number) {
       Math.sin(angle * 3 + phase) * 0.014 +
       Math.sin(angle * 5 - phase * 0.7) * 0.007;
 
-    // Each island owns its coastline from the beginning. The asymmetric
-    // radius leaves a sea margin outside and preserves natural straits inside.
-    strongestIsland = Math.max(
-      strongestIsland,
-      1 - distance + coastlineWobble,
-    );
+    // Island sizes vary by seed while the outward radius stays capped. This
+    // preserves the ocean frame and grows larger islands toward the interior,
+    // instead of letting them get clipped by the map boundary.
+    const islandStrength = 1 - distance + coastlineWobble;
+    if (islandStrength > strongestIsland) {
+      secondStrongestIsland = strongestIsland;
+      strongestIsland = islandStrength;
+    } else {
+      secondStrongestIsland = Math.max(secondStrongestIsland, islandStrength);
+    }
   });
-  return strongestIsland;
+  const boundaryDistance = Math.max(
+    Math.abs(normalizedX),
+    Math.abs(normalizedZ),
+  );
+  const oceanFrame =
+    THREE.MathUtils.smoothstep(boundaryDistance, 0.82, 0.98) * 0.9;
+  const competingIslandStrength = strongestIsland - secondStrongestIsland;
+  const naturalStrait =
+    (1 -
+      THREE.MathUtils.smoothstep(
+        competingIslandStrength,
+        0.025,
+        0.12,
+      )) *
+    0.62;
+  return strongestIsland - oceanFrame - naturalStrait;
 }
 
 function rawArchipelagoValue(seed: number, x: number, z: number) {
