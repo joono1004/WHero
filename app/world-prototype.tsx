@@ -318,32 +318,58 @@ function archipelagoIslandField(seed: number, x: number, z: number) {
       anchorZ + (hash(seed + 1702, island, 5) - 0.5) * 0.008;
     const deltaX = normalizedX - centerX;
     const deltaZ = normalizedZ - centerZ;
-    const pointsOutwardX = Math.sign(anchorX) * deltaX > 0;
-    const pointsOutwardZ = Math.sign(anchorZ) * deltaZ > 0;
     const sizeRank = islandSizeOrder.indexOf(island);
     const inwardRadius = sizeProfile[sizeRank];
+    const outwardBlendX = THREE.MathUtils.smoothstep(
+      Math.sign(anchorX) * deltaX,
+      -0.045,
+      0.045,
+    );
+    const outwardBlendZ = THREE.MathUtils.smoothstep(
+      Math.sign(anchorZ) * deltaZ,
+      -0.045,
+      0.045,
+    );
     const radiusX =
-      (pointsOutwardX ? 0.45 : inwardRadius) +
+      THREE.MathUtils.lerp(inwardRadius, 0.45, outwardBlendX) +
       (hash(seed + 1731, island, 17) - 0.5) * 0.004;
     const radiusZ =
-      (pointsOutwardZ ? 0.45 : inwardRadius) +
+      THREE.MathUtils.lerp(inwardRadius, 0.45, outwardBlendZ) +
       (hash(seed + 1741, island, 19) - 0.5) * 0.004;
-    const exponent = 4;
-    const distance = Math.pow(
-      Math.pow(Math.abs(deltaX / radiusX), exponent) +
-        Math.pow(Math.abs(deltaZ / radiusZ), exponent),
+    const rotation = (hash(seed + 1746, island, 21) - 0.5) * 0.62;
+    const cosine = Math.cos(rotation);
+    const sine = Math.sin(rotation);
+    const rotatedX = deltaX * cosine - deltaZ * sine;
+    const rotatedZ = deltaX * sine + deltaZ * cosine;
+    const exponent = 2.15 + hash(seed + 1748, island, 22) * 0.7;
+    const baseDistance = Math.pow(
+      Math.pow(Math.abs(rotatedX / radiusX), exponent) +
+        Math.pow(Math.abs(rotatedZ / radiusZ), exponent),
       1 / exponent,
     );
-    const angle = Math.atan2(deltaZ / radiusZ, deltaX / radiusX);
+    const angle = Math.atan2(rotatedZ / radiusZ, rotatedX / radiusX);
     const phase = hash(seed + 1751, island, 23) * Math.PI * 2;
-    const coastlineWobble =
-      Math.sin(angle * 3 + phase) * 0.014 +
-      Math.sin(angle * 5 - phase * 0.7) * 0.007;
+    const bayAngle = hash(seed + 1753, island, 27) * Math.PI * 2 - Math.PI;
+    const capeAngle = hash(seed + 1754, island, 29) * Math.PI * 2 - Math.PI;
+    const angularDistance = (from: number, to: number) =>
+      Math.atan2(Math.sin(from - to), Math.cos(from - to));
+    const bay =
+      Math.exp(-Math.pow(angularDistance(angle, bayAngle) / 0.34, 2)) *
+      0.095;
+    const cape =
+      Math.exp(-Math.pow(angularDistance(angle, capeAngle) / 0.42, 2)) *
+      0.105;
+    const coastlineShape =
+      Math.sin(angle * 2 + phase) * 0.065 +
+      Math.sin(angle * 3 - phase * 0.72) * 0.052 +
+      Math.cos(angle * 5 + phase * 0.38) * 0.028 +
+      cape -
+      bay;
+    const distance = baseDistance / Math.max(0.78, 1 + coastlineShape);
 
-    // Island sizes vary by seed while the outward radius stays capped. This
-    // preserves the ocean frame and grows larger islands toward the interior,
-    // instead of letting them get clipped by the map boundary.
-    const islandStrength = 1 - distance + coastlineWobble;
+    // Low-frequency lobes form broad peninsulas and bays, while a seeded cape
+    // and inlet stop neighboring islands from sharing the same silhouette.
+    const islandStrength = 1 - distance;
     if (islandStrength > strongestIsland) {
       secondStrongestIsland = strongestIsland;
       strongestIsland = islandStrength;
