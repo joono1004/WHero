@@ -954,7 +954,7 @@ function WorldScene({
     controls.dampingFactor = 0.08;
     controls.screenSpacePanning = true;
     controls.minZoom = 0.62;
-    controls.maxZoom = 2.8;
+    controls.maxZoom = window.matchMedia("(max-width: 900px)").matches ? 5.5 : 4.2;
     controls.mouseButtons.LEFT = -1 as THREE.MOUSE;
     controls.mouseButtons.MIDDLE = THREE.MOUSE.PAN;
     controls.mouseButtons.RIGHT = THREE.MOUSE.ROTATE;
@@ -1563,7 +1563,7 @@ function WorldScene({
       const isRiver =
         riverCurves.length > 0 &&
         nearestRiver.distance <= riverWidthAt(nearestRiver.t) * 0.5 + 0.12;
-      const terrain =
+      const terrainLabel =
         kind === "beach"
           ? "백사장"
           : kind === "cliff"
@@ -1588,7 +1588,7 @@ function WorldScene({
           row,
           column,
           kind,
-          terrain,
+          terrain: terrainLabel,
           height: heightAt(seed, center.x, center.z, samples),
           layer:
             isRiver
