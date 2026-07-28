@@ -3,6 +3,7 @@ import {
   HERO_LOD_SAMPLES,
   WEI_YAN_TEST_HERO,
 } from "@/lib/world/prototype/test-hero";
+import { UNIT_VISUAL_SAMPLES } from "@/lib/world/prototype/test-unit";
 
 export function TestHeroPanel() {
   const [isOpen, setIsOpen] = useState(false);
@@ -52,6 +53,21 @@ export function TestHeroPanel() {
           축소: 얼굴 배지 · 확대: 전신/기마 말
           <br />
           위치 판정과 원형 받침은 항상 Hex 1칸에 고정됩니다.
+        </div>
+        <div className="unit-visual-guide">
+          <strong>부대 배치 비교</strong>
+          <div>
+            {UNIT_VISUAL_SAMPLES.map((unit) => (
+              <span key={unit.id}>
+                <i style={{ backgroundColor: unit.accent }} />
+                {unit.name}
+              </span>
+            ))}
+          </div>
+          <p>
+            위쪽 줄은 일반 부대입니다. 금색 받침과 영웅 초상 배지가 붙은
+            아래쪽 줄은 영웅 배속 부대입니다.
+          </p>
         </div>
         {selectedHero.id === "wei-yan" && (
           <>

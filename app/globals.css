@@ -75,6 +75,12 @@ canvas { display:block; width:100%; height:calc(100vh - 148px); min-height:620px
 .hero-stat-grid b { color:#f1d984; }
 .hero-test-rule { padding:8px; border-radius:5px; background:#1a3941; color:#b9c8c4; font-size:10px; }
 .hero-test-rule b { color:#f1d984; }
+.unit-visual-guide { margin-top:10px; padding:10px; border:1px solid rgba(223,190,111,.28); border-radius:10px; background:rgba(7,21,25,.74); }
+.unit-visual-guide > strong { display:block; margin-bottom:7px; color:#f4d98b; font-size:12px; }
+.unit-visual-guide > div { display:flex; gap:10px; }
+.unit-visual-guide span { display:inline-flex; align-items:center; gap:4px; color:#d9e7df; font-size:11px; }
+.unit-visual-guide i { width:8px; height:8px; border-radius:50%; }
+.unit-visual-guide p { margin:7px 0 0; color:#aebfba; font-size:10px; line-height:1.45; }
 footer { min-height:58px; display:flex; align-items:center; gap:14px; padding:12px 28px; border-top:1px solid rgba(232,205,133,.32); background:#0d252c; color:#b5c5c1; font-size:11px; }
 footer span { color:#d9bd74; text-transform:uppercase; letter-spacing:.12em; }
 footer b { padding:5px 8px; border:1px solid #28434b; border-radius:4px; color:#c8d3cf; font-weight:500; }

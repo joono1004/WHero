@@ -45,6 +45,7 @@ import { TerrainLegend } from "@/components/world/TerrainLegend";
 import { WorldControls } from "@/components/world/WorldControls";
 import { TestHeroPanel } from "@/components/world/TestHeroPanel";
 import { HERO_LOD_SAMPLES } from "@/lib/world/prototype/test-hero";
+import { UNIT_VISUAL_SAMPLES } from "@/lib/world/prototype/test-unit";
 
 let ACTIVE_CONFIG: MapRuntimeConfig = createMapRuntimeConfig(
   "medium",
@@ -1185,6 +1186,7 @@ function WorldScene({
       badge: THREE.Sprite;
     };
     const heroLodPairs: HeroLodPair[] = [];
+    const assignedHeroBadges: THREE.Sprite[] = [];
     const occupiedHeroHexes = new Set<string>();
     const heroTargetXs = [-0.31, -0.1, 0.11, 0.32];
 
@@ -1297,6 +1299,129 @@ function WorldScene({
       badgeMarker.userData = fullMarker.userData;
       worldRoot.add(badgeMarker);
       heroLodPairs.push({ full: fullMarker, badge: badgeMarker });
+    });
+
+    const occupiedUnitHexes = new Set<string>(occupiedHeroHexes);
+    const unitTargetXs = [-0.27, 0, 0.27];
+    UNIT_VISUAL_SAMPLES.forEach((unit, unitIndex) => {
+      const assignedHero = HERO_LOD_SAMPLES.find(
+        (hero) => hero.id === unit.assignedHeroId,
+      );
+
+      [false, true].forEach((hasHero, assignmentIndex) => {
+        const preferredStart = {
+          x: MAP_WIDTH * unitTargetXs[unitIndex],
+          z: MAP_DEPTH * (-0.21 + assignmentIndex * 0.12),
+        };
+        let unitStart:
+          | { row: number; column: number; x: number; z: number }
+          | undefined;
+        let unitStartScore = Number.POSITIVE_INFINITY;
+
+        for (let row = 0; row < HEX_ROWS; row += 1) {
+          for (let column = 0; column < HEX_COLS; column += 1) {
+            const key = `${row}:${column}`;
+            if (occupiedUnitHexes.has(key)) continue;
+            const center = hexCenterAt(row, column);
+            if (coastKindAt(seed, row, column) !== "land") continue;
+            if (distanceToRiver(center.x, center.z, samples) < 1.35) continue;
+            const terrainType = terrainCells.get(key)?.type;
+            if (terrainType === "mountain" || terrainType === "wetland") continue;
+            const score = Math.hypot(
+              center.x - preferredStart.x,
+              center.z - preferredStart.z,
+            );
+            if (score < unitStartScore) {
+              unitStartScore = score;
+              unitStart = { row, column, ...center };
+            }
+          }
+        }
+        if (!unitStart) return;
+
+        occupiedUnitHexes.add(`${unitStart.row}:${unitStart.column}`);
+        const unitGroundHeight = heightAt(
+          seed,
+          unitStart.x,
+          unitStart.z,
+          samples,
+        );
+        const unitBase = new THREE.Mesh(
+          new THREE.CircleGeometry(HEX_SIZE * 0.48, 36),
+          new THREE.MeshBasicMaterial({
+            color: hasHero ? "#e3bd62" : unit.accent,
+            transparent: true,
+            opacity: hasHero ? 0.94 : 0.72,
+            depthWrite: false,
+          }),
+        );
+        unitBase.rotation.x = -Math.PI / 2;
+        unitBase.position.set(
+          unitStart.x,
+          unitGroundHeight + 0.073,
+          unitStart.z,
+        );
+        unitBase.renderOrder = 80;
+        worldRoot.add(unitBase);
+
+        const unitTexture = textureLoader.load(unit.image);
+        unitTexture.colorSpace = THREE.SRGBColorSpace;
+        unitTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+        const unitMarker = new THREE.Sprite(
+          new THREE.SpriteMaterial({
+            map: unitTexture,
+            transparent: true,
+            alphaTest: 0.08,
+            depthTest: true,
+            depthWrite: false,
+          }),
+        );
+        unitMarker.scale.set(
+          unit.fullScale.width,
+          unit.fullScale.height,
+          1,
+        );
+        unitMarker.center.set(0.5, 0);
+        unitMarker.position.set(
+          unitStart.x,
+          unitGroundHeight + 0.085,
+          unitStart.z,
+        );
+        unitMarker.renderOrder = 88;
+        unitMarker.userData = {
+          type: "unit",
+          unitId: unit.id,
+          assignedHeroId: hasHero ? unit.assignedHeroId : null,
+          row: unitStart.row,
+          column: unitStart.column,
+        };
+        worldRoot.add(unitMarker);
+
+        if (hasHero && assignedHero) {
+          const commandTexture = textureLoader.load(assignedHero.image.badge);
+          commandTexture.colorSpace = THREE.SRGBColorSpace;
+          commandTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+          const commandBadge = new THREE.Sprite(
+            new THREE.SpriteMaterial({
+              map: commandTexture,
+              transparent: true,
+              alphaTest: 0.08,
+              depthTest: false,
+              depthWrite: false,
+            }),
+          );
+          commandBadge.scale.set(0.72, 0.72, 1);
+          commandBadge.position.set(
+            unitStart.x + HEX_SIZE * 0.38,
+            unitGroundHeight + 1.1,
+            unitStart.z,
+          );
+          commandBadge.renderOrder = 98;
+          commandBadge.userData = unitMarker.userData;
+          worldRoot.add(commandBadge);
+          assignedHeroBadges.push(commandBadge);
+        }
+      });
     });
     const neighborCells = (cell: TerrainCell) => {
       const diagonal = cell.row % 2 === 0 ? -1 : 1;
@@ -1767,6 +1892,10 @@ function WorldScene({
         badge.scale.set(badgeScale, badgeScale, 1);
         full.visible = showFullHero;
         badge.visible = !showFullHero;
+      });
+      assignedHeroBadges.forEach((badge) => {
+        const badgeScale = Math.min(1.02, 1.8 / camera.zoom);
+        badge.scale.set(badgeScale, badgeScale, 1);
       });
       renderer.render(scene, camera);
     };
