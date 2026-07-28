@@ -44,7 +44,7 @@ import { HexInfoPopup } from "@/components/world/HexInfoPopup";
 import { TerrainLegend } from "@/components/world/TerrainLegend";
 import { WorldControls } from "@/components/world/WorldControls";
 import { TestHeroPanel } from "@/components/world/TestHeroPanel";
-import { WEI_YAN_TEST_HERO } from "@/lib/world/prototype/test-hero";
+import { HERO_LOD_SAMPLES } from "@/lib/world/prototype/test-hero";
 
 let ACTIVE_CONFIG: MapRuntimeConfig = createMapRuntimeConfig(
   "medium",
@@ -1180,33 +1180,45 @@ function WorldScene({
       }
     }
 
-    const preferredHeroStart = {
-      x: -MAP_WIDTH * 0.28,
-      z: MAP_DEPTH * 0.26,
+    type HeroLodPair = {
+      full: THREE.Sprite;
+      badge: THREE.Sprite;
     };
-    let heroStart:
-      | { row: number; column: number; x: number; z: number }
-      | undefined;
-    let heroStartScore = Number.POSITIVE_INFINITY;
-    for (let row = 0; row < HEX_ROWS; row += 1) {
-      for (let column = 0; column < HEX_COLS; column += 1) {
-        const center = hexCenterAt(row, column);
-        if (coastKindAt(seed, row, column) !== "land") continue;
-        if (distanceToRiver(center.x, center.z, samples) < 1.35) continue;
-        const terrainType = terrainCells.get(`${row}:${column}`)?.type;
-        if (terrainType === "mountain" || terrainType === "wetland") continue;
-        const score = Math.hypot(
-          center.x - preferredHeroStart.x,
-          center.z - preferredHeroStart.z,
-        );
-        if (score < heroStartScore) {
-          heroStartScore = score;
-          heroStart = { row, column, ...center };
+    const heroLodPairs: HeroLodPair[] = [];
+    const occupiedHeroHexes = new Set<string>();
+    const heroTargetXs = [-0.31, -0.1, 0.11, 0.32];
+
+    HERO_LOD_SAMPLES.forEach((hero, heroIndex) => {
+      const preferredStart = {
+        x: MAP_WIDTH * heroTargetXs[heroIndex],
+        z: MAP_DEPTH * 0.24,
+      };
+      let heroStart:
+        | { row: number; column: number; x: number; z: number }
+        | undefined;
+      let heroStartScore = Number.POSITIVE_INFINITY;
+      for (let row = 0; row < HEX_ROWS; row += 1) {
+        for (let column = 0; column < HEX_COLS; column += 1) {
+          const key = `${row}:${column}`;
+          if (occupiedHeroHexes.has(key)) continue;
+          const center = hexCenterAt(row, column);
+          if (coastKindAt(seed, row, column) !== "land") continue;
+          if (distanceToRiver(center.x, center.z, samples) < 1.35) continue;
+          const terrainType = terrainCells.get(key)?.type;
+          if (terrainType === "mountain" || terrainType === "wetland") continue;
+          const score = Math.hypot(
+            center.x - preferredStart.x,
+            center.z - preferredStart.z,
+          );
+          if (score < heroStartScore) {
+            heroStartScore = score;
+            heroStart = { row, column, ...center };
+          }
         }
       }
-    }
+      if (!heroStart) return;
 
-    if (heroStart) {
+      occupiedHeroHexes.add(`${heroStart.row}:${heroStart.column}`);
       const heroGroundHeight = heightAt(
         seed,
         heroStart.x,
@@ -1214,11 +1226,11 @@ function WorldScene({
         samples,
       );
       const heroBase = new THREE.Mesh(
-        new THREE.CircleGeometry(HEX_SIZE * 0.52, 40),
+        new THREE.CircleGeometry(HEX_SIZE * 0.54, 40),
         new THREE.MeshBasicMaterial({
-          color: "#c93f37",
+          color: hero.accent,
           transparent: true,
-          opacity: 0.84,
+          opacity: 0.88,
           depthWrite: false,
         }),
       );
@@ -1231,34 +1243,61 @@ function WorldScene({
       heroBase.renderOrder = 80;
       worldRoot.add(heroBase);
 
-      const heroTexture = textureLoader.load(WEI_YAN_TEST_HERO.image.map);
-      heroTexture.colorSpace = THREE.SRGBColorSpace;
-      heroTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
-      const heroMarker = new THREE.Sprite(
+      const fullTexture = textureLoader.load(hero.image.map);
+      fullTexture.colorSpace = THREE.SRGBColorSpace;
+      fullTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+      const fullMarker = new THREE.Sprite(
         new THREE.SpriteMaterial({
-          map: heroTexture,
+          map: fullTexture,
           transparent: true,
           alphaTest: 0.08,
           depthTest: true,
           depthWrite: false,
         }),
       );
-      heroMarker.scale.set(1.42, 2.13, 1);
-      heroMarker.center.set(0.5, 0);
-      heroMarker.position.set(
+      fullMarker.scale.set(
+        hero.fullScale.width,
+        hero.fullScale.height,
+        1,
+      );
+      fullMarker.center.set(0.5, 0);
+      fullMarker.position.set(
         heroStart.x,
         heroGroundHeight + 0.09,
         heroStart.z,
       );
-      heroMarker.renderOrder = 90;
-      heroMarker.userData = {
+      fullMarker.renderOrder = 90;
+      fullMarker.userData = {
         type: "hero",
-        heroId: WEI_YAN_TEST_HERO.id,
+        heroId: hero.id,
         row: heroStart.row,
         column: heroStart.column,
       };
-      worldRoot.add(heroMarker);
-    }
+      worldRoot.add(fullMarker);
+
+      const badgeTexture = textureLoader.load(hero.image.badge);
+      badgeTexture.colorSpace = THREE.SRGBColorSpace;
+      badgeTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+      const badgeMarker = new THREE.Sprite(
+        new THREE.SpriteMaterial({
+          map: badgeTexture,
+          transparent: true,
+          alphaTest: 0.08,
+          depthTest: false,
+          depthWrite: false,
+        }),
+      );
+      badgeMarker.scale.set(1.18, 1.18, 1);
+      badgeMarker.position.set(
+        heroStart.x,
+        heroGroundHeight + 0.86,
+        heroStart.z,
+      );
+      badgeMarker.renderOrder = 95;
+      badgeMarker.userData = fullMarker.userData;
+      worldRoot.add(badgeMarker);
+      heroLodPairs.push({ full: fullMarker, badge: badgeMarker });
+    });
     const neighborCells = (cell: TerrainCell) => {
       const diagonal = cell.row % 2 === 0 ? -1 : 1;
       return [
@@ -1722,6 +1761,13 @@ function WorldScene({
       waterTexture.offset.y -= 0.00022;
       seaTexture.offset.x += 0.000025;
       controls.update();
+      const showFullHero = camera.zoom >= 1.35;
+      heroLodPairs.forEach(({ full, badge }) => {
+        const badgeScale = 3.1 / camera.zoom;
+        badge.scale.set(badgeScale, badgeScale, 1);
+        full.visible = showFullHero;
+        badge.visible = !showFullHero;
+      });
       renderer.render(scene, camera);
     };
     renderer.setAnimationLoop(animate);
