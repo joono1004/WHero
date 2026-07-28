@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { CoastKind } from "@/lib/world/model/world-map";
 
 type TerrainLegendProps = {
@@ -5,8 +6,19 @@ type TerrainLegendProps = {
 };
 
 export function TerrainLegend({ coastStats }: TerrainLegendProps) {
+  const [isOpen, setIsOpen] = useState(false);
+
   return (
-    <aside className="legend">
+    <aside className={`legend ${isOpen ? "is-open" : ""}`}>
+      <button
+        type="button"
+        className="legend-toggle"
+        aria-expanded={isOpen}
+        onClick={() => setIsOpen((current) => !current)}
+      >
+        지형 범례
+      </button>
+      <div className="legend-content">
       <strong>2.5D 지형 범례</strong>
       <span>
         <i className="legend-plain" />
@@ -34,6 +46,7 @@ export function TerrainLegend({ coastStats }: TerrainLegendProps) {
       <span><i className="legend-hill" />언덕</span>
       <span><i className="legend-mountain" />산악</span>
       <span><i className="legend-snow" />설산 정상</span>
+      </div>
     </aside>
   );
 }

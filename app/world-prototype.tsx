@@ -958,8 +958,21 @@ function WorldScene({
     controls.mouseButtons.LEFT = -1 as THREE.MOUSE;
     controls.mouseButtons.MIDDLE = THREE.MOUSE.PAN;
     controls.mouseButtons.RIGHT = THREE.MOUSE.ROTATE;
+    controls.touches.ONE = -1 as THREE.TOUCH;
+    controls.touches.TWO = THREE.TOUCH.DOLLY_ROTATE;
     controls.minPolarAngle = Math.PI * 0.18;
     controls.maxPolarAngle = Math.PI * 0.48;
+    const initialCameraPosition = camera.position.clone();
+    const initialCameraTarget = controls.target.clone();
+    const initialCameraZoom = camera.zoom;
+    const handleResetView = () => {
+      camera.position.copy(initialCameraPosition);
+      camera.zoom = initialCameraZoom;
+      camera.updateProjectionMatrix();
+      controls.target.copy(initialCameraTarget);
+      controls.update();
+    };
+    window.addEventListener("world-map-reset-view", handleResetView);
 
     scene.add(new THREE.HemisphereLight("#fffbea", "#697967", 2.65));
     const sun = new THREE.DirectionalLight("#fff4cf", 3.65);
@@ -1428,7 +1441,21 @@ function WorldScene({
     let previousPointer: THREE.Vector2 | null = null;
     let pointerId: number | null = null;
     let isDraggingMap = false;
+    const activeTouchPointers = new Set<number>();
+    const resetSinglePointerGesture = () => {
+      pointerDown = null;
+      previousPointer = null;
+      pointerId = null;
+      isDraggingMap = false;
+    };
     const handlePointerDown = (event: PointerEvent) => {
+      if (event.pointerType === "touch") {
+        activeTouchPointers.add(event.pointerId);
+        if (!event.isPrimary || activeTouchPointers.size > 1) {
+          resetSinglePointerGesture();
+          return;
+        }
+      }
       if (event.button !== 0) return;
       pointerDown = new THREE.Vector2(event.clientX, event.clientY);
       previousPointer = pointerDown.clone();
@@ -1437,6 +1464,12 @@ function WorldScene({
       renderer.domElement.setPointerCapture(event.pointerId);
     };
     const handlePointerMove = (event: PointerEvent) => {
+      if (
+        event.pointerType === "touch" &&
+        activeTouchPointers.size !== 1
+      ) {
+        return;
+      }
       if (
         pointerId !== event.pointerId ||
         !pointerDown ||
@@ -1478,6 +1511,9 @@ function WorldScene({
       previousPointer = currentPointer;
     };
     const handlePointerUp = (event: PointerEvent) => {
+      if (event.pointerType === "touch") {
+        activeTouchPointers.delete(event.pointerId);
+      }
       if (event.button !== 0 || !pointerDown) return;
       const wasDraggingMap = isDraggingMap;
       if (
@@ -1581,17 +1617,17 @@ function WorldScene({
         },
       );
     };
-    const handlePointerCancel = () => {
+    const handlePointerCancel = (event: PointerEvent) => {
+      if (event.pointerType === "touch") {
+        activeTouchPointers.delete(event.pointerId);
+      }
       if (
         pointerId !== null &&
         renderer.domElement.hasPointerCapture(pointerId)
       ) {
         renderer.domElement.releasePointerCapture(pointerId);
       }
-      pointerDown = null;
-      previousPointer = null;
-      pointerId = null;
-      isDraggingMap = false;
+      resetSinglePointerGesture();
     };
     const handleContextMenu = (event: MouseEvent) => event.preventDefault();
     renderer.domElement.addEventListener("pointerdown", handlePointerDown);
@@ -1627,6 +1663,7 @@ function WorldScene({
       renderer.domElement.removeEventListener("pointerup", handlePointerUp);
       renderer.domElement.removeEventListener("pointercancel", handlePointerCancel);
       renderer.domElement.removeEventListener("contextmenu", handleContextMenu);
+      window.removeEventListener("world-map-reset-view", handleResetView);
       renderer.setAnimationLoop(null);
       controls.dispose();
       scene.traverse((object) => {
