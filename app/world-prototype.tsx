@@ -43,6 +43,8 @@ import type {
 import { HexInfoPopup } from "@/components/world/HexInfoPopup";
 import { TerrainLegend } from "@/components/world/TerrainLegend";
 import { WorldControls } from "@/components/world/WorldControls";
+import { TestHeroPanel } from "@/components/world/TestHeroPanel";
+import { WEI_YAN_TEST_HERO } from "@/lib/world/prototype/test-hero";
 
 let ACTIVE_CONFIG: MapRuntimeConfig = createMapRuntimeConfig(
   "medium",
@@ -1177,6 +1179,86 @@ function WorldScene({
         else if (forestScore > 0.38) terrainCells.set(`${row}:${column}`, { row, column, x, z, type: "forest" });
       }
     }
+
+    const preferredHeroStart = {
+      x: -MAP_WIDTH * 0.28,
+      z: MAP_DEPTH * 0.26,
+    };
+    let heroStart:
+      | { row: number; column: number; x: number; z: number }
+      | undefined;
+    let heroStartScore = Number.POSITIVE_INFINITY;
+    for (let row = 0; row < HEX_ROWS; row += 1) {
+      for (let column = 0; column < HEX_COLS; column += 1) {
+        const center = hexCenterAt(row, column);
+        if (coastKindAt(seed, row, column) !== "land") continue;
+        if (distanceToRiver(center.x, center.z, samples) < 1.35) continue;
+        const terrainType = terrainCells.get(`${row}:${column}`)?.type;
+        if (terrainType === "mountain" || terrainType === "wetland") continue;
+        const score = Math.hypot(
+          center.x - preferredHeroStart.x,
+          center.z - preferredHeroStart.z,
+        );
+        if (score < heroStartScore) {
+          heroStartScore = score;
+          heroStart = { row, column, ...center };
+        }
+      }
+    }
+
+    if (heroStart) {
+      const heroGroundHeight = heightAt(
+        seed,
+        heroStart.x,
+        heroStart.z,
+        samples,
+      );
+      const heroBase = new THREE.Mesh(
+        new THREE.CircleGeometry(HEX_SIZE * 0.52, 40),
+        new THREE.MeshBasicMaterial({
+          color: "#c93f37",
+          transparent: true,
+          opacity: 0.84,
+          depthWrite: false,
+        }),
+      );
+      heroBase.rotation.x = -Math.PI / 2;
+      heroBase.position.set(
+        heroStart.x,
+        heroGroundHeight + 0.075,
+        heroStart.z,
+      );
+      heroBase.renderOrder = 80;
+      worldRoot.add(heroBase);
+
+      const heroTexture = textureLoader.load(WEI_YAN_TEST_HERO.image.map);
+      heroTexture.colorSpace = THREE.SRGBColorSpace;
+      heroTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+      const heroMarker = new THREE.Sprite(
+        new THREE.SpriteMaterial({
+          map: heroTexture,
+          transparent: true,
+          alphaTest: 0.08,
+          depthTest: true,
+          depthWrite: false,
+        }),
+      );
+      heroMarker.scale.set(1.42, 2.13, 1);
+      heroMarker.center.set(0.5, 0);
+      heroMarker.position.set(
+        heroStart.x,
+        heroGroundHeight + 0.09,
+        heroStart.z,
+      );
+      heroMarker.renderOrder = 90;
+      heroMarker.userData = {
+        type: "hero",
+        heroId: WEI_YAN_TEST_HERO.id,
+        row: heroStart.row,
+        column: heroStart.column,
+      };
+      worldRoot.add(heroMarker);
+    }
     const neighborCells = (cell: TerrainCell) => {
       const diagonal = cell.row % 2 === 0 ? -1 : 1;
       return [
@@ -1765,6 +1847,7 @@ export function WorldPrototype() {
           onHexSelected={handleHexSelected}
         />
         <TerrainLegend coastStats={coastStats} />
+        <TestHeroPanel />
         <HexInfoPopup popup={selectedHexPopup} />
       </section>
       <footer><span>현재 검증</span><b>2.5D 연속 지면</b><b>지형을 파낸 강</b><b>입체 그림자</b><small>이 버전에서 시점과 그래픽 방향을 먼저 확인합니다.</small></footer>
