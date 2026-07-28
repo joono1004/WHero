@@ -1186,7 +1186,10 @@ function WorldScene({
       badge: THREE.Sprite;
     };
     const heroLodPairs: HeroLodPair[] = [];
-    const assignedHeroBadges: THREE.Sprite[] = [];
+    const assignedHeroComposites: {
+      commander: THREE.Sprite;
+      badge: THREE.Sprite;
+    }[] = [];
     const occupiedHeroHexes = new Set<string>();
     const heroTargetXs = [-0.31, -0.1, 0.11, 0.32];
 
@@ -1377,8 +1380,8 @@ function WorldScene({
           }),
         );
         unitMarker.scale.set(
-          unit.fullScale.width,
-          unit.fullScale.height,
+          unit.fullScale.width * (hasHero ? 0.82 : 1),
+          unit.fullScale.height * (hasHero ? 0.82 : 1),
           1,
         );
         unitMarker.center.set(0.5, 0);
@@ -1398,6 +1401,34 @@ function WorldScene({
         worldRoot.add(unitMarker);
 
         if (hasHero && assignedHero) {
+          const commanderTexture = textureLoader.load(assignedHero.image.map);
+          commanderTexture.colorSpace = THREE.SRGBColorSpace;
+          commanderTexture.anisotropy =
+            renderer.capabilities.getMaxAnisotropy();
+          const commanderMarker = new THREE.Sprite(
+            new THREE.SpriteMaterial({
+              map: commanderTexture,
+              transparent: true,
+              alphaTest: 0.08,
+              depthTest: true,
+              depthWrite: false,
+            }),
+          );
+          commanderMarker.scale.set(
+            assignedHero.fullScale.width * 0.72,
+            assignedHero.fullScale.height * 0.72,
+            1,
+          );
+          commanderMarker.center.set(0.5, 0);
+          commanderMarker.position.set(
+            unitStart.x,
+            unitGroundHeight + 0.087,
+            unitStart.z,
+          );
+          commanderMarker.renderOrder = 86;
+          commanderMarker.userData = unitMarker.userData;
+          worldRoot.add(commanderMarker);
+
           const commandTexture = textureLoader.load(assignedHero.image.badge);
           commandTexture.colorSpace = THREE.SRGBColorSpace;
           commandTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
@@ -1419,7 +1450,10 @@ function WorldScene({
           commandBadge.renderOrder = 98;
           commandBadge.userData = unitMarker.userData;
           worldRoot.add(commandBadge);
-          assignedHeroBadges.push(commandBadge);
+          assignedHeroComposites.push({
+            commander: commanderMarker,
+            badge: commandBadge,
+          });
         }
       });
     });
@@ -1893,9 +1927,11 @@ function WorldScene({
         full.visible = showFullHero;
         badge.visible = !showFullHero;
       });
-      assignedHeroBadges.forEach((badge) => {
+      assignedHeroComposites.forEach(({ commander, badge }) => {
         const badgeScale = Math.min(1.02, 1.8 / camera.zoom);
         badge.scale.set(badgeScale, badgeScale, 1);
+        commander.visible = showFullHero;
+        badge.visible = !showFullHero;
       });
       renderer.render(scene, camera);
     };
