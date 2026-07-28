@@ -12,11 +12,11 @@ export const HERO_LOD_SAMPLES = [
     title: "청룡도를 든 기마 지휘관",
     accent: "#43824c",
     image: {
-      map: "/art/heroes/guan-yu-map-v1.webp",
+      map: "/art/heroes/guan-yu-map-ground-v2.webp",
       portrait: "/art/heroes/guan-yu-portrait-v1.webp",
       badge: "/art/heroes/guan-yu-badge-v1.webp",
     },
-    fullScale: { width: 2.45, height: 3.68 },
+    fullScale: { width: 2.45, height: 3.45 },
   },
   {
     id: "huang-zhong",
@@ -25,11 +25,11 @@ export const HERO_LOD_SAMPLES = [
     title: "활과 화살통이 보이는 노장",
     accent: "#bc8e2d",
     image: {
-      map: "/art/heroes/huang-zhong-map-v1.webp",
+      map: "/art/heroes/huang-zhong-map-ground-v2.webp",
       portrait: "/art/heroes/huang-zhong-portrait-v1.webp",
       badge: "/art/heroes/huang-zhong-badge-v1.webp",
     },
-    fullScale: { width: 1.72, height: 2.58 },
+    fullScale: { width: 1.72, height: 2.4 },
   },
   {
     id: "wei-yan",
@@ -38,11 +38,11 @@ export const HERO_LOD_SAMPLES = [
     title: "대도와 적갈색 갑주의 야전 장군",
     accent: "#ae3a31",
     image: {
-      map: "/art/heroes/wei-yan-map-v1.webp",
+      map: "/art/heroes/wei-yan-map-ground-v2.webp",
       portrait: "/art/heroes/wei-yan-portrait-v1.webp",
       badge: "/art/heroes/wei-yan-badge-v1.webp",
     },
-    fullScale: { width: 1.78, height: 2.67 },
+    fullScale: { width: 1.78, height: 2.65 },
   },
   {
     id: "zhao-yun",
@@ -51,11 +51,11 @@ export const HERO_LOD_SAMPLES = [
     title: "긴 창과 청백색 갑주의 돌격 장수",
     accent: "#457eb3",
     image: {
-      map: "/art/heroes/zhao-yun-map-v1.webp",
+      map: "/art/heroes/zhao-yun-map-ground-v2.webp",
       portrait: "/art/heroes/zhao-yun-portrait-v1.webp",
       badge: "/art/heroes/zhao-yun-badge-v1.webp",
     },
-    fullScale: { width: 1.78, height: 2.67 },
+    fullScale: { width: 1.78, height: 2.54 },
   },
 ] as const;
 

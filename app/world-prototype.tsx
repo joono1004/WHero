@@ -47,6 +47,11 @@ import { TestHeroPanel } from "@/components/world/TestHeroPanel";
 import { HERO_LOD_SAMPLES } from "@/lib/world/prototype/test-hero";
 import { UNIT_VISUAL_SAMPLES } from "@/lib/world/prototype/test-unit";
 
+// Character art is independent from each generated world. Keep the decoded
+// textures between seed changes so regenerating terrain does not decode the
+// same hero and unit images again.
+const CHARACTER_TEXTURE_CACHE = new Map<string, THREE.Texture>();
+
 let ACTIVE_CONFIG: MapRuntimeConfig = createMapRuntimeConfig(
   "medium",
   "continent",
@@ -993,6 +998,15 @@ function WorldScene({
     scene.add(worldRoot);
 
     const textureLoader = new THREE.TextureLoader();
+    const loadCharacterTexture = (url: string) => {
+      const cached = CHARACTER_TEXTURE_CACHE.get(url);
+      if (cached) return cached;
+      const texture = textureLoader.load(url);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+      CHARACTER_TEXTURE_CACHE.set(url, texture);
+      return texture;
+    };
     const primaryRivers =
       ACTIVE_MAP_TYPE === "inland"
         ? []
@@ -1248,9 +1262,7 @@ function WorldScene({
       heroBase.renderOrder = 80;
       worldRoot.add(heroBase);
 
-      const fullTexture = textureLoader.load(hero.image.map);
-      fullTexture.colorSpace = THREE.SRGBColorSpace;
-      fullTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+      const fullTexture = loadCharacterTexture(hero.image.map);
       const fullMarker = new THREE.Sprite(
         new THREE.SpriteMaterial({
           map: fullTexture,
@@ -1280,9 +1292,7 @@ function WorldScene({
       };
       worldRoot.add(fullMarker);
 
-      const badgeTexture = textureLoader.load(hero.image.badge);
-      badgeTexture.colorSpace = THREE.SRGBColorSpace;
-      badgeTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+      const badgeTexture = loadCharacterTexture(hero.image.badge);
       const badgeMarker = new THREE.Sprite(
         new THREE.SpriteMaterial({
           map: badgeTexture,
@@ -1367,9 +1377,7 @@ function WorldScene({
         unitBase.renderOrder = 80;
         worldRoot.add(unitBase);
 
-        const unitTexture = textureLoader.load(unit.image);
-        unitTexture.colorSpace = THREE.SRGBColorSpace;
-        unitTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+        const unitTexture = loadCharacterTexture(unit.image);
         const unitMarker = new THREE.Sprite(
           new THREE.SpriteMaterial({
             map: unitTexture,
@@ -1380,8 +1388,8 @@ function WorldScene({
           }),
         );
         unitMarker.scale.set(
-          unit.fullScale.width * (hasHero ? 0.82 : 1),
-          unit.fullScale.height * (hasHero ? 0.82 : 1),
+          unit.fullScale.width,
+          unit.fullScale.height,
           1,
         );
         unitMarker.center.set(0.5, 0);
@@ -1401,10 +1409,9 @@ function WorldScene({
         worldRoot.add(unitMarker);
 
         if (hasHero && assignedHero) {
-          const commanderTexture = textureLoader.load(assignedHero.image.map);
-          commanderTexture.colorSpace = THREE.SRGBColorSpace;
-          commanderTexture.anisotropy =
-            renderer.capabilities.getMaxAnisotropy();
+          const commanderTexture = loadCharacterTexture(
+            assignedHero.image.map,
+          );
           const commanderMarker = new THREE.Sprite(
             new THREE.SpriteMaterial({
               map: commanderTexture,
@@ -1429,9 +1436,9 @@ function WorldScene({
           commanderMarker.userData = unitMarker.userData;
           worldRoot.add(commanderMarker);
 
-          const commandTexture = textureLoader.load(assignedHero.image.badge);
-          commandTexture.colorSpace = THREE.SRGBColorSpace;
-          commandTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+          const commandTexture = loadCharacterTexture(
+            assignedHero.image.badge,
+          );
           const commandBadge = new THREE.Sprite(
             new THREE.SpriteMaterial({
               map: commandTexture,
@@ -1966,7 +1973,6 @@ function WorldScene({
           materials.forEach((material) => material.dispose());
         }
         if (object instanceof THREE.Sprite) {
-          object.material.map?.dispose();
           object.material.dispose();
         }
       });
