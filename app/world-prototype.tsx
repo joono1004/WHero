@@ -3,192 +3,92 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import {
+  BEACH_FADE_START,
+  BEACH_INNER_EDGE,
+  BEACH_VISUAL_EDGE,
+  COAST_TRANSITION_EDGE,
+  createMapRuntimeConfig,
+  DEEP_WATER_EDGE,
+  HEX_SIZE,
+  HEX_WIDTH,
+  PLAIN_VISUAL_RULE,
+  SEA_LEVEL,
+  SHORELINE,
+  type MapRuntimeConfig,
+  type MapTierId,
+  type MapTypeId,
+} from "@/lib/world/config/map-config";
+import {
+  hexCenterAt as getHexCenter,
+  hexCoordinatesAt as getHexCoordinates,
+  isInsideMap as checkInsideMap,
+  neighborsOf,
+} from "@/lib/world/hex/hex-grid";
+import {
+  biomeNoise,
+  seededHash as hash,
+  terrainNoise,
+} from "@/lib/world/generation/seed-noise";
+import {
+  beachRegionStrength,
+  classifyCoastHexes as classifyCoastCells,
+  coastKindAt as getCoastKind,
+  createWaterBodyIndex as getWaterBodyIndex,
+} from "@/lib/world/generation/coast-classifier";
+import type {
+  HexDiagnostic,
+  SelectedHexPopup,
+} from "@/lib/world/model/world-map";
+import { HexInfoPopup } from "@/components/world/HexInfoPopup";
+import { TerrainLegend } from "@/components/world/TerrainLegend";
+import { WorldControls } from "@/components/world/WorldControls";
 
-const HEX_SIZE = 0.92;
-const HEX_WIDTH = Math.sqrt(3) * HEX_SIZE;
-type MapTierId = "mini" | "small" | "medium" | "large" | "huge" | "colossal" | "world";
-type MapTier = {
-  id: MapTierId;
-  label: string;
-  factions: number;
-  columns: number;
-  rows: number;
-};
-type MapTypeId = "inland" | "continent" | "archipelago" | "highlands" | "riverlands";
-type WorldMapType = {
-  id: MapTypeId;
-  label: string;
-  description: string;
-};
-const MAP_TYPES: WorldMapType[] = [
-  { id: "inland", label: "내륙", description: "바다 없이 넓게 이어진 육지" },
-  { id: "continent", label: "대륙", description: "육지가 넓은 하나의 대륙과 외곽 바다" },
-  { id: "archipelago", label: "군도", description: "섬 70%·바다 30%의 넓은 군도" },
-  { id: "highlands", label: "고산", description: "바다 없는 산맥·고원·협곡" },
-  { id: "riverlands", label: "대하천", description: "바다 5% 미만의 강·호수·습지" },
-];
-const MAP_TIERS: MapTier[] = [
-  { id: "mini", label: "미니", factions: 2, columns: 30, rows: 26 },
-  { id: "small", label: "소형", factions: 3, columns: 36, rows: 33 },
-  { id: "medium", label: "중형", factions: 4, columns: 42, rows: 38 },
-  { id: "large", label: "대형", factions: 5, columns: 47, rows: 42 },
-  { id: "huge", label: "거대", factions: 6, columns: 52, rows: 46 },
-  { id: "colossal", label: "초거대", factions: 7, columns: 57, rows: 49 },
-  { id: "world", label: "월드", factions: 8, columns: 62, rows: 52 },
-];
-let MAP_WIDTH = 42 * HEX_WIDTH;
-let MAP_DEPTH = HEX_SIZE * 2 + 37 * 1.5 * HEX_SIZE;
-let HEX_COLS = 42;
-let HEX_ROWS = 38;
-let ACTIVE_MAP_TYPE: MapTypeId = "continent";
+let ACTIVE_CONFIG: MapRuntimeConfig = createMapRuntimeConfig(
+  "medium",
+  "continent",
+);
+let MAP_WIDTH = ACTIVE_CONFIG.width;
+let MAP_DEPTH = ACTIVE_CONFIG.depth;
+let HEX_COLS = ACTIVE_CONFIG.columns;
+let HEX_ROWS = ACTIVE_CONFIG.rows;
+let ACTIVE_MAP_TYPE: MapTypeId = ACTIVE_CONFIG.mapType.id;
+
+function applyRuntimeConfig(config: MapRuntimeConfig) {
+  ACTIVE_CONFIG = config;
+  MAP_WIDTH = config.width;
+  MAP_DEPTH = config.depth;
+  HEX_COLS = config.columns;
+  HEX_ROWS = config.rows;
+  ACTIVE_MAP_TYPE = config.mapType.id;
+}
 
 function configureMapTier(tierId: MapTierId) {
-  const tier = MAP_TIERS.find((candidate) => candidate.id === tierId) ?? MAP_TIERS[2];
-  HEX_COLS = tier.columns;
-  HEX_ROWS = tier.rows;
-  MAP_WIDTH = tier.columns * HEX_WIDTH;
-  MAP_DEPTH = HEX_SIZE * 2 + (tier.rows - 1) * 1.5 * HEX_SIZE;
-  return tier;
+  const config = createMapRuntimeConfig(tierId, ACTIVE_MAP_TYPE);
+  applyRuntimeConfig(config);
+  return config.tier;
 }
 
 function configureMapType(mapTypeId: MapTypeId) {
-  ACTIVE_MAP_TYPE = MAP_TYPES.some((candidate) => candidate.id === mapTypeId)
-    ? mapTypeId
-    : "continent";
-  return MAP_TYPES.find((candidate) => candidate.id === ACTIVE_MAP_TYPE) ?? MAP_TYPES[1];
+  const config = createMapRuntimeConfig(ACTIVE_CONFIG.tier.id, mapTypeId);
+  applyRuntimeConfig(config);
+  return config.mapType;
 }
-const SEA_LEVEL = -0.32;
-const DEEP_WATER_EDGE = -0.18;
-const SHORELINE = -0.02;
-const BEACH_INNER_EDGE = 0.16;
-const COAST_TRANSITION_EDGE = 0.3;
-const BEACH_CORE_EDGE = SHORELINE + (BEACH_INNER_EDGE - SHORELINE) * 0.15;
-const BEACH_VISUAL_EDGE = SHORELINE + (BEACH_INNER_EDGE - SHORELINE) * 0.38;
-const BEACH_FADE_START = SHORELINE + (BEACH_CORE_EDGE - SHORELINE) * 0.72;
-const BEACH_LOGICAL_EDGE = BEACH_VISUAL_EDGE + 0.018;
-const PLAIN_VISUAL_RULE = {
-  textureRepeatX: 8,
-  textureRepeatZ: 6,
-  baseColor: "#ffffff",
-  roughness: 0.96,
-} as const;
-
-type CoastKind = "land" | "beach" | "cliff" | "shallow" | "deep";
-type CoastCell = { row: number; column: number; x: number; z: number; kind: CoastKind };
-type WaterBody = { size: number; ocean: boolean };
-type WaterBodyIndex = Map<string, WaterBody>;
-type HexDiagnostic = {
-  row: number;
-  column: number;
-  kind: CoastKind;
-  terrain: string;
-  height: number;
-  layer: string;
-};
-type SelectedHexPopup = {
-  diagnostic: HexDiagnostic;
-  x: number;
-  y: number;
-};
 
 function hexCenterAt(row: number, column: number) {
-  return {
-    x: -MAP_WIDTH / 2 + HEX_WIDTH / 2 + column * HEX_WIDTH + (row % 2) * (HEX_WIDTH / 2),
-    z: -MAP_DEPTH / 2 + HEX_SIZE + row * 1.5 * HEX_SIZE,
-  };
+  return getHexCenter(row, column, ACTIVE_CONFIG);
 }
 
 function hexCoordinatesAt(x: number, z: number) {
-  const row = THREE.MathUtils.clamp(
-    Math.round((z + MAP_DEPTH / 2 - HEX_SIZE) / (1.5 * HEX_SIZE)),
-    0,
-    HEX_ROWS - 1,
-  );
-  const rowOffset = (row % 2) * (HEX_WIDTH / 2);
-  const column = THREE.MathUtils.clamp(
-    Math.round((x + MAP_WIDTH / 2 - HEX_WIDTH / 2 - rowOffset) / HEX_WIDTH),
-    0,
-    HEX_COLS - 1,
-  );
-  return { row, column };
+  return getHexCoordinates(x, z, ACTIVE_CONFIG);
 }
 
 function isInsideMap(row: number, column: number) {
-  if (row < 0 || row >= HEX_ROWS || column < 0 || column >= HEX_COLS) return false;
-  const center = hexCenterAt(row, column);
-  return Math.abs(center.x) <= MAP_WIDTH / 2 && Math.abs(center.z) <= MAP_DEPTH / 2;
+  return checkInsideMap(row, column, ACTIVE_CONFIG);
 }
 
-function neighborsOf(row: number, column: number) {
-  const diagonal = row % 2 === 0 ? -1 : 1;
-  return [
-    [row, column - 1],
-    [row, column + 1],
-    [row - 1, column],
-    [row + 1, column],
-    [row - 1, column + diagonal],
-    [row + 1, column + diagonal],
-  ] as const;
-}
-
-function createWaterBodyIndex(seed: number): WaterBodyIndex {
-  const result: WaterBodyIndex = new Map();
-  const visited = new Set<string>();
-  for (let row = 0; row < HEX_ROWS; row += 1) {
-    for (let column = 0; column < HEX_COLS; column += 1) {
-      const startKey = `${row}:${column}`;
-      if (visited.has(startKey) || !isInsideMap(row, column)) continue;
-      const start = hexCenterAt(row, column);
-      if (landValue(seed, start.x, start.z) >= SHORELINE) continue;
-      const queue: [number, number][] = [[row, column]];
-      const bodyKeys: string[] = [];
-      let ocean = false;
-      visited.add(startKey);
-      while (queue.length > 0) {
-        const [currentRow, currentColumn] = queue.shift()!;
-        bodyKeys.push(`${currentRow}:${currentColumn}`);
-        for (const [neighborRow, neighborColumn] of neighborsOf(currentRow, currentColumn)) {
-          if (!isInsideMap(neighborRow, neighborColumn)) {
-            ocean = true;
-            continue;
-          }
-          const key = `${neighborRow}:${neighborColumn}`;
-          if (visited.has(key)) continue;
-          const center = hexCenterAt(neighborRow, neighborColumn);
-          if (landValue(seed, center.x, center.z) >= SHORELINE) continue;
-          visited.add(key);
-          queue.push([neighborRow, neighborColumn]);
-        }
-      }
-      const body = { size: bodyKeys.length, ocean };
-      bodyKeys.forEach((key) => result.set(key, body));
-    }
-  }
-  return result;
-}
-
-function beachRegionStrength(seed: number, x: number, z: number) {
-  const region =
-    Math.sin(x * 0.17 + seed * 0.00019) +
-    Math.cos(z * 0.14 - seed * 0.00023) +
-    Math.sin((x + z) * 0.075 + seed * 0.00011) * 0.45;
-  return 1 - THREE.MathUtils.smoothstep(region, 0.52, 0.92);
-}
-
-function beachRegionAllows(seed: number, x: number, z: number) {
-  return beachRegionStrength(seed, x, z) > 0.35;
-}
-
-function adjacentWaterBody(
-  row: number,
-  column: number,
-  waterBodies: WaterBodyIndex,
-) {
-  for (const [neighborRow, neighborColumn] of neighborsOf(row, column)) {
-    const body = waterBodies.get(`${neighborRow}:${neighborColumn}`);
-    if (body) return body;
-  }
-  return waterBodies.get(`${row}:${column}`);
+function createWaterBodyIndex(seed: number) {
+  return getWaterBodyIndex(seed, ACTIVE_CONFIG, landValue);
 }
 
 function coastKindAt(
@@ -196,62 +96,19 @@ function coastKindAt(
   row: number,
   column: number,
   waterBodies = createWaterBodyIndex(seed),
-): CoastKind {
-  const center = hexCenterAt(row, column);
-  const land = landValue(seed, center.x, center.z) >= SHORELINE;
-  const touchesOppositeTerrain = neighborsOf(row, column).some(([neighborRow, neighborColumn]) => {
-    if (!isInsideMap(neighborRow, neighborColumn)) return false;
-    const neighbor = hexCenterAt(neighborRow, neighborColumn);
-    return (landValue(seed, neighbor.x, neighbor.z) >= SHORELINE) !== land;
-  });
-  if (land && touchesOppositeTerrain) {
-    const body = adjacentWaterBody(row, column, waterBodies);
-    const largeEnough = body ? body.ocean || body.size >= 36 : false;
-    const closeEnoughToWater = landValue(seed, center.x, center.z) <= BEACH_LOGICAL_EDGE;
-    return largeEnough && closeEnoughToWater && beachRegionAllows(seed, center.x, center.z)
-      ? "beach"
-      : "cliff";
-  }
-  if (land) return "land";
-  return touchesOppositeTerrain ? "shallow" : "deep";
+) {
+  return getCoastKind(
+    seed,
+    row,
+    column,
+    ACTIVE_CONFIG,
+    landValue,
+    waterBodies,
+  );
 }
 
 function classifyCoastHexes(seed: number) {
-  const cells: CoastCell[] = [];
-  const counts: Record<CoastKind, number> = { land: 0, beach: 0, cliff: 0, shallow: 0, deep: 0 };
-  const waterBodies = createWaterBodyIndex(seed);
-  for (let row = 0; row < HEX_ROWS; row += 1) {
-    for (let column = 0; column < HEX_COLS; column += 1) {
-      if (!isInsideMap(row, column)) continue;
-      const center = hexCenterAt(row, column);
-      const kind = coastKindAt(seed, row, column, waterBodies);
-      cells.push({ row, column, ...center, kind });
-      counts[kind] += 1;
-    }
-  }
-  return { cells, counts };
-}
-
-function hash(seed: number, x: number, y: number) {
-  let value = seed ^ Math.imul(x + 31, 374761393) ^ Math.imul(y + 17, 668265263);
-  value = Math.imul(value ^ (value >>> 13), 1274126177);
-  return ((value ^ (value >>> 16)) >>> 0) / 4294967295;
-}
-
-function terrainNoise(seed: number, x: number, z: number) {
-  return (
-    Math.sin(x * 0.43 + seed * 0.00013) * 0.16 +
-    Math.cos(z * 0.37 - seed * 0.00017) * 0.13 +
-    Math.sin((x + z) * 0.71 + seed * 0.00007) * 0.07
-  );
-}
-
-function biomeNoise(seed: number, x: number, z: number) {
-  return (
-    Math.sin(x * 0.16 + z * 0.08 + seed * 0.00029) * 0.5 +
-    Math.cos(x * 0.1 - z * 0.19 + seed * 0.00041) * 0.35 +
-    Math.sin((x + z) * 0.07 + seed * 0.00017) * 0.15
-  );
+  return classifyCoastCells(seed, ACTIVE_CONFIG, landValue);
 }
 
 function organicCoastalEnvelope(
@@ -1847,41 +1704,20 @@ export function WorldPrototype() {
           <p className="eyebrow">WORLD GENERATION LAB · WEBGL 2.5D</p>
           <h1>World in Hero</h1>
         </div>
-        <div className="controls">
-          <label>
-            맵 타입
-            <select
-              value={selectedMapTypeId}
-              onChange={(event) => setSelectedMapTypeId(event.target.value as MapTypeId)}
-            >
-              {MAP_TYPES.map((mapType) => (
-                <option key={mapType.id} value={mapType.id}>
-                  {mapType.label} · {mapType.description}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            맵 등급
-            <select
-              value={selectedTierId}
-              onChange={(event) => setSelectedTierId(event.target.value as MapTierId)}
-            >
-              {MAP_TIERS.map((tier) => (
-                <option key={tier.id} value={tier.id}>
-                  {tier.label} · 세력 {tier.factions} · {tier.columns}×{tier.rows}
-                </option>
-              ))}
-            </select>
-          </label>
-          <span className="map-tier-active">
-            적용 중: {activeMapType.label} · {activeTier.label} · 세력 {activeTier.factions} · {activeTier.columns}×{activeTier.rows}
-          </span>
-          <label>월드 시드<input value={seedText} onChange={(event) => setSeedText(event.target.value)} onKeyDown={(event) => event.key === "Enter" && regenerate()} /></label>
-          <button onClick={regenerate}>이 시드로 생성</button>
-          <button className="secondary" onClick={randomize}>새로운 세계</button>
-          <label className="toggle"><input type="checkbox" checked={showGrid} onChange={(event) => setShowGrid(event.target.checked)} />Hex 경계</label>
-        </div>
+        <WorldControls
+          selectedMapTypeId={selectedMapTypeId}
+          selectedTierId={selectedTierId}
+          activeMapType={activeMapType}
+          activeTier={activeTier}
+          seedText={seedText}
+          showGrid={showGrid}
+          onMapTypeChange={setSelectedMapTypeId}
+          onTierChange={setSelectedTierId}
+          onSeedTextChange={setSeedText}
+          onRegenerate={regenerate}
+          onRandomize={randomize}
+          onGridChange={setShowGrid}
+        />
       </header>
       <section className="stage">
         <WorldScene
@@ -1891,37 +1727,8 @@ export function WorldPrototype() {
           showGrid={showGrid}
           onHexSelected={handleHexSelected}
         />
-        <aside className="legend">
-          <strong>2.5D 지형 범례</strong>
-          <span><i className="legend-plain" />평원·일반 육지 <b>{coastStats.land}</b></span>
-          <span><i className="legend-beach" />백사장 <b>{coastStats.beach}</b></span>
-          <span><i className="legend-cliff" />바위 해안 <b>{coastStats.cliff}</b></span>
-          <span><i className="legend-shallow" />얕은 바다 <b>{coastStats.shallow}</b></span>
-          <span><i className="legend-deep" />깊은 바다 <b>{coastStats.deep}</b></span>
-          <span><i className="legend-river" />강</span>
-          <span><i className="legend-forest" />숲</span>
-          <span><i className="legend-wetland" />습지</span>
-          <span><i className="legend-hill" />언덕</span>
-          <span><i className="legend-mountain" />산악</span>
-          <span><i className="legend-snow" />설산 정상</span>
-        </aside>
-        {selectedHexPopup && (
-          <div
-            className="hex-info-popup"
-            style={{
-              left: selectedHexPopup.x,
-              top: selectedHexPopup.y,
-            }}
-          >
-            <span>선택한 Hex 지형 정보</span>
-            <strong>{selectedHexPopup.diagnostic.terrain}</strong>
-            <em>
-              좌표 {selectedHexPopup.diagnostic.column}, {selectedHexPopup.diagnostic.row}<br />
-              해안 판정 {selectedHexPopup.diagnostic.kind} · 높이 {selectedHexPopup.diagnostic.height.toFixed(3)}<br />
-              렌더층 {selectedHexPopup.diagnostic.layer}
-            </em>
-          </div>
-        )}
+        <TerrainLegend coastStats={coastStats} />
+        <HexInfoPopup popup={selectedHexPopup} />
       </section>
       <footer><span>현재 검증</span><b>2.5D 연속 지면</b><b>지형을 파낸 강</b><b>입체 그림자</b><small>이 버전에서 시점과 그래픽 방향을 먼저 확인합니다.</small></footer>
     </main>
