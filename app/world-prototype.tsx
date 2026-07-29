@@ -1007,6 +1007,95 @@ function WorldScene({
       CHARACTER_TEXTURE_CACHE.set(url, texture);
       return texture;
     };
+    const createUnitEmblemTexture = (unitId: string, accent: string) => {
+      const cacheKey = `unit-emblem:${unitId}:${accent}`;
+      const cached = CHARACTER_TEXTURE_CACHE.get(cacheKey);
+      if (cached) return cached;
+
+      const canvas = document.createElement("canvas");
+      canvas.width = 256;
+      canvas.height = 256;
+      const context = canvas.getContext("2d");
+      if (!context) return loadCharacterTexture("/art/units/infantry-emblem-v1.svg");
+      context.clearRect(0, 0, 256, 256);
+      context.fillStyle = "#15282f";
+      context.beginPath();
+      context.arc(128, 128, 108, 0, Math.PI * 2);
+      context.fill();
+      context.lineWidth = 13;
+      context.strokeStyle = "#f0d279";
+      context.stroke();
+      context.lineWidth = 7;
+      context.strokeStyle = accent;
+      context.beginPath();
+      context.arc(128, 128, 90, 0, Math.PI * 2);
+      context.stroke();
+      context.lineCap = "round";
+      context.lineJoin = "round";
+      context.strokeStyle = "#fff2cf";
+      context.fillStyle = accent;
+
+      if (unitId === "infantry") {
+        context.lineWidth = 12;
+        context.beginPath();
+        context.moveTo(126, 53);
+        context.lineTo(184, 82);
+        context.lineTo(174, 163);
+        context.lineTo(126, 199);
+        context.lineTo(78, 163);
+        context.lineTo(68, 82);
+        context.closePath();
+        context.fill();
+        context.stroke();
+        context.lineWidth = 15;
+        context.beginPath();
+        context.moveTo(89, 178);
+        context.lineTo(166, 86);
+        context.stroke();
+      } else if (unitId === "archer") {
+        context.lineWidth = 14;
+        context.beginPath();
+        context.arc(106, 128, 61, -Math.PI / 2, Math.PI / 2);
+        context.stroke();
+        context.lineWidth = 9;
+        context.beginPath();
+        context.moveTo(106, 66);
+        context.lineTo(106, 190);
+        context.moveTo(72, 173);
+        context.lineTo(190, 68);
+        context.stroke();
+        context.fillStyle = "#fff2cf";
+        context.beginPath();
+        context.moveTo(190, 68);
+        context.lineTo(171, 72);
+        context.lineTo(184, 88);
+        context.closePath();
+        context.fill();
+      } else {
+        context.lineWidth = 11;
+        context.beginPath();
+        context.moveTo(73, 175);
+        context.quadraticCurveTo(65, 119, 93, 91);
+        context.lineTo(102, 58);
+        context.lineTo(121, 85);
+        context.quadraticCurveTo(148, 74, 177, 96);
+        context.quadraticCurveTo(197, 117, 184, 173);
+        context.lineTo(156, 191);
+        context.lineTo(108, 187);
+        context.closePath();
+        context.fill();
+        context.stroke();
+        context.fillStyle = "#fff2cf";
+        context.beginPath();
+        context.arc(158, 116, 7, 0, Math.PI * 2);
+        context.fill();
+      }
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+      CHARACTER_TEXTURE_CACHE.set(cacheKey, texture);
+      return texture;
+    };
     const primaryRivers =
       ACTIVE_MAP_TYPE === "inland"
         ? []
@@ -1307,6 +1396,12 @@ function WorldScene({
         x: heroStart.x,
         z: heroStart.z + occupantFootOffsetZ,
       };
+      const heroCenterGroundHeight = heightAt(
+        seed,
+        heroStart.x,
+        heroStart.z,
+        samples,
+      );
       const heroGroundHeight = heightAt(
         seed,
         heroFoot.x,
@@ -1377,9 +1472,9 @@ function WorldScene({
       );
       badgeMarker.scale.set(0.45, 0.45, 1);
       badgeMarker.position.set(
-        heroFoot.x,
-        heroGroundHeight + 0.12,
-        heroFoot.z,
+        heroStart.x,
+        heroCenterGroundHeight + 0.12,
+        heroStart.z,
       );
       badgeMarker.renderOrder = 95;
       badgeMarker.userData = fullMarker.userData;
@@ -1479,7 +1574,7 @@ function WorldScene({
 
       const emblemMarker = new THREE.Sprite(
         new THREE.SpriteMaterial({
-          map: loadCharacterTexture(unit.emblem.image),
+          map: createUnitEmblemTexture(unit.id, unit.accent),
           transparent: true,
           alphaTest: 0.08,
           depthTest: false,
@@ -1489,7 +1584,7 @@ function WorldScene({
       emblemMarker.scale.set(unit.emblem.scale.width, unit.emblem.scale.height, 1);
       emblemMarker.center.set(0.5, 0.1);
       emblemMarker.position.set(unitFoot.x, unitGroundHeight + 0.08, unitFoot.z);
-      emblemMarker.renderOrder = 89;
+      emblemMarker.renderOrder = 96;
       emblemMarker.userData = unitMarker.userData;
       worldRoot.add(emblemMarker);
       unitLodPairs.push({ full: unitMarker, emblem: emblemMarker });
