@@ -3,10 +3,7 @@ import {
   HERO_LOD_SAMPLES,
   WEI_YAN_TEST_HERO,
 } from "@/lib/world/prototype/test-hero";
-import {
-  UNIT_DISPLAY_MODES,
-  UNIT_VISUAL_SAMPLES,
-} from "@/lib/world/prototype/test-unit";
+import { UNIT_VISUAL_SAMPLES } from "@/lib/world/prototype/test-unit";
 
 export function TestHeroPanel() {
   const [isOpen, setIsOpen] = useState(false);
@@ -58,7 +55,7 @@ export function TestHeroPanel() {
           위치 판정과 원형 받침은 항상 Hex 1칸에 고정됩니다.
         </div>
         <div className="unit-visual-guide">
-          <strong>부대 배치 비교</strong>
+          <strong>부대·영웅 표현 규칙</strong>
           <div>
             {UNIT_VISUAL_SAMPLES.map((unit) => (
               <span key={unit.id}>
@@ -67,14 +64,10 @@ export function TestHeroPanel() {
               </span>
             ))}
           </div>
-          <div className="unit-mode-list">
-            {UNIT_DISPLAY_MODES.map((mode, index) => (
-              <span key={mode.id}>{index + 1}행 · {mode.name}</span>
-            ))}
-          </div>
           <p>
-            보병·궁병·기병을 세 가지 방식으로 비교합니다. 영웅이 배속된
-            부대는 확대 여부와 관계없이 우측 상단 초상 배지를 유지합니다.
+            가까이에서는 고전 전략 게임풍 대표 병사가 보이고, 멀리서는 병과
+            문양으로 바뀝니다. 영웅이 배속된 부대는 확대 여부와 관계없이 우측
+            상단 초상 배지를 유지합니다.
           </p>
         </div>
         {selectedHero.id === "wei-yan" && (
