@@ -45,7 +45,10 @@ import { TerrainLegend } from "@/components/world/TerrainLegend";
 import { WorldControls } from "@/components/world/WorldControls";
 import { TestHeroPanel } from "@/components/world/TestHeroPanel";
 import { HERO_LOD_SAMPLES } from "@/lib/world/prototype/test-hero";
-import { UNIT_VISUAL_SAMPLES } from "@/lib/world/prototype/test-unit";
+import {
+  UNIT_DISPLAY_MODES,
+  UNIT_VISUAL_SAMPLES,
+} from "@/lib/world/prototype/test-unit";
 
 // Character art is independent from each generated world. Keep the decoded
 // textures between seed changes so regenerating terrain does not decode the
@@ -1200,10 +1203,7 @@ function WorldScene({
       badge: THREE.Sprite;
     };
     const heroLodPairs: HeroLodPair[] = [];
-    const assignedHeroComposites: {
-      commander: THREE.Sprite;
-      badge: THREE.Sprite;
-    }[] = [];
+    const assignedHeroBadges: THREE.Sprite[] = [];
     const occupiedHeroHexes = new Set<string>();
     const heroTargetXs = [-0.31, -0.1, 0.11, 0.32];
 
@@ -1321,10 +1321,11 @@ function WorldScene({
         (hero) => hero.id === unit.assignedHeroId,
       );
 
-      [false, true].forEach((hasHero, assignmentIndex) => {
+      UNIT_DISPLAY_MODES.forEach((displayMode, modeIndex) => {
+        const visual = unit.visuals[displayMode.id];
         const preferredStart = {
           x: MAP_WIDTH * unitTargetXs[unitIndex],
-          z: MAP_DEPTH * (-0.21 + assignmentIndex * 0.12),
+          z: MAP_DEPTH * (-0.25 + modeIndex * 0.12),
         };
         let unitStart:
           | { row: number; column: number; x: number; z: number }
@@ -1362,9 +1363,9 @@ function WorldScene({
         const unitBase = new THREE.Mesh(
           new THREE.CircleGeometry(HEX_SIZE * 0.48, 36),
           new THREE.MeshBasicMaterial({
-            color: hasHero ? "#e3bd62" : unit.accent,
+            color: unit.accent,
             transparent: true,
-            opacity: hasHero ? 0.94 : 0.72,
+            opacity: 0.78,
             depthWrite: false,
           }),
         );
@@ -1377,7 +1378,7 @@ function WorldScene({
         unitBase.renderOrder = 80;
         worldRoot.add(unitBase);
 
-        const unitTexture = loadCharacterTexture(unit.image);
+        const unitTexture = loadCharacterTexture(visual.image);
         const unitMarker = new THREE.Sprite(
           new THREE.SpriteMaterial({
             map: unitTexture,
@@ -1388,8 +1389,8 @@ function WorldScene({
           }),
         );
         unitMarker.scale.set(
-          unit.fullScale.width,
-          unit.fullScale.height,
+          visual.scale.width,
+          visual.scale.height,
           1,
         );
         unitMarker.center.set(0.5, 0);
@@ -1402,40 +1403,14 @@ function WorldScene({
         unitMarker.userData = {
           type: "unit",
           unitId: unit.id,
-          assignedHeroId: hasHero ? unit.assignedHeroId : null,
+          displayMode: displayMode.id,
+          assignedHeroId: unit.assignedHeroId,
           row: unitStart.row,
           column: unitStart.column,
         };
         worldRoot.add(unitMarker);
 
-        if (hasHero && assignedHero) {
-          const commanderTexture = loadCharacterTexture(
-            assignedHero.image.map,
-          );
-          const commanderMarker = new THREE.Sprite(
-            new THREE.SpriteMaterial({
-              map: commanderTexture,
-              transparent: true,
-              alphaTest: 0.08,
-              depthTest: true,
-              depthWrite: false,
-            }),
-          );
-          commanderMarker.scale.set(
-            assignedHero.fullScale.width * 0.72,
-            assignedHero.fullScale.height * 0.72,
-            1,
-          );
-          commanderMarker.center.set(0.5, 0);
-          commanderMarker.position.set(
-            unitStart.x,
-            unitGroundHeight + 0.087,
-            unitStart.z,
-          );
-          commanderMarker.renderOrder = 86;
-          commanderMarker.userData = unitMarker.userData;
-          worldRoot.add(commanderMarker);
-
+        if (assignedHero) {
           const commandTexture = loadCharacterTexture(
             assignedHero.image.badge,
           );
@@ -1451,16 +1426,13 @@ function WorldScene({
           commandBadge.scale.set(0.72, 0.72, 1);
           commandBadge.position.set(
             unitStart.x + HEX_SIZE * 0.38,
-            unitGroundHeight + 1.1,
+            unitGroundHeight + Math.max(0.88, visual.scale.height * 0.68),
             unitStart.z,
           );
           commandBadge.renderOrder = 98;
           commandBadge.userData = unitMarker.userData;
           worldRoot.add(commandBadge);
-          assignedHeroComposites.push({
-            commander: commanderMarker,
-            badge: commandBadge,
-          });
+          assignedHeroBadges.push(commandBadge);
         }
       });
     });
@@ -1934,11 +1906,9 @@ function WorldScene({
         full.visible = showFullHero;
         badge.visible = !showFullHero;
       });
-      assignedHeroComposites.forEach(({ commander, badge }) => {
+      assignedHeroBadges.forEach((badge) => {
         const badgeScale = Math.min(1.02, 1.8 / camera.zoom);
         badge.scale.set(badgeScale, badgeScale, 1);
-        commander.visible = showFullHero;
-        badge.visible = !showFullHero;
       });
       renderer.render(scene, camera);
     };

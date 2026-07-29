@@ -3,7 +3,10 @@ import {
   HERO_LOD_SAMPLES,
   WEI_YAN_TEST_HERO,
 } from "@/lib/world/prototype/test-hero";
-import { UNIT_VISUAL_SAMPLES } from "@/lib/world/prototype/test-unit";
+import {
+  UNIT_DISPLAY_MODES,
+  UNIT_VISUAL_SAMPLES,
+} from "@/lib/world/prototype/test-unit";
 
 export function TestHeroPanel() {
   const [isOpen, setIsOpen] = useState(false);
@@ -64,10 +67,14 @@ export function TestHeroPanel() {
               </span>
             ))}
           </div>
+          <div className="unit-mode-list">
+            {UNIT_DISPLAY_MODES.map((mode, index) => (
+              <span key={mode.id}>{index + 1}행 · {mode.name}</span>
+            ))}
+          </div>
           <p>
-            위쪽 줄은 SD 일반 부대입니다. 아래쪽 줄은 영웅이 뒤에서
-            지휘하고 SD 병사가 앞을 구성합니다. 축소하면 영웅은 초상
-            배지로 바뀝니다.
+            보병·궁병·기병을 세 가지 방식으로 비교합니다. 영웅이 배속된
+            부대는 확대 여부와 관계없이 우측 상단 초상 배지를 유지합니다.
           </p>
         </div>
         {selectedHero.id === "wei-yan" && (

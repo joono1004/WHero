@@ -78,6 +78,8 @@ canvas { display:block; width:100%; height:calc(100vh - 148px); min-height:620px
 .unit-visual-guide { margin-top:10px; padding:10px; border:1px solid rgba(223,190,111,.28); border-radius:10px; background:rgba(7,21,25,.74); }
 .unit-visual-guide > strong { display:block; margin-bottom:7px; color:#f4d98b; font-size:12px; }
 .unit-visual-guide > div { display:flex; gap:10px; }
+.unit-visual-guide > .unit-mode-list { display:grid; gap:3px; margin-top:7px; }
+.unit-visual-guide > .unit-mode-list span { color:#9fb8b5; font-size:9px; }
 .unit-visual-guide span { display:inline-flex; align-items:center; gap:4px; color:#d9e7df; font-size:11px; }
 .unit-visual-guide i { width:8px; height:8px; border-radius:50%; }
 .unit-visual-guide p { margin:7px 0 0; color:#aebfba; font-size:10px; line-height:1.45; }
