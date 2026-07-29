@@ -1008,7 +1008,7 @@ function WorldScene({
       return texture;
     };
     const createUnitEmblemTexture = (unitId: string, accent: string) => {
-      const cacheKey = `unit-emblem:${unitId}:${accent}`;
+      const cacheKey = `unit-emblem-v2:${unitId}:${accent}`;
       const cached = CHARACTER_TEXTURE_CACHE.get(cacheKey);
       if (cached) return cached;
 
@@ -1018,76 +1018,112 @@ function WorldScene({
       const context = canvas.getContext("2d");
       if (!context) return loadCharacterTexture("/art/units/infantry-emblem-v1.svg");
       context.clearRect(0, 0, 256, 256);
-      context.fillStyle = "#15282f";
+      const metal = context.createRadialGradient(94, 76, 12, 128, 128, 120);
+      metal.addColorStop(0, "#40515a");
+      metal.addColorStop(0.52, "#1f2c33");
+      metal.addColorStop(1, "#0a1116");
+      context.fillStyle = metal;
       context.beginPath();
-      context.arc(128, 128, 108, 0, Math.PI * 2);
+      context.arc(128, 128, 112, 0, Math.PI * 2);
       context.fill();
-      context.lineWidth = 13;
-      context.strokeStyle = "#f0d279";
+      context.lineWidth = 10;
+      context.strokeStyle = "#e8c56b";
       context.stroke();
-      context.lineWidth = 7;
-      context.strokeStyle = accent;
+      context.lineWidth = 4;
+      context.strokeStyle = "#8a672b";
       context.beginPath();
-      context.arc(128, 128, 90, 0, Math.PI * 2);
+      context.arc(128, 128, 96, 0, Math.PI * 2);
       context.stroke();
       context.lineCap = "round";
       context.lineJoin = "round";
-      context.strokeStyle = "#fff2cf";
-      context.fillStyle = accent;
+      const gold = context.createLinearGradient(96, 46, 162, 208);
+      gold.addColorStop(0, "#fff1b5");
+      gold.addColorStop(0.45, "#e9c45e");
+      gold.addColorStop(1, "#9c6b23");
+      context.strokeStyle = gold;
+      context.fillStyle = gold;
+
+      // Decorative ticks make the symbols read like a researched discipline,
+      // rather than a flat mobile-game badge.
+      context.lineWidth = 5;
+      context.globalAlpha = 0.72;
+      for (let tick = 0; tick < 4; tick += 1) {
+        const angle = -Math.PI * 0.8 + tick * Math.PI * 0.53;
+        context.beginPath();
+        context.moveTo(128 + Math.cos(angle) * 79, 128 + Math.sin(angle) * 79);
+        context.lineTo(128 + Math.cos(angle) * 89, 128 + Math.sin(angle) * 89);
+        context.stroke();
+      }
+      context.globalAlpha = 1;
 
       if (unitId === "infantry") {
-        context.lineWidth = 12;
+        // Upward blade, lower grip: an unmistakable infantry sword.
         context.beginPath();
-        context.moveTo(126, 53);
-        context.lineTo(184, 82);
-        context.lineTo(174, 163);
-        context.lineTo(126, 199);
-        context.lineTo(78, 163);
-        context.lineTo(68, 82);
+        context.moveTo(128, 39);
+        context.lineTo(153, 109);
+        context.lineTo(138, 127);
+        context.lineTo(138, 154);
+        context.lineTo(118, 154);
+        context.lineTo(118, 127);
+        context.lineTo(103, 109);
         context.closePath();
         context.fill();
+        context.lineWidth = 7;
+        context.strokeStyle = "#fff4c8";
+        context.stroke();
+        context.strokeStyle = "#d9aa3d";
+        context.lineWidth = 10;
+        context.beginPath();
+        context.moveTo(93, 158);
+        context.lineTo(163, 158);
         context.stroke();
         context.lineWidth = 15;
+        context.strokeStyle = "#f3d47a";
         context.beginPath();
-        context.moveTo(89, 178);
-        context.lineTo(166, 86);
+        context.moveTo(128, 164);
+        context.lineTo(128, 201);
         context.stroke();
+        context.fillStyle = "#9f6a26";
+        context.beginPath();
+        context.arc(128, 209, 12, 0, Math.PI * 2);
+        context.fill();
       } else if (unitId === "archer") {
-        context.lineWidth = 14;
+        context.lineWidth = 12;
         context.beginPath();
-        context.arc(106, 128, 61, -Math.PI / 2, Math.PI / 2);
+        context.arc(105, 128, 63, -Math.PI / 2, Math.PI / 2);
         context.stroke();
-        context.lineWidth = 9;
+        context.lineWidth = 7;
         context.beginPath();
-        context.moveTo(106, 66);
-        context.lineTo(106, 190);
-        context.moveTo(72, 173);
-        context.lineTo(190, 68);
+        context.moveTo(105, 63);
+        context.lineTo(105, 193);
+        context.moveTo(71, 177);
+        context.lineTo(194, 66);
         context.stroke();
-        context.fillStyle = "#fff2cf";
+        context.fillStyle = "#fff4c8";
         context.beginPath();
-        context.moveTo(190, 68);
-        context.lineTo(171, 72);
-        context.lineTo(184, 88);
+        context.moveTo(194, 66);
+        context.lineTo(174, 72);
+        context.lineTo(188, 91);
         context.closePath();
         context.fill();
       } else {
-        context.lineWidth = 11;
+        // A simple horse-head silhouette keeps cavalry legible at a small size.
+        context.lineWidth = 8;
         context.beginPath();
-        context.moveTo(73, 175);
-        context.quadraticCurveTo(65, 119, 93, 91);
-        context.lineTo(102, 58);
-        context.lineTo(121, 85);
-        context.quadraticCurveTo(148, 74, 177, 96);
-        context.quadraticCurveTo(197, 117, 184, 173);
-        context.lineTo(156, 191);
-        context.lineTo(108, 187);
+        context.moveTo(76, 181);
+        context.quadraticCurveTo(61, 125, 91, 90);
+        context.lineTo(96, 55);
+        context.lineTo(121, 84);
+        context.quadraticCurveTo(152, 73, 181, 101);
+        context.quadraticCurveTo(199, 125, 181, 177);
+        context.lineTo(153, 196);
+        context.lineTo(108, 189);
         context.closePath();
         context.fill();
         context.stroke();
-        context.fillStyle = "#fff2cf";
+        context.fillStyle = "#15282f";
         context.beginPath();
-        context.arc(158, 116, 7, 0, Math.PI * 2);
+        context.arc(158, 118, 8, 0, Math.PI * 2);
         context.fill();
       }
       const texture = new THREE.CanvasTexture(canvas);
