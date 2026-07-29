@@ -11,6 +11,8 @@ export const HERO_LOD_SAMPLES = [
     unitClass: "기병",
     title: "청룡도를 든 기마 지휘관",
     accent: "#43824c",
+    grade: "전설",
+    aura: "#f2c45d",
     image: {
       map: "/art/heroes/guan-yu-classic-map-v3.webp",
       portrait: "/art/heroes/guan-yu-classic-portrait-v3.webp",
@@ -24,6 +26,8 @@ export const HERO_LOD_SAMPLES = [
     unitClass: "궁병",
     title: "활과 화살통이 보이는 노장",
     accent: "#bc8e2d",
+    grade: "영웅",
+    aura: "#b9dc69",
     image: {
       map: "/art/heroes/huang-zhong-classic-map-v3.webp",
       portrait: "/art/heroes/huang-zhong-classic-portrait-v3.webp",
@@ -37,6 +41,8 @@ export const HERO_LOD_SAMPLES = [
     unitClass: "보병",
     title: "대도와 적갈색 갑주의 야전 장군",
     accent: "#ae3a31",
+    grade: "희귀",
+    aura: "#8ec7ff",
     image: {
       map: "/art/heroes/wei-yan-classic-map-v3.webp",
       portrait: "/art/heroes/wei-yan-classic-portrait-v3.webp",
@@ -50,6 +56,8 @@ export const HERO_LOD_SAMPLES = [
     unitClass: "창병",
     title: "긴 창과 청백색 갑주의 돌격 장수",
     accent: "#457eb3",
+    grade: "영웅",
+    aura: "#d798ff",
     image: {
       map: "/art/heroes/zhao-yun-classic-map-v3.webp",
       portrait: "/art/heroes/zhao-yun-classic-portrait-v3.webp",

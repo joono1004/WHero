@@ -44,7 +44,7 @@ export function TestHeroPanel() {
         <div className="hero-detail-heading">
           <img src={selectedHero.image.portrait} alt={`${selectedHero.name} 초상화`} />
           <span>
-            <small>{selectedHero.unitClass} 대표 실루엣</small>
+          <small>{selectedHero.grade} · {selectedHero.unitClass} 대표 실루엣</small>
             <strong>{selectedHero.name}</strong>
             <em>{selectedHero.title}</em>
           </span>
@@ -66,8 +66,8 @@ export function TestHeroPanel() {
           </div>
           <p>
             가까이에서는 고전 전략 게임풍 대표 병사가 보이고, 멀리서는 병과
-            문양으로 바뀝니다. 영웅이 배속된 부대는 확대 여부와 관계없이 우측
-            상단 초상 배지를 유지합니다.
+            문양으로 바뀝니다. 병사는 영웅과 독립된 부대이며, 초상 배지는
+            영웅에게만 적용됩니다.
           </p>
         </div>
         {selectedHero.id === "wei-yan" && (

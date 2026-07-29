@@ -7,7 +7,6 @@ export const UNIT_VISUAL_SAMPLES = [
     id: "infantry",
     name: "보병",
     accent: "#a9473f",
-    assignedHeroId: "wei-yan",
     visual: {
       image: "/art/units/infantry-classic-single-v2.webp",
       scale: { width: 1.02, height: 1.52 },
@@ -21,7 +20,6 @@ export const UNIT_VISUAL_SAMPLES = [
     id: "archer",
     name: "궁병",
     accent: "#b48a32",
-    assignedHeroId: "huang-zhong",
     visual: {
       image: "/art/units/archer-classic-single-v2.webp",
       scale: { width: 1.02, height: 1.46 },
@@ -35,7 +33,6 @@ export const UNIT_VISUAL_SAMPLES = [
     id: "cavalry",
     name: "기병",
     accent: "#3f6f9c",
-    assignedHeroId: "guan-yu",
     visual: {
       image: "/art/units/cavalry-classic-single-v2.webp",
       scale: { width: 1.32, height: 1.4 },
