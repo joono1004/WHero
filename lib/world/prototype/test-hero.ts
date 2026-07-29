@@ -15,8 +15,10 @@ export const HERO_LOD_SAMPLES = [
     aura: "#f2c45d",
     image: {
       map: "/art/heroes/guan-yu-classic-map-v3.webp",
-      portrait: "/art/heroes/guan-yu-classic-portrait-v3.webp",
-      badge: "/art/heroes/guan-yu-classic-badge-v3.webp",
+      outline: "/art/heroes/guan-yu-classic-map-outline-v4.webp",
+      portrait: "/art/heroes/guan-yu-classic-face-v4.webp",
+      badge: "/art/heroes/guan-yu-classic-face-v4.webp",
+      badgeOutline: "/art/heroes/guan-yu-classic-face-outline-v4.webp",
     },
     // Mounted figures need a broader footprint; do not shrink the rider just
     // to force the horse into the same visual box as a foot hero.
@@ -32,8 +34,10 @@ export const HERO_LOD_SAMPLES = [
     aura: "#b9dc69",
     image: {
       map: "/art/heroes/huang-zhong-classic-map-v3.webp",
-      portrait: "/art/heroes/huang-zhong-classic-portrait-v3.webp",
-      badge: "/art/heroes/huang-zhong-classic-badge-v3.webp",
+      outline: "/art/heroes/huang-zhong-classic-map-outline-v4.webp",
+      portrait: "/art/heroes/huang-zhong-classic-face-v4.webp",
+      badge: "/art/heroes/huang-zhong-classic-face-v4.webp",
+      badgeOutline: "/art/heroes/huang-zhong-classic-face-outline-v4.webp",
     },
     fullScale: { width: 2.0, height: 2.8 },
   },
@@ -47,8 +51,10 @@ export const HERO_LOD_SAMPLES = [
     aura: "#8ec7ff",
     image: {
       map: "/art/heroes/wei-yan-classic-map-v3.webp",
-      portrait: "/art/heroes/wei-yan-classic-portrait-v3.webp",
-      badge: "/art/heroes/wei-yan-classic-badge-v3.webp",
+      outline: "/art/heroes/wei-yan-classic-map-outline-v4.webp",
+      portrait: "/art/heroes/wei-yan-classic-face-v4.webp",
+      badge: "/art/heroes/wei-yan-classic-face-v4.webp",
+      badgeOutline: "/art/heroes/wei-yan-classic-face-outline-v4.webp",
     },
     fullScale: { width: 2.0, height: 2.98 },
   },
@@ -62,8 +68,10 @@ export const HERO_LOD_SAMPLES = [
     aura: "#d798ff",
     image: {
       map: "/art/heroes/zhao-yun-classic-map-v3.webp",
-      portrait: "/art/heroes/zhao-yun-classic-portrait-v3.webp",
-      badge: "/art/heroes/zhao-yun-classic-badge-v3.webp",
+      outline: "/art/heroes/zhao-yun-classic-map-outline-v4.webp",
+      portrait: "/art/heroes/zhao-yun-classic-face-v4.webp",
+      badge: "/art/heroes/zhao-yun-classic-face-v4.webp",
+      badgeOutline: "/art/heroes/zhao-yun-classic-face-outline-v4.webp",
     },
     fullScale: { width: 2.0, height: 2.86 },
   },

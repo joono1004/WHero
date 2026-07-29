@@ -1266,6 +1266,9 @@ function WorldScene({
     };
     const heroLodPairs: HeroLodPair[] = [];
     const unitLodPairs: UnitLodPair[] = [];
+    // Put a unit's feet in the lower fifth of its occupied hex instead of
+    // visually pinning every figure to the exact geometric centre.
+    const occupantFootOffsetZ = HEX_SIZE * 0.42;
     const occupiedHeroHexes = new Set<string>();
     const heroTargetXs = [-0.31, -0.1, 0.11, 0.32];
 
@@ -1300,10 +1303,14 @@ function WorldScene({
       if (!heroStart) return;
 
       occupiedHeroHexes.add(`${heroStart.row}:${heroStart.column}`);
+      const heroFoot = {
+        x: heroStart.x,
+        z: heroStart.z + occupantFootOffsetZ,
+      };
       const heroGroundHeight = heightAt(
         seed,
-        heroStart.x,
-        heroStart.z,
+        heroFoot.x,
+        heroFoot.z,
         samples,
       );
       addOccupantHexMarker(heroStart, heroGroundHeight, hero.aura);
@@ -1327,9 +1334,9 @@ function WorldScene({
       // anchor brings the visible feet down onto the hex surface.
       fullMarker.center.set(0.5, 0.075);
       fullMarker.position.set(
-        heroStart.x,
+        heroFoot.x,
         heroGroundHeight + 0.02,
-        heroStart.z,
+        heroFoot.z,
       );
       fullMarker.renderOrder = 90;
       fullMarker.userData = {
@@ -1342,7 +1349,7 @@ function WorldScene({
 
       const fullOutline = new THREE.Sprite(
         new THREE.SpriteMaterial({
-          map: fullTexture,
+          map: loadCharacterTexture(hero.image.outline),
           color: hero.aura,
           transparent: true,
           opacity: 0.9,
@@ -1351,7 +1358,7 @@ function WorldScene({
           depthWrite: false,
         }),
       );
-      fullOutline.scale.set(hero.fullScale.width * 1.035, hero.fullScale.height * 1.035, 1);
+      fullOutline.scale.set(hero.fullScale.width, hero.fullScale.height, 1);
       fullOutline.center.set(0.5, 0.075);
       fullOutline.position.copy(fullMarker.position);
       fullOutline.position.y -= 0.002;
@@ -1368,11 +1375,11 @@ function WorldScene({
           depthWrite: false,
         }),
       );
-      badgeMarker.scale.set(0.9, 0.9, 1);
+      badgeMarker.scale.set(0.45, 0.45, 1);
       badgeMarker.position.set(
-        heroStart.x,
+        heroFoot.x,
         heroGroundHeight + 0.12,
-        heroStart.z,
+        heroFoot.z,
       );
       badgeMarker.renderOrder = 95;
       badgeMarker.userData = fullMarker.userData;
@@ -1380,7 +1387,7 @@ function WorldScene({
 
       const badgeOutline = new THREE.Sprite(
         new THREE.SpriteMaterial({
-          map: badgeTexture,
+          map: loadCharacterTexture(hero.image.badgeOutline),
           color: hero.aura,
           transparent: true,
           opacity: 0.95,
@@ -1389,7 +1396,7 @@ function WorldScene({
           depthWrite: false,
         }),
       );
-      badgeOutline.scale.set(1.03, 1.03, 1);
+      badgeOutline.scale.set(0.45, 0.45, 1);
       badgeOutline.position.copy(badgeMarker.position);
       badgeOutline.position.y -= 0.004;
       badgeOutline.renderOrder = 94;
@@ -1436,10 +1443,14 @@ function WorldScene({
       if (!unitStart) return;
 
       occupiedUnitHexes.add(`${unitStart.row}:${unitStart.column}`);
+      const unitFoot = {
+        x: unitStart.x,
+        z: unitStart.z + occupantFootOffsetZ,
+      };
       const unitGroundHeight = heightAt(
         seed,
-        unitStart.x,
-        unitStart.z,
+        unitFoot.x,
+        unitFoot.z,
         samples,
       );
       addOccupantHexMarker(unitStart, unitGroundHeight, unit.accent);
@@ -1456,7 +1467,7 @@ function WorldScene({
         );
       unitMarker.scale.set(unit.visual.scale.width, unit.visual.scale.height, 1);
       unitMarker.center.set(0.5, 0.075);
-      unitMarker.position.set(unitStart.x, unitGroundHeight + 0.02, unitStart.z);
+      unitMarker.position.set(unitFoot.x, unitGroundHeight + 0.02, unitFoot.z);
       unitMarker.renderOrder = 88;
       unitMarker.userData = {
         type: "unit",
@@ -1476,7 +1487,8 @@ function WorldScene({
         }),
       );
       emblemMarker.scale.set(unit.emblem.scale.width, unit.emblem.scale.height, 1);
-      emblemMarker.position.set(unitStart.x, unitGroundHeight + 0.08, unitStart.z);
+      emblemMarker.center.set(0.5, 0.1);
+      emblemMarker.position.set(unitFoot.x, unitGroundHeight + 0.08, unitFoot.z);
       emblemMarker.renderOrder = 89;
       emblemMarker.userData = unitMarker.userData;
       worldRoot.add(emblemMarker);
@@ -1947,9 +1959,9 @@ function WorldScene({
       controls.update();
       const showFullHero = camera.zoom >= 1.35;
       heroLodPairs.forEach(({ full, fullOutline, badge, badgeOutline }) => {
-        const badgeScale = 3.1 / camera.zoom;
+        const badgeScale = 1.55 / camera.zoom;
         badge.scale.set(badgeScale, badgeScale, 1);
-        badgeOutline.scale.set(badgeScale * 1.12, badgeScale * 1.12, 1);
+        badgeOutline.scale.set(badgeScale, badgeScale, 1);
         full.visible = showFullHero;
         fullOutline.visible = showFullHero;
         badge.visible = !showFullHero;
