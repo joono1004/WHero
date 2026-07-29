@@ -1195,11 +1195,70 @@ function WorldScene({
       }
     }
 
+    const addOccupantHexMarker = (
+      cell: { x: number; z: number },
+      groundHeight: number,
+      color: THREE.ColorRepresentation,
+    ) => {
+      const edgePoints: THREE.Vector3[] = [];
+      for (let edge = 0; edge < 6; edge += 1) {
+        const angle = (Math.PI / 180) * (60 * edge - 30);
+        const x = cell.x + Math.cos(angle) * HEX_SIZE * 0.93;
+        const z = cell.z + Math.sin(angle) * HEX_SIZE * 0.93;
+        edgePoints.push(
+          new THREE.Vector3(
+            x,
+            Math.max(heightAt(seed, x, z, samples) + 0.105, groundHeight + 0.105),
+            z,
+          ),
+        );
+      }
+      const fillGeometry = new THREE.BufferGeometry();
+      const positions = new Float32Array(21);
+      positions[0] = cell.x;
+      positions[1] = groundHeight + 0.104;
+      positions[2] = cell.z;
+      edgePoints.forEach((point, index) => {
+        const offset = (index + 1) * 3;
+        positions[offset] = point.x;
+        positions[offset + 1] = point.y;
+        positions[offset + 2] = point.z;
+      });
+      fillGeometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+      fillGeometry.setIndex([0, 1, 2, 0, 2, 3, 0, 3, 4, 0, 4, 5, 0, 5, 6, 0, 6, 1]);
+      const fill = new THREE.Mesh(
+        fillGeometry,
+        new THREE.MeshBasicMaterial({
+          color,
+          transparent: true,
+          opacity: 0.16,
+          side: THREE.DoubleSide,
+          depthTest: false,
+          depthWrite: false,
+        }),
+      );
+      fill.renderOrder = 82;
+      worldRoot.add(fill);
+
+      const outline = new THREE.LineLoop(
+        new THREE.BufferGeometry().setFromPoints(edgePoints),
+        new THREE.LineBasicMaterial({
+          color,
+          transparent: true,
+          opacity: 0.94,
+          depthTest: false,
+          depthWrite: false,
+        }),
+      );
+      outline.renderOrder = 83;
+      worldRoot.add(outline);
+    };
+
     type HeroLodPair = {
       full: THREE.Sprite;
-      fullAura: THREE.Sprite;
+      fullOutline: THREE.Sprite;
       badge: THREE.Sprite;
-      badgeAura: THREE.Sprite;
+      badgeOutline: THREE.Sprite;
     };
     type UnitLodPair = {
       full: THREE.Sprite;
@@ -1247,23 +1306,7 @@ function WorldScene({
         heroStart.z,
         samples,
       );
-      const heroBase = new THREE.Mesh(
-        new THREE.CircleGeometry(HEX_SIZE * 0.54, 40),
-        new THREE.MeshBasicMaterial({
-          color: hero.accent,
-          transparent: true,
-          opacity: 0.88,
-          depthWrite: false,
-        }),
-      );
-      heroBase.rotation.x = -Math.PI / 2;
-      heroBase.position.set(
-        heroStart.x,
-        heroGroundHeight + 0.075,
-        heroStart.z,
-      );
-      heroBase.renderOrder = 80;
-      worldRoot.add(heroBase);
+      addOccupantHexMarker(heroStart, heroGroundHeight, hero.aura);
 
       const fullTexture = loadCharacterTexture(hero.image.map);
       const fullMarker = new THREE.Sprite(
@@ -1297,24 +1340,23 @@ function WorldScene({
       };
       worldRoot.add(fullMarker);
 
-      const fullAura = new THREE.Sprite(
+      const fullOutline = new THREE.Sprite(
         new THREE.SpriteMaterial({
           map: fullTexture,
           color: hero.aura,
           transparent: true,
-          opacity: 0.42,
+          opacity: 0.9,
           alphaTest: 0.08,
           depthTest: false,
           depthWrite: false,
-          blending: THREE.AdditiveBlending,
         }),
       );
-      fullAura.scale.set(hero.fullScale.width * 1.12, hero.fullScale.height * 1.12, 1);
-      fullAura.center.set(0.5, 0.075);
-      fullAura.position.copy(fullMarker.position);
-      fullAura.position.y -= 0.002;
-      fullAura.renderOrder = 89;
-      worldRoot.add(fullAura);
+      fullOutline.scale.set(hero.fullScale.width * 1.035, hero.fullScale.height * 1.035, 1);
+      fullOutline.center.set(0.5, 0.075);
+      fullOutline.position.copy(fullMarker.position);
+      fullOutline.position.y -= 0.002;
+      fullOutline.renderOrder = 89;
+      worldRoot.add(fullOutline);
 
       const badgeTexture = loadCharacterTexture(hero.image.badge);
       const badgeMarker = new THREE.Sprite(
@@ -1336,28 +1378,27 @@ function WorldScene({
       badgeMarker.userData = fullMarker.userData;
       worldRoot.add(badgeMarker);
 
-      const badgeAura = new THREE.Sprite(
+      const badgeOutline = new THREE.Sprite(
         new THREE.SpriteMaterial({
           map: badgeTexture,
           color: hero.aura,
           transparent: true,
-          opacity: 0.66,
+          opacity: 0.95,
           alphaTest: 0.06,
           depthTest: false,
           depthWrite: false,
-          blending: THREE.AdditiveBlending,
         }),
       );
-      badgeAura.scale.set(1.08, 1.08, 1);
-      badgeAura.position.copy(badgeMarker.position);
-      badgeAura.position.y -= 0.004;
-      badgeAura.renderOrder = 94;
-      worldRoot.add(badgeAura);
+      badgeOutline.scale.set(1.03, 1.03, 1);
+      badgeOutline.position.copy(badgeMarker.position);
+      badgeOutline.position.y -= 0.004;
+      badgeOutline.renderOrder = 94;
+      worldRoot.add(badgeOutline);
       heroLodPairs.push({
         full: fullMarker,
-        fullAura,
+        fullOutline,
         badge: badgeMarker,
-        badgeAura,
+        badgeOutline,
       });
     });
 
@@ -1401,23 +1442,7 @@ function WorldScene({
         unitStart.z,
         samples,
       );
-      const unitBase = new THREE.Mesh(
-          new THREE.CircleGeometry(HEX_SIZE * 0.48, 36),
-          new THREE.MeshBasicMaterial({
-            color: unit.accent,
-            transparent: true,
-            opacity: 0.78,
-            depthWrite: false,
-          }),
-        );
-      unitBase.rotation.x = -Math.PI / 2;
-      unitBase.position.set(
-        unitStart.x,
-        unitGroundHeight + 0.073,
-        unitStart.z,
-      );
-      unitBase.renderOrder = 80;
-      worldRoot.add(unitBase);
+      addOccupantHexMarker(unitStart, unitGroundHeight, unit.accent);
 
       const unitTexture = loadCharacterTexture(unit.visual.image);
       const unitMarker = new THREE.Sprite(
@@ -1451,7 +1476,7 @@ function WorldScene({
         }),
       );
       emblemMarker.scale.set(unit.emblem.scale.width, unit.emblem.scale.height, 1);
-      emblemMarker.position.set(unitStart.x, unitGroundHeight + 0.6, unitStart.z);
+      emblemMarker.position.set(unitStart.x, unitGroundHeight + 0.08, unitStart.z);
       emblemMarker.renderOrder = 89;
       emblemMarker.userData = unitMarker.userData;
       worldRoot.add(emblemMarker);
@@ -1921,16 +1946,16 @@ function WorldScene({
       seaTexture.offset.x += 0.000025;
       controls.update();
       const showFullHero = camera.zoom >= 1.35;
-      heroLodPairs.forEach(({ full, fullAura, badge, badgeAura }) => {
+      heroLodPairs.forEach(({ full, fullOutline, badge, badgeOutline }) => {
         const badgeScale = 3.1 / camera.zoom;
         badge.scale.set(badgeScale, badgeScale, 1);
-        badgeAura.scale.set(badgeScale * 1.18, badgeScale * 1.18, 1);
+        badgeOutline.scale.set(badgeScale * 1.12, badgeScale * 1.12, 1);
         full.visible = showFullHero;
-        fullAura.visible = showFullHero;
+        fullOutline.visible = showFullHero;
         badge.visible = !showFullHero;
-        badgeAura.visible = !showFullHero;
+        badgeOutline.visible = !showFullHero;
       });
-      const showFullUnit = camera.zoom >= 1.15;
+      const showFullUnit = camera.zoom >= 1.35;
       unitLodPairs.forEach(({ full, emblem }) => {
         full.visible = showFullUnit;
         emblem.visible = !showFullUnit;

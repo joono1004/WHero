@@ -18,7 +18,9 @@ export const HERO_LOD_SAMPLES = [
       portrait: "/art/heroes/guan-yu-classic-portrait-v3.webp",
       badge: "/art/heroes/guan-yu-classic-badge-v3.webp",
     },
-    fullScale: { width: 2.45, height: 3.45 },
+    // Mounted figures need a broader footprint; do not shrink the rider just
+    // to force the horse into the same visual box as a foot hero.
+    fullScale: { width: 3.05, height: 4.28 },
   },
   {
     id: "huang-zhong",
@@ -33,7 +35,7 @@ export const HERO_LOD_SAMPLES = [
       portrait: "/art/heroes/huang-zhong-classic-portrait-v3.webp",
       badge: "/art/heroes/huang-zhong-classic-badge-v3.webp",
     },
-    fullScale: { width: 1.72, height: 2.4 },
+    fullScale: { width: 2.0, height: 2.8 },
   },
   {
     id: "wei-yan",
@@ -48,7 +50,7 @@ export const HERO_LOD_SAMPLES = [
       portrait: "/art/heroes/wei-yan-classic-portrait-v3.webp",
       badge: "/art/heroes/wei-yan-classic-badge-v3.webp",
     },
-    fullScale: { width: 1.78, height: 2.65 },
+    fullScale: { width: 2.0, height: 2.98 },
   },
   {
     id: "zhao-yun",
@@ -63,7 +65,7 @@ export const HERO_LOD_SAMPLES = [
       portrait: "/art/heroes/zhao-yun-classic-portrait-v3.webp",
       badge: "/art/heroes/zhao-yun-classic-badge-v3.webp",
     },
-    fullScale: { width: 1.78, height: 2.54 },
+    fullScale: { width: 2.0, height: 2.86 },
   },
 ] as const;
 

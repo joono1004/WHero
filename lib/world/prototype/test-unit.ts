@@ -9,11 +9,11 @@ export const UNIT_VISUAL_SAMPLES = [
     accent: "#a9473f",
     visual: {
       image: "/art/units/infantry-classic-single-v2.webp",
-      scale: { width: 1.02, height: 1.52 },
+      scale: { width: 1.22, height: 1.72 },
     },
     emblem: {
       image: "/art/units/infantry-emblem-v1.svg",
-      scale: { width: 1.02, height: 1.02 },
+      scale: { width: 1.4, height: 1.4 },
     },
   },
   {
@@ -22,11 +22,11 @@ export const UNIT_VISUAL_SAMPLES = [
     accent: "#b48a32",
     visual: {
       image: "/art/units/archer-classic-single-v2.webp",
-      scale: { width: 1.02, height: 1.46 },
+      scale: { width: 1.18, height: 1.7 },
     },
     emblem: {
       image: "/art/units/archer-emblem-v1.svg",
-      scale: { width: 1.02, height: 1.02 },
+      scale: { width: 1.4, height: 1.4 },
     },
   },
   {
@@ -35,11 +35,11 @@ export const UNIT_VISUAL_SAMPLES = [
     accent: "#3f6f9c",
     visual: {
       image: "/art/units/cavalry-classic-single-v2.webp",
-      scale: { width: 1.32, height: 1.4 },
+      scale: { width: 1.65, height: 1.76 },
     },
     emblem: {
       image: "/art/units/cavalry-emblem-v1.svg",
-      scale: { width: 1.02, height: 1.02 },
+      scale: { width: 1.4, height: 1.4 },
     },
   },
 ] as const;
