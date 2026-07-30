@@ -15,14 +15,14 @@ export const HERO_LOD_SAMPLES = [
     aura: "#f2c45d",
     image: {
       map: "/art/heroes/guan-yu-chibi-map-v2.webp",
-      outline: "/art/heroes/guan-yu-classic-map-outline-v4.webp",
+      outline: "/art/heroes/guan-yu-chibi-map-v2.webp",
       portrait: "/art/heroes/guan-yu-chibi-face-v2.webp",
-      badge: "/art/heroes/guan-yu-chibi-face-v2.webp",
-      badgeOutline: "/art/heroes/guan-yu-classic-face-outline-v4.webp",
+      badge: "/art/heroes/guan-yu-chibi-badge-v3.webp",
+      badgeOutline: "/art/heroes/guan-yu-chibi-badge-v3.webp",
     },
     // Mounted figures need a broader footprint; do not shrink the rider just
     // to force the horse into the same visual box as a foot hero.
-    fullScale: { width: 3.05, height: 4.28 },
+    fullScale: { width: 3.05, height: 3.45 },
   },
   {
     id: "huang-zhong",
@@ -34,12 +34,12 @@ export const HERO_LOD_SAMPLES = [
     aura: "#b9dc69",
     image: {
       map: "/art/heroes/huang-zhong-chibi-map-v2.webp",
-      outline: "/art/heroes/huang-zhong-classic-map-outline-v4.webp",
+      outline: "/art/heroes/huang-zhong-chibi-map-v2.webp",
       portrait: "/art/heroes/huang-zhong-chibi-face-v2.webp",
-      badge: "/art/heroes/huang-zhong-chibi-face-v2.webp",
-      badgeOutline: "/art/heroes/huang-zhong-classic-face-outline-v4.webp",
+      badge: "/art/heroes/huang-zhong-chibi-badge-v3.webp",
+      badgeOutline: "/art/heroes/huang-zhong-chibi-badge-v3.webp",
     },
-    fullScale: { width: 2.0, height: 2.8 },
+    fullScale: { width: 2.25, height: 2.48 },
   },
   {
     id: "wei-yan",
@@ -51,12 +51,12 @@ export const HERO_LOD_SAMPLES = [
     aura: "#8ec7ff",
     image: {
       map: "/art/heroes/wei-yan-chibi-map-v2.webp",
-      outline: "/art/heroes/wei-yan-classic-map-outline-v4.webp",
+      outline: "/art/heroes/wei-yan-chibi-map-v2.webp",
       portrait: "/art/heroes/wei-yan-chibi-face-v2.webp",
-      badge: "/art/heroes/wei-yan-chibi-face-v2.webp",
-      badgeOutline: "/art/heroes/wei-yan-classic-face-outline-v4.webp",
+      badge: "/art/heroes/wei-yan-chibi-badge-v3.webp",
+      badgeOutline: "/art/heroes/wei-yan-chibi-badge-v3.webp",
     },
-    fullScale: { width: 2.0, height: 2.98 },
+    fullScale: { width: 2.28, height: 2.54 },
   },
   {
     id: "zhao-yun",
@@ -68,12 +68,12 @@ export const HERO_LOD_SAMPLES = [
     aura: "#d798ff",
     image: {
       map: "/art/heroes/zhao-yun-chibi-map-v2.webp",
-      outline: "/art/heroes/zhao-yun-classic-map-outline-v4.webp",
+      outline: "/art/heroes/zhao-yun-chibi-map-v2.webp",
       portrait: "/art/heroes/zhao-yun-chibi-face-v2.webp",
-      badge: "/art/heroes/zhao-yun-chibi-face-v2.webp",
-      badgeOutline: "/art/heroes/zhao-yun-classic-face-outline-v4.webp",
+      badge: "/art/heroes/zhao-yun-chibi-badge-v3.webp",
+      badgeOutline: "/art/heroes/zhao-yun-chibi-badge-v3.webp",
     },
-    fullScale: { width: 2.0, height: 2.86 },
+    fullScale: { width: 2.85, height: 3.12 },
   },
 ] as const;
 
