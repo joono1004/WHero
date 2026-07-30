@@ -1489,7 +1489,7 @@ function WorldScene({
           depthWrite: false,
         }),
       );
-      fullOutline.scale.set(hero.fullScale.width * 1.075, hero.fullScale.height * 1.075, 1);
+      fullOutline.scale.set(hero.fullScale.width, hero.fullScale.height, 1);
       fullOutline.center.set(0.5, 0.075);
       fullOutline.position.copy(fullMarker.position);
       fullOutline.position.y -= 0.002;
@@ -1527,7 +1527,7 @@ function WorldScene({
           depthWrite: false,
         }),
       );
-      badgeOutline.scale.set(0.49, 0.49, 1);
+      badgeOutline.scale.set(0.45, 0.45, 1);
       badgeOutline.position.copy(badgeMarker.position);
       badgeOutline.position.y -= 0.004;
       badgeOutline.renderOrder = 94;
