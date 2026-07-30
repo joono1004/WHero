@@ -1356,7 +1356,7 @@ function WorldScene({
         new THREE.MeshBasicMaterial({
           color,
           transparent: true,
-          opacity: 0.16,
+          opacity: 0.2,
           side: THREE.DoubleSide,
           depthTest: false,
           depthWrite: false,
@@ -1506,7 +1506,7 @@ function WorldScene({
           depthWrite: false,
         }),
       );
-      badgeMarker.scale.set(0.45, 0.45, 1);
+      badgeMarker.scale.set(0.675, 0.675, 1);
       badgeMarker.position.set(
         heroStart.x,
         heroCenterGroundHeight + 0.12,
@@ -1527,7 +1527,7 @@ function WorldScene({
           depthWrite: false,
         }),
       );
-      badgeOutline.scale.set(0.45, 0.45, 1);
+      badgeOutline.scale.set(0.675, 0.675, 1);
       badgeOutline.position.copy(badgeMarker.position);
       badgeOutline.position.y -= 0.004;
       badgeOutline.renderOrder = 94;
@@ -2090,7 +2090,7 @@ function WorldScene({
       controls.update();
       const showFullHero = camera.zoom >= 1.35;
       heroLodPairs.forEach(({ full, fullOutline, badge, badgeOutline }) => {
-        const badgeScale = 1.55 / camera.zoom;
+        const badgeScale = 2.325 / camera.zoom;
         badge.scale.set(badgeScale, badgeScale, 1);
         badgeOutline.scale.set(badgeScale, badgeScale, 1);
         full.visible = showFullHero;

@@ -11,11 +11,13 @@ BADGE_SIZE = 320
 
 # Pixel crops are deliberately face-first. The resulting face/head occupies
 # roughly 80% of the circular badge instead of showing the hero's full body.
-FACE_CROPS = {
-    "guan-yu": (430, 170, 770, 610),
-    "huang-zhong": (340, 145, 690, 625),
-    "wei-yan": (435, 165, 815, 665),
-    "zhao-yun": (430, 145, 800, 590),
+HERO_SPECS = {
+    # outline_filter compensates for each hero's different rendered scale so
+    # every contour has the same apparent thickness as Guan Yu on the map.
+    "guan-yu": {"face_crop": (430, 170, 770, 610), "outline_filter": 25},
+    "huang-zhong": {"face_crop": (340, 145, 690, 625), "outline_filter": 33},
+    "wei-yan": {"face_crop": (435, 165, 815, 665), "outline_filter": 33},
+    "zhao-yun": {"face_crop": (430, 145, 800, 590), "outline_filter": 27},
 }
 
 
@@ -23,9 +25,9 @@ def save_webp(image: Image.Image, path: Path) -> None:
     image.save(path, "WEBP", lossless=True, method=6)
 
 
-def build_character_outline(source: Image.Image) -> Image.Image:
+def build_character_outline(source: Image.Image, filter_size: int) -> Image.Image:
     alpha = source.getchannel("A")
-    expanded = alpha.filter(ImageFilter.MaxFilter(25))
+    expanded = alpha.filter(ImageFilter.MaxFilter(filter_size))
     ring_alpha = ImageChops.subtract(expanded, alpha)
     ring = Image.new("RGBA", source.size, (255, 255, 255, 0))
     ring.putalpha(ring_alpha)
@@ -64,14 +66,14 @@ def build_badge_outline() -> Image.Image:
 
 
 def main() -> None:
-    for hero_id, crop_box in FACE_CROPS.items():
+    for hero_id, spec in HERO_SPECS.items():
         source = Image.open(HERO_DIR / f"{hero_id}-chibi-map-v2.webp").convert("RGBA")
         save_webp(
-            build_character_outline(source),
+            build_character_outline(source, spec["outline_filter"]),
             HERO_DIR / f"{hero_id}-chibi-outline-v5.webp",
         )
         save_webp(
-            build_badge(source, crop_box),
+            build_badge(source, spec["face_crop"]),
             HERO_DIR / f"{hero_id}-chibi-badge-v4.webp",
         )
         save_webp(
