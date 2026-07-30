@@ -1610,7 +1610,7 @@ function WorldScene({
 
       const emblemMarker = new THREE.Sprite(
         new THREE.SpriteMaterial({
-          map: createUnitEmblemTexture(unit.id, unit.accent),
+          map: loadCharacterTexture(unit.emblem.image),
           transparent: true,
           alphaTest: 0.08,
           depthTest: false,
