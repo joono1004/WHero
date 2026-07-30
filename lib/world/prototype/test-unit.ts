@@ -12,7 +12,7 @@ export const UNIT_VISUAL_SAMPLES = [
       scale: { width: 1.4, height: 1.75 },
     },
     emblem: {
-      image: "/art/units/infantry-emblem-v3.webp",
+      image: "/art/units/infantry-emblem-v4.webp",
       scale: { width: 1.4, height: 1.4 },
     },
   },
@@ -25,7 +25,7 @@ export const UNIT_VISUAL_SAMPLES = [
       scale: { width: 1.4, height: 1.75 },
     },
     emblem: {
-      image: "/art/units/archer-emblem-v3.webp",
+      image: "/art/units/archer-emblem-v4.webp",
       scale: { width: 1.4, height: 1.4 },
     },
   },
@@ -38,7 +38,7 @@ export const UNIT_VISUAL_SAMPLES = [
       scale: { width: 1.46, height: 1.825 },
     },
     emblem: {
-      image: "/art/units/cavalry-emblem-v3.webp",
+      image: "/art/units/cavalry-emblem-v4.webp",
       scale: { width: 1.4, height: 1.4 },
     },
   },

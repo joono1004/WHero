@@ -1008,7 +1008,7 @@ function WorldScene({
       return texture;
     };
     const createUnitEmblemTexture = (unitId: string, accent: string) => {
-      const cacheKey = `unit-emblem-v2:${unitId}:${accent}`;
+      const cacheKey = `unit-emblem-v4:${unitId}:${accent}`;
       const cached = CHARACTER_TEXTURE_CACHE.get(cacheKey);
       if (cached) return cached;
 
