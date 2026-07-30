@@ -8,7 +8,7 @@ export const UNIT_VISUAL_SAMPLES = [
     name: "보병",
     accent: "#a9473f",
     visual: {
-      image: "/art/units/infantry-classic-single-v2.webp",
+      image: "/art/units/infantry-chibi-map-v1.webp",
       scale: { width: 1.22, height: 1.72 },
     },
     emblem: {
@@ -21,7 +21,7 @@ export const UNIT_VISUAL_SAMPLES = [
     name: "궁병",
     accent: "#b48a32",
     visual: {
-      image: "/art/units/archer-classic-single-v2.webp",
+      image: "/art/units/archer-chibi-map-v1.webp",
       scale: { width: 1.18, height: 1.7 },
     },
     emblem: {
@@ -34,7 +34,7 @@ export const UNIT_VISUAL_SAMPLES = [
     name: "기병",
     accent: "#3f6f9c",
     visual: {
-      image: "/art/units/cavalry-classic-single-v2.webp",
+      image: "/art/units/cavalry-chibi-map-v1.webp",
       scale: { width: 1.65, height: 1.76 },
     },
     emblem: {
