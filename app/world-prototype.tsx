@@ -919,6 +919,7 @@ const DEFAULT_TACTICAL_PANEL: TacticalPanelState = {
   skills: [],
   attackChoices: [],
   skillMenuOpen: false,
+  attackTargeting: false,
 };
 
 const MELEE_ATTACK: AttackMode = {
@@ -2190,6 +2191,7 @@ function WorldScene({
     const tacticalActionMarkers: TacticalActionMarker[] = [];
     let selectedActorId: string | null = null;
     let commandPanelOpen = false;
+    let attackTargeting = false;
     let selectedSkillId: string | null = null;
     let pendingAttackTargetId: string | null = null;
     let reachableByKey = new Map<string, { row: number; column: number; cost: number }>();
@@ -2321,7 +2323,18 @@ function WorldScene({
         }),
       );
       sprite.scale.set(0.62, 0.62, 1);
-      sprite.position.set(center.x + 0.38, ground + 1.12, center.z - 0.18);
+      if (action === "attack") {
+        sprite.material.opacity = 0.62;
+        sprite.scale.set(HEX_WIDTH * 0.86, HEX_WIDTH * 0.86, 1);
+        sprite.position.set(
+          target.full.position.x,
+          target.full.position.y + target.full.scale.y * 0.66,
+          target.full.position.z,
+        );
+        addHexOverlay(target.actor.row, target.actor.column, "#dc665c", 0.16);
+      } else {
+        sprite.position.set(center.x + 0.38, ground + 1.12, center.z - 0.18);
+      }
       sprite.renderOrder = 120;
       sprite.userData = {
         type: "tactical-action",
@@ -2443,6 +2456,7 @@ function WorldScene({
       overrides: Partial<TacticalPanelState> = {},
     ) => {
       commandPanelOpen = true;
+      attackTargeting = overrides.attackTargeting ?? false;
       setTacticalPanel({
         isOpen: true,
         actorName: visual.actor.name,
@@ -2461,6 +2475,7 @@ function WorldScene({
     };
     const rebuildActionMarkers = (visual: ActorVisual) => {
       clearActionMarkers();
+      clearInteractionOverlays();
       if (visual.actor.acted) return;
       const enemies = livingActors().filter(
         (candidate) => candidate.actor.team !== visual.actor.team,
@@ -2499,6 +2514,7 @@ function WorldScene({
     const clearSelection = (message = DEFAULT_TACTICAL_PANEL.message) => {
       selectedActorId = null;
       commandPanelOpen = false;
+      attackTargeting = false;
       selectedSkillId = null;
       pendingAttackTargetId = null;
       reachableByKey.clear();
@@ -2775,7 +2791,10 @@ function WorldScene({
             performAttack(attacker, target, modes[0]);
           } else if (modes.length > 1) {
             pendingAttackTargetId = target.actor.id;
+            clearActionMarkers();
+            clearInteractionOverlays();
             setPanelForActor(attacker, "공격 방식을 선택하세요.", {
+              attackTargeting: false,
               attackChoices: modes.map((mode) => ({
                 id: mode.id,
                 label: mode.label,
@@ -2796,6 +2815,30 @@ function WorldScene({
               selectActor(clickedActor);
             }
             return;
+          }
+          if (attackTargeting && selectedActorId) {
+            const attacker = actorVisuals.get(selectedActorId);
+            const modes = attacker
+              ? availableAttackModes(attacker.actor, clickedActor.actor)
+              : [];
+            if (attacker && clickedActor.actor.team !== attacker.actor.team) {
+              if (modes.length === 1) {
+                performAttack(attacker, clickedActor, modes[0]);
+              } else if (modes.length > 1) {
+                pendingAttackTargetId = clickedActor.actor.id;
+                clearActionMarkers();
+                clearInteractionOverlays();
+                setPanelForActor(attacker, "공격 방식을 선택하세요.", {
+                  attackTargeting: false,
+                  attackChoices: modes.map((mode) => ({
+                    id: mode.id,
+                    label: mode.label,
+                    damage: mode.damage,
+                  })),
+                });
+              }
+              return;
+            }
           }
           onHexSelected(
             diagnosticForHex(
@@ -2915,7 +2958,15 @@ function WorldScene({
       if (command.type === "start-attack") {
         selectedSkillId = null;
         rebuildActionMarkers(visual);
-        setPanelForActor(visual, "공격할 적의 붉은 표시를 선택하세요.");
+        setPanelForActor(visual, "", { attackTargeting: true });
+        return;
+      }
+      if (command.type === "cancel-attack") {
+        attackTargeting = false;
+        pendingAttackTargetId = null;
+        clearActionMarkers();
+        clearInteractionOverlays();
+        setPanelForActor(visual, "");
         return;
       }
       if (command.type === "info") {

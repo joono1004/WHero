@@ -19,11 +19,13 @@ export type TacticalPanelState = {
   skills: TacticalSkill[];
   attackChoices: TacticalAttackChoice[];
   skillMenuOpen: boolean;
+  attackTargeting: boolean;
 };
 
 export type TacticalPanelCommand =
   | { type: "wait" }
   | { type: "start-attack" }
+  | { type: "cancel-attack" }
   | { type: "toggle-skills" }
   | { type: "use-skill"; skillId: string }
   | { type: "attack"; modeId: "melee" | "ranged" }
@@ -58,7 +60,7 @@ export function TacticalActionPanel({
       onPointerDown={(event) => event.stopPropagation()}
       aria-hidden={!state.isOpen}
     >
-      {state.message && (
+      {state.message && !state.attackTargeting && (
         <div className="tactical-status">
           <strong>{state.message}</strong>
         </div>
@@ -97,6 +99,16 @@ export function TacticalActionPanel({
       )}
 
       <div className="tactical-actions">
+        {state.attackTargeting ? (
+          <button
+            type="button"
+            className="tactical-command tactical-attack-cancel"
+            onClick={() => onCommand({ type: "cancel-attack" })}
+          >
+            <span>공격 취소</span>
+          </button>
+        ) : (
+          <>
         {state.canAttack && (
           <button
             type="button"
@@ -131,6 +143,8 @@ export function TacticalActionPanel({
         >
           <span>정보</span>
         </button>
+          </>
+        )}
       </div>
     </aside>
   );

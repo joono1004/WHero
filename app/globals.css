@@ -151,6 +151,8 @@ canvas { display:block; width:100%; height:calc(100vh - 148px); min-height:620px
 }
 .tactical-reset { margin-left:auto; border-color:#6f5e43; background:#283b40; color:#d9c995; }
 .tactical-attack { border-color:#bd7d6b; background:rgba(112,65,58,.88); color:#fff0dd; }
+.tactical-attack-cancel { border-color:#c5967f; background:rgba(79,62,57,.88); color:#ffe9dc; }
+.tactical-attack-cancel > span { padding-left:0; letter-spacing:.08em; }
 .tactical-wait { border-color:#a99d6c; background:rgba(86,82,55,.86); color:#fff5c9; }
 .tactical-skill { border-color:#9886b7; background:rgba(77,68,99,.86); color:#f3eaff; }
 .tactical-info { border-color:#719ca2; background:rgba(52,82,88,.86); color:#e5f7f5; }
