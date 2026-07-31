@@ -20,12 +20,14 @@ export type TacticalPanelState = {
   attackChoices: TacticalAttackChoice[];
   skillMenuOpen: boolean;
   attackTargeting: boolean;
+  canCancelMove: boolean;
 };
 
 export type TacticalPanelCommand =
   | { type: "wait" }
   | { type: "start-attack" }
   | { type: "cancel-attack" }
+  | { type: "cancel-move" }
   | { type: "toggle-skills" }
   | { type: "use-skill"; skillId: string }
   | { type: "attack"; modeId: "melee" | "ranged" }
@@ -143,6 +145,15 @@ export function TacticalActionPanel({
         >
           <span>정보</span>
         </button>
+        {state.canCancelMove && (
+          <button
+            type="button"
+            className="tactical-command tactical-move-cancel"
+            onClick={() => onCommand({ type: "cancel-move" })}
+          >
+            <span>이동 취소</span>
+          </button>
+        )}
           </>
         )}
       </div>

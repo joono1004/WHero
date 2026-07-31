@@ -920,6 +920,7 @@ const DEFAULT_TACTICAL_PANEL: TacticalPanelState = {
   attackChoices: [],
   skillMenuOpen: false,
   attackTargeting: false,
+  canCancelMove: false,
 };
 
 const MELEE_ATTACK: AttackMode = {
@@ -2195,6 +2196,8 @@ function WorldScene({
     let selectedSkillId: string | null = null;
     let pendingAttackTargetId: string | null = null;
     let movementPlanBudget = 0;
+    let movementPlanOrigin: { row: number; column: number } | null = null;
+    let movementPreviewActive = false;
     let reachableByKey = new Map<string, { row: number; column: number; cost: number }>();
     let activeActionAnimation:
       | {
@@ -2471,6 +2474,7 @@ function WorldScene({
         skills: visual.actor.skills.map((skill) => ({ ...skill })),
         attackChoices: [],
         skillMenuOpen: false,
+        canCancelMove: movementPreviewActive,
         ...overrides,
       });
     };
@@ -2531,6 +2535,8 @@ function WorldScene({
       selectedSkillId = null;
       pendingAttackTargetId = null;
       movementPlanBudget = 0;
+      movementPlanOrigin = null;
+      movementPreviewActive = false;
       reachableByKey.clear();
       clearInteractionOverlays();
       clearActionMarkers();
@@ -2565,6 +2571,11 @@ function WorldScene({
             movementCostAt,
           });
       movementPlanBudget = visual.actor.remainingMovement;
+      movementPlanOrigin = {
+        row: visual.actor.row,
+        column: visual.actor.column,
+      };
+      movementPreviewActive = false;
       reachableByKey = new Map(
         reachable.map((hex) => [`${hex.row}:${hex.column}`, hex]),
       );
@@ -2591,6 +2602,11 @@ function WorldScene({
       destination: { row: number; column: number; cost: number },
     ) => {
       setActorPosition(visual, destination.row, destination.column);
+      movementPreviewActive = Boolean(
+        movementPlanOrigin &&
+          (destination.row !== movementPlanOrigin.row ||
+            destination.column !== movementPlanOrigin.column),
+      );
       visual.actor.remainingMovement = Math.max(
         0,
         movementPlanBudget - destination.cost,
@@ -2825,6 +2841,33 @@ function WorldScene({
         }
         const clickedActor = actorVisuals.get(data.actorId as string);
         if (clickedActor) {
+          if (
+            movementPreviewActive &&
+            selectedActorId &&
+            clickedActor.actor.id !== selectedActorId &&
+            !attackTargeting
+          ) {
+            onHexSelected(
+              diagnosticForHex(
+                clickedActor.actor.row,
+                clickedActor.actor.column,
+                clickedActor.actor,
+              ),
+              {
+                x: THREE.MathUtils.clamp(
+                  event.clientX - host.getBoundingClientRect().left,
+                  8,
+                  Math.max(8, host.clientWidth - 240),
+                ),
+                y: THREE.MathUtils.clamp(
+                  event.clientY - host.getBoundingClientRect().top,
+                  8,
+                  Math.max(8, host.clientHeight - 145),
+                ),
+              },
+            );
+            return;
+          }
           if (clickedActor.actor.team === "player") {
             if (selectedActorId === clickedActor.actor.id) {
               clearInteractionOverlays();
@@ -2917,6 +2960,24 @@ function WorldScene({
           performMove(selected, reachable);
           return;
         }
+        if (movementPreviewActive) {
+          onHexSelected(
+            diagnosticForHex(row, column),
+            {
+              x: THREE.MathUtils.clamp(
+                event.clientX - host.getBoundingClientRect().left,
+                8,
+                Math.max(8, host.clientWidth - 240),
+              ),
+              y: THREE.MathUtils.clamp(
+                event.clientY - host.getBoundingClientRect().top,
+                8,
+                Math.max(8, host.clientHeight - 125),
+              ),
+            },
+          );
+          return;
+        }
         clearSelection("이동 불가능한 곳을 선택해 이동 명령을 취소했습니다.");
         return;
       }
@@ -2986,6 +3047,21 @@ function WorldScene({
         clearActionMarkers();
         showMovementPlan(visual);
         setPanelForActor(visual, "");
+        return;
+      }
+      if (command.type === "cancel-move") {
+        if (!movementPlanOrigin || !movementPreviewActive) return;
+        setActorPosition(
+          visual,
+          movementPlanOrigin.row,
+          movementPlanOrigin.column,
+        );
+        visual.actor.remainingMovement = movementPlanBudget;
+        movementPreviewActive = false;
+        commandPanelOpen = false;
+        clearActionMarkers();
+        showMovementPlan(visual);
+        setTacticalPanel(DEFAULT_TACTICAL_PANEL);
         return;
       }
       if (command.type === "info") {
