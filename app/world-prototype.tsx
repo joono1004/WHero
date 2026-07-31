@@ -2194,6 +2194,7 @@ function WorldScene({
     let attackTargeting = false;
     let selectedSkillId: string | null = null;
     let pendingAttackTargetId: string | null = null;
+    let movementPlanBudget = 0;
     let reachableByKey = new Map<string, { row: number; column: number; cost: number }>();
     let activeActionAnimation:
       | {
@@ -2473,6 +2474,18 @@ function WorldScene({
         ...overrides,
       });
     };
+    const showMovementPlan = (visual: ActorVisual) => {
+      clearInteractionOverlays();
+      reachableByKey.forEach((hex) => {
+        if (
+          hex.row === visual.actor.row &&
+          hex.column === visual.actor.column
+        ) {
+          return;
+        }
+        addHexOverlay(hex.row, hex.column, "#9de884", 0.3);
+      });
+    };
     const rebuildActionMarkers = (visual: ActorVisual) => {
       clearActionMarkers();
       clearInteractionOverlays();
@@ -2517,6 +2530,7 @@ function WorldScene({
       attackTargeting = false;
       selectedSkillId = null;
       pendingAttackTargetId = null;
+      movementPlanBudget = 0;
       reachableByKey.clear();
       clearInteractionOverlays();
       clearActionMarkers();
@@ -2550,12 +2564,16 @@ function WorldScene({
             occupied: occupiedActorKeys(visual.actor.id),
             movementCostAt,
           });
+      movementPlanBudget = visual.actor.remainingMovement;
       reachableByKey = new Map(
         reachable.map((hex) => [`${hex.row}:${hex.column}`, hex]),
       );
-      reachable.forEach((hex) =>
-        addHexOverlay(hex.row, hex.column, "#9de884", 0.3),
-      );
+      reachableByKey.set(`${visual.actor.row}:${visual.actor.column}`, {
+        row: visual.actor.row,
+        column: visual.actor.column,
+        cost: 0,
+      });
+      showMovementPlan(visual);
       setTacticalPanel(DEFAULT_TACTICAL_PANEL);
     };
     const performWait = () => {
@@ -2575,9 +2593,10 @@ function WorldScene({
       setActorPosition(visual, destination.row, destination.column);
       visual.actor.remainingMovement = Math.max(
         0,
-        visual.actor.remainingMovement - destination.cost,
+        movementPlanBudget - destination.cost,
       );
-      selectActor(visual);
+      showMovementPlan(visual);
+      setPanelForActor(visual, "");
     };
     const finishCombatAction = (
       attacker: ActorVisual,
@@ -2965,7 +2984,7 @@ function WorldScene({
         attackTargeting = false;
         pendingAttackTargetId = null;
         clearActionMarkers();
-        clearInteractionOverlays();
+        showMovementPlan(visual);
         setPanelForActor(visual, "");
         return;
       }
