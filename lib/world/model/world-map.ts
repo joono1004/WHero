@@ -29,6 +29,12 @@ export type HexDiagnostic = HexCoordinate & {
   terrain: string;
   height: number;
   layer: string;
+  actor?: {
+    name: string;
+    kind: "hero" | "unit";
+    hp: number;
+    maxHp: number;
+  };
 };
 
 export type SelectedHexPopup = {

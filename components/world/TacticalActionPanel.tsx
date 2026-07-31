@@ -11,12 +11,11 @@ export type TacticalAttackChoice = {
 };
 
 export type TacticalPanelState = {
+  isOpen: boolean;
   actorName: string | null;
   actorKind: "hero" | "unit" | null;
-  remainingMovement: number;
-  movement: number;
-  acted: boolean;
   message: string;
+  canAttack: boolean;
   skills: TacticalSkill[];
   attackChoices: TacticalAttackChoice[];
   skillMenuOpen: boolean;
@@ -24,11 +23,11 @@ export type TacticalPanelState = {
 
 export type TacticalPanelCommand =
   | { type: "wait" }
+  | { type: "start-attack" }
   | { type: "toggle-skills" }
   | { type: "use-skill"; skillId: string }
   | { type: "attack"; modeId: "melee" | "ranged" }
-  | { type: "reset-turn" }
-  | { type: "cancel" };
+  | { type: "info" };
 
 export function TacticalActionPanel({
   state,
@@ -42,18 +41,13 @@ export function TacticalActionPanel({
   return (
     <aside
       ref={panelRef}
-      className={`tactical-action-panel ${state.actorName ? "is-active" : ""}`}
+      className={`tactical-action-panel ${state.isOpen ? "is-active" : ""}`}
       onPointerDown={(event) => event.stopPropagation()}
+      aria-hidden={!state.isOpen}
     >
       <div className="tactical-status">
-        <span>{state.actorName ?? "이동 테스트"}</span>
-        <strong>{state.message}</strong>
-        {state.actorName && (
-          <small>
-            이동력 {state.remainingMovement}/{state.movement}
-            {state.acted ? " · 행동 완료" : ""}
-          </small>
-        )}
+        <span>{state.actorName}</span>
+        {state.message && <strong>{state.message}</strong>}
       </div>
 
       {state.attackChoices.length > 1 && (
@@ -78,7 +72,7 @@ export function TacticalActionPanel({
             <button
               type="button"
               key={skill.id}
-              disabled={skill.remainingUses <= 0 || state.acted}
+              disabled={skill.remainingUses <= 0}
               onClick={() => onCommand({ type: "use-skill", skillId: skill.id })}
             >
               <span>{skill.kind === "heal" ? "✚" : "✦"} {skill.label}</span>
@@ -89,43 +83,41 @@ export function TacticalActionPanel({
       )}
 
       <div className="tactical-actions">
-        {state.actorName ? (
-          <>
-            <button
-              type="button"
-              className="secondary"
-              disabled={state.acted}
-              onClick={() => onCommand({ type: "wait" })}
-            >
-              대기
-            </button>
-            {state.actorKind === "hero" && (
-              <button
-                type="button"
-                className="secondary"
-                disabled={state.acted}
-                onClick={() => onCommand({ type: "toggle-skills" })}
-              >
-                스킬
-              </button>
-            )}
-            <button
-              type="button"
-              className="secondary"
-              onClick={() => onCommand({ type: "cancel" })}
-            >
-              선택 취소
-            </button>
-          </>
-        ) : (
-          <span>영웅 또는 병사를 선택하세요.</span>
+        {state.canAttack && (
+          <button
+            type="button"
+            className="tactical-attack"
+            onClick={() => onCommand({ type: "start-attack" })}
+          >
+            공격
+          </button>
         )}
         <button
           type="button"
-          className="tactical-reset"
-          onClick={() => onCommand({ type: "reset-turn" })}
+          className="secondary"
+          onClick={() => onCommand({ type: "wait" })}
         >
-          테스트 턴 초기화
+          대기
+        </button>
+        {state.actorKind === "hero" && (
+            <button
+              type="button"
+              className="secondary"
+              disabled={state.skills.length === 0}
+              onClick={() => onCommand({ type: "toggle-skills" })}
+            >
+              스킬 x {state.skills.reduce(
+                (total, skill) => total + skill.remainingUses,
+                0,
+              )}
+            </button>
+        )}
+        <button
+          type="button"
+          className="secondary"
+          onClick={() => onCommand({ type: "info" })}
+        >
+          정보
         </button>
       </div>
     </aside>

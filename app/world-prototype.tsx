@@ -52,7 +52,6 @@ import {
 import { HERO_LOD_SAMPLES } from "@/lib/world/prototype/test-hero";
 import { UNIT_VISUAL_SAMPLES } from "@/lib/world/prototype/test-unit";
 import {
-  attackApproachHexes,
   availableAttackModes,
   hexDistance,
   reachableHexes,
@@ -912,12 +911,11 @@ function createShallowCoastGeometry(seed: number) {
 }
 
 const DEFAULT_TACTICAL_PANEL: TacticalPanelState = {
+  isOpen: false,
   actorName: null,
   actorKind: null,
-  remainingMovement: 0,
-  movement: 0,
-  acted: false,
-  message: "영웅 또는 병사를 선택해 이동을 시험하세요.",
+  message: "",
+  canAttack: false,
   skills: [],
   attackChoices: [],
   skillMenuOpen: false,
@@ -1660,7 +1658,8 @@ function WorldScene({
         attackModes: profile.attackModes.map((mode) => ({ ...mode })),
         healRange: profile.healRange,
         healAmount: profile.healAmount,
-        skills: profile.skills.map((skill) => ({ ...skill })),
+        // Hero skills will be connected after each hero's skill set is defined.
+        skills: [],
       };
 
       const fullTexture = loadCharacterTexture(hero.image.map);
@@ -2171,11 +2170,10 @@ function WorldScene({
     const interactionOverlays: THREE.Mesh[] = [];
     const tacticalActionMarkers: TacticalActionMarker[] = [];
     let selectedActorId: string | null = null;
+    let commandPanelOpen = false;
     let selectedSkillId: string | null = null;
     let pendingAttackTargetId: string | null = null;
-    let pendingApproachTargetId: string | null = null;
     let reachableByKey = new Map<string, { row: number; column: number; cost: number }>();
-    let approachByKey = new Map<string, { row: number; column: number; cost: number }>();
     let activeActionAnimation:
       | {
           startedAt: number;
@@ -2343,18 +2341,99 @@ function WorldScene({
       if (visual.badgeOutline) visual.badgeOutline.position.y -= 0.004;
       updateOccupantHexMarker(visual.hexMarker, center, footGround);
     };
+    const diagnosticForHex = (
+      row: number,
+      column: number,
+      actor?: TacticalActor,
+    ): HexDiagnostic => {
+      const center = hexCenterAt(row, column);
+      const kind = coastKindAt(seed, row, column);
+      const terrainCell = terrainCells.get(`${row}:${column}`);
+      const nearestRiver = nearestRiverSample(center.x, center.z, samples);
+      const isRiver =
+        riverCurves.length > 0 &&
+        nearestRiver.distance <= riverWidthAt(nearestRiver.t) * 0.5 + 0.12;
+      const terrainLabel =
+        kind === "beach"
+          ? "백사장"
+          : kind === "cliff"
+            ? "바위 해안"
+            : kind === "shallow"
+              ? "얕은 바다"
+              : kind === "deep"
+                ? "깊은 바다"
+                : isRiver
+                  ? "강"
+                  : terrainCell?.type === "forest"
+                    ? "숲"
+                    : terrainCell?.type === "wetland"
+                      ? "습지"
+                      : terrainCell?.type === "hill"
+                        ? "언덕"
+                        : terrainCell?.type === "mountain"
+                          ? "산악"
+                          : "평원·일반 육지";
+      return {
+        row,
+        column,
+        kind,
+        terrain: terrainLabel,
+        height: heightAt(seed, center.x, center.z, samples),
+        layer:
+          isRiver
+            ? "river-channel"
+            : kind === "beach"
+              ? "beach-edge-overlay"
+              : kind === "cliff"
+                ? "cliff-coast-hex"
+                : kind === "shallow"
+                  ? "shallow-water-hex"
+                  : kind === "deep"
+                    ? "deep-sea"
+                    : "terrain",
+        actor: actor
+          ? {
+              name: actor.name,
+              kind: actor.kind,
+              hp: actor.hp,
+              maxHp: actor.maxHp,
+            }
+          : undefined,
+      };
+    };
+    const popupPositionForActor = (visual: ActorVisual) => {
+      const anchor = visual.badge.position.clone();
+      worldRoot.localToWorld(anchor);
+      anchor.project(camera);
+      return {
+        x: THREE.MathUtils.clamp(
+          (anchor.x * 0.5 + 0.5) * host.clientWidth,
+          8,
+          Math.max(8, host.clientWidth - 240),
+        ),
+        y: THREE.MathUtils.clamp(
+          (-anchor.y * 0.5 + 0.5) * host.clientHeight,
+          8,
+          Math.max(8, host.clientHeight - 145),
+        ),
+      };
+    };
     const setPanelForActor = (
       visual: ActorVisual,
       message: string,
       overrides: Partial<TacticalPanelState> = {},
     ) => {
+      commandPanelOpen = true;
       setTacticalPanel({
+        isOpen: true,
         actorName: visual.actor.name,
         actorKind: visual.actor.kind,
-        remainingMovement: visual.actor.remainingMovement,
-        movement: visual.actor.movement,
-        acted: visual.actor.acted,
         message,
+        canAttack: livingActors().some(
+          (candidate) =>
+            candidate.actor.team !== visual.actor.team &&
+            availableAttackModes(visual.actor, candidate.actor).length > 0,
+        ),
         skills: visual.actor.skills.map((skill) => ({ ...skill })),
         attackChoices: [],
         skillMenuOpen: false,
@@ -2397,28 +2476,18 @@ function WorldScene({
         .forEach((enemy) =>
           addActionMarker("attack", visual.actor.id, enemy),
         );
-      if (visual.actor.healRange && visual.actor.healAmount) {
-        allies
-          .filter(
-            (ally) =>
-              hexDistance(visual.actor, ally.actor) <=
-              (visual.actor.healRange ?? 0),
-          )
-          .forEach((ally) => addActionMarker("heal", visual.actor.id, ally));
-      }
     };
     const clearSelection = (message = DEFAULT_TACTICAL_PANEL.message) => {
       selectedActorId = null;
+      commandPanelOpen = false;
       selectedSkillId = null;
       pendingAttackTargetId = null;
-      pendingApproachTargetId = null;
       reachableByKey.clear();
-      approachByKey.clear();
       clearInteractionOverlays();
       clearActionMarkers();
       setTacticalPanel({ ...DEFAULT_TACTICAL_PANEL, message });
     };
-    const selectActor = (visual: ActorVisual, message?: string) => {
+    const selectActor = (visual: ActorVisual) => {
       if (visual.actor.team !== "player") {
         setTacticalPanel({
           ...DEFAULT_TACTICAL_PANEL,
@@ -2427,9 +2496,9 @@ function WorldScene({
         return;
       }
       selectedActorId = visual.actor.id;
+      commandPanelOpen = false;
       selectedSkillId = null;
       pendingAttackTargetId = null;
-      pendingApproachTargetId = null;
       clearInteractionOverlays();
       clearActionMarkers();
       const reachable = visual.actor.acted
@@ -2448,14 +2517,7 @@ function WorldScene({
       reachable.forEach((hex) =>
         addHexOverlay(hex.row, hex.column, "#9de884", 0.3),
       );
-      rebuildActionMarkers(visual);
-      setPanelForActor(
-        visual,
-        message ??
-          (visual.actor.acted
-            ? "이번 테스트 턴의 행동을 마쳤습니다."
-            : "연두색 Hex로 이동하거나 행동을 선택하세요."),
-      );
+      setTacticalPanel(DEFAULT_TACTICAL_PANEL);
     };
     const performWait = () => {
       const visual = selectedActorId
@@ -2469,14 +2531,13 @@ function WorldScene({
     const performMove = (
       visual: ActorVisual,
       destination: { row: number; column: number; cost: number },
-      afterMessage = "이동했습니다. 다시 선택하면 대기할 수 있습니다.",
     ) => {
       setActorPosition(visual, destination.row, destination.column);
       visual.actor.remainingMovement = Math.max(
         0,
         visual.actor.remainingMovement - destination.cost,
       );
-      selectActor(visual, afterMessage);
+      selectActor(visual);
     };
     const finishCombatAction = (
       attacker: ActorVisual,
@@ -2703,51 +2764,32 @@ function WorldScene({
         if (clickedActor) {
           if (clickedActor.actor.team === "player") {
             if (selectedActorId === clickedActor.actor.id) {
-              performWait();
+              clearInteractionOverlays();
+              clearActionMarkers();
+              setPanelForActor(clickedActor, "");
             } else {
               selectActor(clickedActor);
             }
             return;
           }
-          const selected = selectedActorId
-            ? actorVisuals.get(selectedActorId)
-            : undefined;
-          if (!selected || selected.actor.acted) {
-            setTacticalPanel({
-              ...DEFAULT_TACTICAL_PANEL,
-              message: `${clickedActor.actor.name} · 체력 ${clickedActor.actor.hp}/${clickedActor.actor.maxHp}`,
-            });
-            return;
-          }
-          const currentModes = availableAttackModes(
-            selected.actor,
-            clickedActor.actor,
-          );
-          if (currentModes.length > 0) {
-            setPanelForActor(
-              selected,
-              "적 위의 붉은 공격 표시를 누르면 공격합니다.",
-            );
-            return;
-          }
-          clearInteractionOverlays();
-          const approaches = attackApproachHexes(
-            selected.actor,
-            clickedActor.actor,
-            [...reachableByKey.values()],
-          );
-          approachByKey = new Map(
-            approaches.map((hex) => [`${hex.row}:${hex.column}`, hex]),
-          );
-          pendingApproachTargetId = clickedActor.actor.id;
-          approaches.forEach((hex) =>
-            addHexOverlay(hex.row, hex.column, "#ffb45d", 0.38),
-          );
-          setPanelForActor(
-            selected,
-            approaches.length > 0
-              ? "주황색 Hex를 선택하면 공격 가능한 위치까지만 이동합니다."
-              : `${clickedActor.actor.name}은(는) 이번 턴에 공격 범위까지 갈 수 없습니다.`,
+          onHexSelected(
+            diagnosticForHex(
+              clickedActor.actor.row,
+              clickedActor.actor.column,
+              clickedActor.actor,
+            ),
+            {
+              x: THREE.MathUtils.clamp(
+                event.clientX - host.getBoundingClientRect().left,
+                8,
+                Math.max(8, host.clientWidth - 240),
+              ),
+              y: THREE.MathUtils.clamp(
+                event.clientY - host.getBoundingClientRect().top,
+                8,
+                Math.max(8, host.clientHeight - 145),
+              ),
+            },
           );
           return;
         }
@@ -2778,16 +2820,9 @@ function WorldScene({
           selected.actor.row === row &&
           selected.actor.column === column
         ) {
-          performWait();
-          return;
-        }
-        const approach = approachByKey.get(clickedKey);
-        if (approach && pendingApproachTargetId) {
-          performMove(
-            selected,
-            approach,
-            "공격 가능한 위치까지 이동했습니다. 붉은 공격 표시를 누르세요.",
-          );
+          clearInteractionOverlays();
+          clearActionMarkers();
+          setPanelForActor(selected, "");
           return;
         }
         const reachable = reachableByKey.get(clickedKey);
@@ -2808,52 +2843,8 @@ function WorldScene({
       }
       selectionGeometry.setFromPoints(selectedPoints);
       selection.visible = true;
-      const kind = coastKindAt(seed, row, column);
-      const terrainCell = terrainCells.get(`${row}:${column}`);
-      const nearestRiver = nearestRiverSample(center.x, center.z, samples);
-      const isRiver =
-        riverCurves.length > 0 &&
-        nearestRiver.distance <= riverWidthAt(nearestRiver.t) * 0.5 + 0.12;
-      const terrainLabel =
-        kind === "beach"
-          ? "백사장"
-          : kind === "cliff"
-            ? "바위 해안"
-            : kind === "shallow"
-              ? "얕은 바다"
-              : kind === "deep"
-                ? "깊은 바다"
-                : isRiver
-                  ? "강"
-                  : terrainCell?.type === "forest"
-                    ? "숲"
-                    : terrainCell?.type === "wetland"
-                      ? "습지"
-                      : terrainCell?.type === "hill"
-                        ? "언덕"
-                        : terrainCell?.type === "mountain"
-                          ? "산악"
-                          : "평원·일반 육지";
       onHexSelected(
-        {
-          row,
-          column,
-          kind,
-          terrain: terrainLabel,
-          height: heightAt(seed, center.x, center.z, samples),
-          layer:
-            isRiver
-              ? "river-channel"
-              : kind === "beach"
-                ? "beach-edge-overlay"
-                : kind === "cliff"
-                  ? "cliff-coast-hex"
-                  : kind === "shallow"
-                    ? "shallow-water-hex"
-                    : kind === "deep"
-                      ? "deep-sea"
-                      : "terrain",
-        },
+        diagnosticForHex(row, column),
         {
           x: THREE.MathUtils.clamp(
             event.clientX - host.getBoundingClientRect().left,
@@ -2891,23 +2882,28 @@ function WorldScene({
       const visual = selectedActorId
         ? actorVisuals.get(selectedActorId)
         : undefined;
-      if (command.type === "reset-turn") {
-        livingActors()
-          .filter((candidate) => candidate.actor.team === "player")
-          .forEach((candidate) => {
-            candidate.actor.acted = false;
-            candidate.actor.remainingMovement = candidate.actor.movement;
-          });
-        clearSelection("새 테스트 턴입니다. 모든 아군이 다시 행동할 수 있습니다.");
-        return;
-      }
-      if (command.type === "cancel") {
-        clearSelection("선택을 취소했습니다.");
-        return;
-      }
       if (!visual) return;
       if (command.type === "wait") {
         performWait();
+        return;
+      }
+      if (command.type === "start-attack") {
+        selectedSkillId = null;
+        rebuildActionMarkers(visual);
+        setPanelForActor(visual, "공격할 적의 붉은 표시를 선택하세요.");
+        return;
+      }
+      if (command.type === "info") {
+        onHexSelected(
+          diagnosticForHex(
+            visual.actor.row,
+            visual.actor.column,
+            visual.actor,
+          ),
+          popupPositionForActor(visual),
+        );
+        commandPanelOpen = false;
+        setTacticalPanel(DEFAULT_TACTICAL_PANEL);
         return;
       }
       if (command.type === "toggle-skills") {
@@ -3023,7 +3019,12 @@ function WorldScene({
       const selectedVisual = selectedActorId
         ? actorVisuals.get(selectedActorId)
         : undefined;
-      if (actionPanel && selectedVisual && selectedVisual.actor.hp > 0) {
+      if (
+        actionPanel &&
+        commandPanelOpen &&
+        selectedVisual &&
+        selectedVisual.actor.hp > 0
+      ) {
         const anchor = selectedVisual.badge.position.clone();
         anchor.y += 0.35;
         worldRoot.localToWorld(anchor);

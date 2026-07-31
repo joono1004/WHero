@@ -15,7 +15,16 @@ export function HexInfoPopup({ popup }: HexInfoPopupProps) {
         top: popup.y,
       }}
     >
-      <span>선택한 Hex 지형 정보</span>
+      <span>{popup.diagnostic.actor ? "캐릭터 · 지형 정보" : "선택한 Hex 지형 정보"}</span>
+      {popup.diagnostic.actor && (
+        <em>
+          <b>{popup.diagnostic.actor.name}</b>
+          {" · "}
+          {popup.diagnostic.actor.kind === "hero" ? "영웅" : "병사"}
+          <br />
+          체력 {popup.diagnostic.actor.hp}/{popup.diagnostic.actor.maxHp}
+        </em>
+      )}
       <strong>{popup.diagnostic.terrain}</strong>
       <em>
         좌표 {popup.diagnostic.column}, {popup.diagnostic.row}
