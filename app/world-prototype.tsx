@@ -44,8 +44,22 @@ import { HexInfoPopup } from "@/components/world/HexInfoPopup";
 import { TerrainLegend } from "@/components/world/TerrainLegend";
 import { WorldControls } from "@/components/world/WorldControls";
 import { TestHeroPanel } from "@/components/world/TestHeroPanel";
+import {
+  TacticalActionPanel,
+  type TacticalPanelCommand,
+  type TacticalPanelState,
+} from "@/components/world/TacticalActionPanel";
 import { HERO_LOD_SAMPLES } from "@/lib/world/prototype/test-hero";
 import { UNIT_VISUAL_SAMPLES } from "@/lib/world/prototype/test-unit";
+import {
+  attackApproachHexes,
+  availableAttackModes,
+  hexDistance,
+  reachableHexes,
+  type AttackMode,
+  type TacticalActor,
+  type TacticalSkill,
+} from "@/lib/world/prototype/tactical-interaction";
 
 // Character art is independent from each generated world. Keep the decoded
 // textures between seed changes so regenerating terrain does not decode the
@@ -897,6 +911,139 @@ function createShallowCoastGeometry(seed: number) {
   return geometry;
 }
 
+const DEFAULT_TACTICAL_PANEL: TacticalPanelState = {
+  actorName: null,
+  actorKind: null,
+  remainingMovement: 0,
+  movement: 0,
+  acted: false,
+  message: "영웅 또는 병사를 선택해 이동을 시험하세요.",
+  skills: [],
+  attackChoices: [],
+  skillMenuOpen: false,
+};
+
+const MELEE_ATTACK: AttackMode = {
+  id: "melee",
+  label: "근접 공격",
+  minRange: 1,
+  maxRange: 1,
+  damage: 30,
+};
+
+function heroTacticalProfile(heroId: string) {
+  const profiles: Record<
+    string,
+    {
+      movement: number;
+      attackModes: AttackMode[];
+      healRange?: number;
+      healAmount?: number;
+      skills: TacticalSkill[];
+    }
+  > = {
+    "guan-yu": {
+      movement: 5,
+      attackModes: [{ ...MELEE_ATTACK, damage: 38 }],
+      skills: [
+        {
+          id: "green-dragon-charge",
+          label: "청룡 돌파",
+          kind: "damage",
+          range: 2,
+          amount: 58,
+          remainingUses: 2,
+          maxUses: 2,
+        },
+      ],
+    },
+    "huang-zhong": {
+      movement: 4,
+      attackModes: [
+        { ...MELEE_ATTACK, damage: 16 },
+        {
+          id: "ranged",
+          label: "원거리 공격",
+          minRange: 1,
+          maxRange: 3,
+          damage: 34,
+        },
+      ],
+      skills: [
+        {
+          id: "true-shot",
+          label: "백발백중",
+          kind: "damage",
+          range: 4,
+          amount: 55,
+          remainingUses: 2,
+          maxUses: 2,
+        },
+      ],
+    },
+    "wei-yan": {
+      movement: 4,
+      attackModes: [{ ...MELEE_ATTACK, damage: 35 }],
+      skills: [
+        {
+          id: "ambush-charge",
+          label: "기습 돌격",
+          kind: "damage",
+          range: 2,
+          amount: 60,
+          remainingUses: 2,
+          maxUses: 2,
+        },
+      ],
+    },
+    "zhao-yun": {
+      movement: 5,
+      attackModes: [{ ...MELEE_ATTACK, damage: 32 }],
+      // Temporary prototype ability used to validate future healing classes.
+      healRange: 2,
+      healAmount: 28,
+      skills: [
+        {
+          id: "rescue",
+          label: "구원",
+          kind: "heal",
+          range: 3,
+          amount: 46,
+          remainingUses: 2,
+          maxUses: 2,
+        },
+      ],
+    },
+  };
+  return profiles[heroId] ?? {
+    movement: 4,
+    attackModes: [MELEE_ATTACK],
+    skills: [],
+  };
+}
+
+function unitTacticalProfile(unitId: string) {
+  if (unitId === "archer") {
+    return {
+      movement: 3,
+      attackModes: [
+        { ...MELEE_ATTACK, damage: 12 },
+        {
+          id: "ranged" as const,
+          label: "원거리 공격",
+          minRange: 1,
+          maxRange: 3,
+          damage: 26,
+        },
+      ],
+    };
+  }
+  return {
+    movement: unitId === "cavalry" ? 5 : 3,
+    attackModes: [{ ...MELEE_ATTACK, damage: unitId === "cavalry" ? 34 : 24 }],
+  };
+}
+
 function WorldScene({
   seed,
   mapTierId,
@@ -914,10 +1061,21 @@ function WorldScene({
   ) => void;
 }) {
   const hostRef = useRef<HTMLDivElement>(null);
+  const tacticalCommandRef = useRef<(command: TacticalPanelCommand) => void>(
+    () => undefined,
+  );
+  const [tacticalPanel, setTacticalPanel] = useState<TacticalPanelState>(
+    DEFAULT_TACTICAL_PANEL,
+  );
+  const handleTacticalCommand = useCallback(
+    (command: TacticalPanelCommand) => tacticalCommandRef.current(command),
+    [],
+  );
 
   useEffect(() => {
     const host = hostRef.current;
     if (!host) return;
+    setTacticalPanel(DEFAULT_TACTICAL_PANEL);
     configureMapTier(mapTierId);
     configureMapType(mapTypeId);
 
@@ -1320,10 +1478,13 @@ function WorldScene({
       }
     }
 
-    const addOccupantHexMarker = (
+    type OccupantHexMarker = {
+      fill: THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial>;
+      outline: THREE.LineLoop<THREE.BufferGeometry, THREE.LineBasicMaterial>;
+    };
+    const occupantHexPoints = (
       cell: { x: number; z: number },
       groundHeight: number,
-      color: THREE.ColorRepresentation,
     ) => {
       const edgePoints: THREE.Vector3[] = [];
       for (let edge = 0; edge < 6; edge += 1) {
@@ -1338,6 +1499,14 @@ function WorldScene({
           ),
         );
       }
+      return edgePoints;
+    };
+    const updateOccupantHexMarker = (
+      marker: OccupantHexMarker,
+      cell: { x: number; z: number },
+      groundHeight: number,
+    ) => {
+      const edgePoints = occupantHexPoints(cell, groundHeight);
       const fillGeometry = new THREE.BufferGeometry();
       const positions = new Float32Array(21);
       positions[0] = cell.x;
@@ -1351,8 +1520,19 @@ function WorldScene({
       });
       fillGeometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
       fillGeometry.setIndex([0, 1, 2, 0, 2, 3, 0, 3, 4, 0, 4, 5, 0, 5, 6, 0, 6, 1]);
+      marker.fill.geometry.dispose();
+      marker.fill.geometry = fillGeometry;
+      marker.outline.geometry.dispose();
+      marker.outline.geometry = new THREE.BufferGeometry().setFromPoints(edgePoints);
+    };
+    const addOccupantHexMarker = (
+      cell: { x: number; z: number },
+      groundHeight: number,
+      color: THREE.ColorRepresentation,
+    ): OccupantHexMarker => {
+      const placeholderGeometry = new THREE.BufferGeometry();
       const fill = new THREE.Mesh(
-        fillGeometry,
+        placeholderGeometry,
         new THREE.MeshBasicMaterial({
           color,
           transparent: true,
@@ -1366,7 +1546,7 @@ function WorldScene({
       worldRoot.add(fill);
 
       const outline = new THREE.LineLoop(
-        new THREE.BufferGeometry().setFromPoints(edgePoints),
+        new THREE.BufferGeometry(),
         new THREE.LineBasicMaterial({
           color,
           transparent: true,
@@ -1377,6 +1557,9 @@ function WorldScene({
       );
       outline.renderOrder = 83;
       worldRoot.add(outline);
+      const marker = { fill, outline };
+      updateOccupantHexMarker(marker, cell, groundHeight);
+      return marker;
     };
 
     type HeroLodPair = {
@@ -1389,8 +1572,18 @@ function WorldScene({
       full: THREE.Sprite;
       emblem: THREE.Sprite;
     };
+    type ActorVisual = {
+      actor: TacticalActor;
+      full: THREE.Sprite;
+      fullOutline?: THREE.Sprite;
+      badge: THREE.Sprite;
+      badgeOutline?: THREE.Sprite;
+      hexMarker: OccupantHexMarker;
+    };
     const heroLodPairs: HeroLodPair[] = [];
     const unitLodPairs: UnitLodPair[] = [];
+    const actorVisuals = new Map<string, ActorVisual>();
+    const heroStartCells: { row: number; column: number; x: number; z: number }[] = [];
     // Put a unit's feet in the lower fifth of its occupied hex instead of
     // visually pinning every figure to the exact geometric centre.
     const occupantFootOffsetZ = HEX_SIZE * 0.42;
@@ -1444,7 +1637,30 @@ function WorldScene({
         heroFoot.z,
         samples,
       );
-      addOccupantHexMarker(heroStart, heroGroundHeight, hero.aura);
+      const hexMarker = addOccupantHexMarker(
+        heroStart,
+        heroGroundHeight,
+        "#69c8ff",
+      );
+      heroStartCells.push(heroStart);
+      const profile = heroTacticalProfile(hero.id);
+      const actor: TacticalActor = {
+        id: `hero:${hero.id}`,
+        name: hero.name,
+        kind: "hero",
+        team: "player",
+        row: heroStart.row,
+        column: heroStart.column,
+        movement: profile.movement,
+        remainingMovement: profile.movement,
+        acted: false,
+        hp: 100,
+        maxHp: 100,
+        attackModes: profile.attackModes.map((mode) => ({ ...mode })),
+        healRange: profile.healRange,
+        healAmount: profile.healAmount,
+        skills: profile.skills.map((skill) => ({ ...skill })),
+      };
 
       const fullTexture = loadCharacterTexture(hero.image.map);
       const fullMarker = new THREE.Sprite(
@@ -1472,6 +1688,8 @@ function WorldScene({
       fullMarker.renderOrder = 90;
       fullMarker.userData = {
         type: "hero",
+        actorId: actor.id,
+        team: actor.team,
         heroId: hero.id,
         row: heroStart.row,
         column: heroStart.column,
@@ -1494,6 +1712,7 @@ function WorldScene({
       fullOutline.position.copy(fullMarker.position);
       fullOutline.position.y -= 0.002;
       fullOutline.renderOrder = 89;
+      fullOutline.userData = fullMarker.userData;
       worldRoot.add(fullOutline);
 
       const badgeTexture = loadCharacterTexture(hero.image.badge);
@@ -1531,6 +1750,7 @@ function WorldScene({
       badgeOutline.position.copy(badgeMarker.position);
       badgeOutline.position.y -= 0.004;
       badgeOutline.renderOrder = 94;
+      badgeOutline.userData = fullMarker.userData;
       worldRoot.add(badgeOutline);
       heroLodPairs.push({
         full: fullMarker,
@@ -1538,15 +1758,44 @@ function WorldScene({
         badge: badgeMarker,
         badgeOutline,
       });
+      actorVisuals.set(actor.id, {
+        actor,
+        full: fullMarker,
+        fullOutline,
+        badge: badgeMarker,
+        badgeOutline,
+        hexMarker,
+      });
     });
 
     const occupiedUnitHexes = new Set<string>(occupiedHeroHexes);
-    const unitTargetXs = [-0.27, 0, 0.27];
-    UNIT_VISUAL_SAMPLES.forEach((unit, unitIndex) => {
-      const preferredStart = {
-        x: MAP_WIDTH * unitTargetXs[unitIndex],
-        z: MAP_DEPTH * -0.2,
+    const unitNames: Record<string, string> = {
+      infantry: "적 보병",
+      archer: "아군 궁병",
+      cavalry: "적 기병",
+    };
+    UNIT_VISUAL_SAMPLES.forEach((unit) => {
+      const anchor = heroStartCells[
+        unit.id === "infantry" ? 2 : unit.id === "archer" ? 3 : 1
+      ] ?? heroStartCells[0];
+      const preferredCoordinates = {
+        row: THREE.MathUtils.clamp(
+          (anchor?.row ?? Math.floor(HEX_ROWS / 2)) +
+            (unit.id === "archer" ? 2 : 3),
+          0,
+          HEX_ROWS - 1,
+        ),
+        column: THREE.MathUtils.clamp(
+          (anchor?.column ?? Math.floor(HEX_COLS / 2)) +
+            (unit.id === "archer" ? 2 : unit.id === "cavalry" ? -1 : 0),
+          0,
+          HEX_COLS - 1,
+        ),
       };
+      const preferredStart = hexCenterAt(
+        preferredCoordinates.row,
+        preferredCoordinates.column,
+      );
       let unitStart:
         | { row: number; column: number; x: number; z: number }
         | undefined;
@@ -1584,7 +1833,28 @@ function WorldScene({
         unitFoot.z,
         samples,
       );
-      addOccupantHexMarker(unitStart, unitGroundHeight, unit.accent);
+      const team = unit.id === "archer" ? "player" : "enemy";
+      const hexMarker = addOccupantHexMarker(
+        unitStart,
+        unitGroundHeight,
+        team === "player" ? "#69c8ff" : "#ef6767",
+      );
+      const profile = unitTacticalProfile(unit.id);
+      const actor: TacticalActor = {
+        id: `unit:${unit.id}`,
+        name: unitNames[unit.id] ?? unit.name,
+        kind: "unit",
+        team,
+        row: unitStart.row,
+        column: unitStart.column,
+        movement: profile.movement,
+        remainingMovement: profile.movement,
+        acted: false,
+        hp: unit.id === "archer" ? 55 : 100,
+        maxHp: 100,
+        attackModes: profile.attackModes.map((mode) => ({ ...mode })),
+        skills: [],
+      };
 
       const unitTexture = loadCharacterTexture(unit.visual.image);
       const unitMarker = new THREE.Sprite(
@@ -1602,6 +1872,8 @@ function WorldScene({
       unitMarker.renderOrder = 88;
       unitMarker.userData = {
         type: "unit",
+        actorId: actor.id,
+        team: actor.team,
         unitId: unit.id,
         row: unitStart.row,
         column: unitStart.column,
@@ -1624,6 +1896,12 @@ function WorldScene({
       emblemMarker.userData = unitMarker.userData;
       worldRoot.add(emblemMarker);
       unitLodPairs.push({ full: unitMarker, emblem: emblemMarker });
+      actorVisuals.set(actor.id, {
+        actor,
+        full: unitMarker,
+        badge: emblemMarker,
+        hexMarker,
+      });
     });
     const neighborCells = (cell: TerrainCell) => {
       const diagonal = cell.row % 2 === 0 ? -1 : 1;
@@ -1883,6 +2161,391 @@ function WorldScene({
     selection.renderOrder = 10000;
     worldRoot.add(selection);
 
+    type TacticalActionMarker = {
+      sprite: THREE.Sprite;
+      action: "attack" | "heal" | "skill";
+      actorId: string;
+      targetId: string;
+    };
+    const interactionOverlays: THREE.Mesh[] = [];
+    const tacticalActionMarkers: TacticalActionMarker[] = [];
+    let selectedActorId: string | null = null;
+    let selectedSkillId: string | null = null;
+    let pendingAttackTargetId: string | null = null;
+    let pendingApproachTargetId: string | null = null;
+    let reachableByKey = new Map<string, { row: number; column: number; cost: number }>();
+    let approachByKey = new Map<string, { row: number; column: number; cost: number }>();
+    let activeActionAnimation:
+      | {
+          startedAt: number;
+          attackerId: string;
+          targetId: string;
+          attackerY: number;
+          targetY: number;
+        }
+      | null = null;
+
+    const movementCostAt = (row: number, column: number) => {
+      if (!isInsideMap(row, column)) return null;
+      const kind = coastKindAt(seed, row, column);
+      if (kind === "deep" || kind === "shallow") return null;
+      const terrainType = terrainCells.get(`${row}:${column}`)?.type;
+      if (terrainType === "mountain") return null;
+      if (terrainType === "wetland") return 3;
+      if (terrainType === "forest" || terrainType === "hill") return 2;
+      if (kind === "beach" || kind === "cliff") return 2;
+      return 1;
+    };
+    const livingActors = () =>
+      [...actorVisuals.values()].filter((visual) => visual.actor.hp > 0);
+    const occupiedActorKeys = (exceptActorId?: string) =>
+      new Set(
+        livingActors()
+          .filter((visual) => visual.actor.id !== exceptActorId)
+          .map((visual) => `${visual.actor.row}:${visual.actor.column}`),
+      );
+    const clearInteractionOverlays = () => {
+      interactionOverlays.splice(0).forEach((overlay) => {
+        worldRoot.remove(overlay);
+        overlay.geometry.dispose();
+        overlay.material.dispose();
+      });
+    };
+    const clearActionMarkers = () => {
+      tacticalActionMarkers.splice(0).forEach(({ sprite }) => {
+        worldRoot.remove(sprite);
+        sprite.material.dispose();
+      });
+    };
+    const addHexOverlay = (
+      row: number,
+      column: number,
+      color: THREE.ColorRepresentation,
+      opacity: number,
+    ) => {
+      const center = hexCenterAt(row, column);
+      const points = occupantHexPoints(
+        center,
+        heightAt(seed, center.x, center.z, samples),
+      );
+      const positions = new Float32Array(21);
+      positions.set([
+        center.x,
+        heightAt(seed, center.x, center.z, samples) + 0.11,
+        center.z,
+      ]);
+      points.forEach((point, index) => {
+        positions.set([point.x, point.y + 0.005, point.z], (index + 1) * 3);
+      });
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+      geometry.setIndex([
+        0, 1, 2, 0, 2, 3, 0, 3, 4, 0, 4, 5, 0, 5, 6, 0, 6, 1,
+      ]);
+      const overlay = new THREE.Mesh(
+        geometry,
+        new THREE.MeshBasicMaterial({
+          color,
+          transparent: true,
+          opacity,
+          side: THREE.DoubleSide,
+          depthTest: false,
+          depthWrite: false,
+        }),
+      );
+      overlay.renderOrder = 84;
+      interactionOverlays.push(overlay);
+      worldRoot.add(overlay);
+    };
+    const actionTextureCache = new Map<"attack" | "heal" | "skill", THREE.Texture>();
+    const createActionTexture = (action: "attack" | "heal" | "skill") => {
+      const cached = actionTextureCache.get(action);
+      if (cached) return cached;
+      const canvas = document.createElement("canvas");
+      canvas.width = 192;
+      canvas.height = 192;
+      const context = canvas.getContext("2d")!;
+      const colors = {
+        attack: ["#9d312d", "#ffcf75"],
+        heal: ["#2f8b58", "#e8fff0"],
+        skill: ["#6942a1", "#f2dcff"],
+      } as const;
+      context.beginPath();
+      context.arc(96, 96, 76, 0, Math.PI * 2);
+      context.fillStyle = colors[action][0];
+      context.fill();
+      context.lineWidth = 12;
+      context.strokeStyle = colors[action][1];
+      context.stroke();
+      context.fillStyle = colors[action][1];
+      context.font = "900 76px sans-serif";
+      context.textAlign = "center";
+      context.textBaseline = "middle";
+      context.fillText(action === "attack" ? "⚔" : action === "heal" ? "+" : "★", 96, 101);
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      actionTextureCache.set(action, texture);
+      return texture;
+    };
+    const addActionMarker = (
+      action: "attack" | "heal" | "skill",
+      actorId: string,
+      target: ActorVisual,
+    ) => {
+      const center = hexCenterAt(target.actor.row, target.actor.column);
+      const ground = heightAt(seed, center.x, center.z, samples);
+      const sprite = new THREE.Sprite(
+        new THREE.SpriteMaterial({
+          map: createActionTexture(action),
+          transparent: true,
+          depthTest: false,
+          depthWrite: false,
+        }),
+      );
+      sprite.scale.set(0.62, 0.62, 1);
+      sprite.position.set(center.x + 0.38, ground + 1.12, center.z - 0.18);
+      sprite.renderOrder = 120;
+      sprite.userData = {
+        type: "tactical-action",
+        action,
+        actorId,
+        targetId: target.actor.id,
+      };
+      worldRoot.add(sprite);
+      tacticalActionMarkers.push({
+        sprite,
+        action,
+        actorId,
+        targetId: target.actor.id,
+      });
+    };
+    const setActorPosition = (
+      visual: ActorVisual,
+      row: number,
+      column: number,
+    ) => {
+      const center = hexCenterAt(row, column);
+      const foot = { x: center.x, z: center.z + occupantFootOffsetZ };
+      const footGround = heightAt(seed, foot.x, foot.z, samples);
+      const centerGround = heightAt(seed, center.x, center.z, samples);
+      visual.actor.row = row;
+      visual.actor.column = column;
+      visual.full.position.set(foot.x, footGround + 0.02, foot.z);
+      visual.full.userData.row = row;
+      visual.full.userData.column = column;
+      visual.fullOutline?.position.copy(visual.full.position);
+      if (visual.fullOutline) visual.fullOutline.position.y -= 0.002;
+      visual.badge.position.set(center.x, centerGround + 0.12, center.z);
+      visual.badge.userData.row = row;
+      visual.badge.userData.column = column;
+      visual.badgeOutline?.position.copy(visual.badge.position);
+      if (visual.badgeOutline) visual.badgeOutline.position.y -= 0.004;
+      updateOccupantHexMarker(visual.hexMarker, center, footGround);
+    };
+    const setPanelForActor = (
+      visual: ActorVisual,
+      message: string,
+      overrides: Partial<TacticalPanelState> = {},
+    ) => {
+      setTacticalPanel({
+        actorName: visual.actor.name,
+        actorKind: visual.actor.kind,
+        remainingMovement: visual.actor.remainingMovement,
+        movement: visual.actor.movement,
+        acted: visual.actor.acted,
+        message,
+        skills: visual.actor.skills.map((skill) => ({ ...skill })),
+        attackChoices: [],
+        skillMenuOpen: false,
+        ...overrides,
+      });
+    };
+    const rebuildActionMarkers = (visual: ActorVisual) => {
+      clearActionMarkers();
+      if (visual.actor.acted) return;
+      const enemies = livingActors().filter(
+        (candidate) => candidate.actor.team !== visual.actor.team,
+      );
+      const allies = livingActors().filter(
+        (candidate) =>
+          candidate.actor.team === visual.actor.team &&
+          candidate.actor.id !== visual.actor.id &&
+          candidate.actor.hp < candidate.actor.maxHp,
+      );
+      if (selectedSkillId) {
+        const skill = visual.actor.skills.find(
+          (candidate) => candidate.id === selectedSkillId,
+        );
+        if (!skill || skill.remainingUses <= 0) return;
+        const targets = skill.kind === "damage" ? enemies : allies;
+        targets
+          .filter(
+            (target) =>
+              hexDistance(visual.actor, target.actor) <= skill.range,
+          )
+          .forEach((target) =>
+            addActionMarker("skill", visual.actor.id, target),
+          );
+        return;
+      }
+      enemies
+        .filter(
+          (enemy) =>
+            availableAttackModes(visual.actor, enemy.actor).length > 0,
+        )
+        .forEach((enemy) =>
+          addActionMarker("attack", visual.actor.id, enemy),
+        );
+      if (visual.actor.healRange && visual.actor.healAmount) {
+        allies
+          .filter(
+            (ally) =>
+              hexDistance(visual.actor, ally.actor) <=
+              (visual.actor.healRange ?? 0),
+          )
+          .forEach((ally) => addActionMarker("heal", visual.actor.id, ally));
+      }
+    };
+    const clearSelection = (message = DEFAULT_TACTICAL_PANEL.message) => {
+      selectedActorId = null;
+      selectedSkillId = null;
+      pendingAttackTargetId = null;
+      pendingApproachTargetId = null;
+      reachableByKey.clear();
+      approachByKey.clear();
+      clearInteractionOverlays();
+      clearActionMarkers();
+      setTacticalPanel({ ...DEFAULT_TACTICAL_PANEL, message });
+    };
+    const selectActor = (visual: ActorVisual, message?: string) => {
+      if (visual.actor.team !== "player") {
+        setTacticalPanel({
+          ...DEFAULT_TACTICAL_PANEL,
+          message: `${visual.actor.name} · 체력 ${visual.actor.hp}/${visual.actor.maxHp}`,
+        });
+        return;
+      }
+      selectedActorId = visual.actor.id;
+      selectedSkillId = null;
+      pendingAttackTargetId = null;
+      pendingApproachTargetId = null;
+      clearInteractionOverlays();
+      clearActionMarkers();
+      const reachable = visual.actor.acted
+        ? []
+        : reachableHexes({
+            start: visual.actor,
+            movement: visual.actor.remainingMovement,
+            rows: HEX_ROWS,
+            columns: HEX_COLS,
+            occupied: occupiedActorKeys(visual.actor.id),
+            movementCostAt,
+          });
+      reachableByKey = new Map(
+        reachable.map((hex) => [`${hex.row}:${hex.column}`, hex]),
+      );
+      reachable.forEach((hex) =>
+        addHexOverlay(hex.row, hex.column, "#9de884", 0.3),
+      );
+      rebuildActionMarkers(visual);
+      setPanelForActor(
+        visual,
+        message ??
+          (visual.actor.acted
+            ? "이번 테스트 턴의 행동을 마쳤습니다."
+            : "연두색 Hex로 이동하거나 행동을 선택하세요."),
+      );
+    };
+    const performWait = () => {
+      const visual = selectedActorId
+        ? actorVisuals.get(selectedActorId)
+        : undefined;
+      if (!visual || visual.actor.acted) return;
+      visual.actor.acted = true;
+      visual.actor.remainingMovement = 0;
+      clearSelection(`${visual.actor.name}이(가) 현재 위치에서 대기합니다.`);
+    };
+    const performMove = (
+      visual: ActorVisual,
+      destination: { row: number; column: number; cost: number },
+      afterMessage = "이동했습니다. 다시 선택하면 대기할 수 있습니다.",
+    ) => {
+      setActorPosition(visual, destination.row, destination.column);
+      visual.actor.remainingMovement = Math.max(
+        0,
+        visual.actor.remainingMovement - destination.cost,
+      );
+      selectActor(visual, afterMessage);
+    };
+    const finishCombatAction = (
+      attacker: ActorVisual,
+      target: ActorVisual,
+      amount: number,
+      label: string,
+      heal = false,
+    ) => {
+      activeActionAnimation = {
+        startedAt: performance.now(),
+        attackerId: attacker.actor.id,
+        targetId: target.actor.id,
+        attackerY: attacker.full.position.y,
+        targetY: target.full.position.y,
+      };
+      if (heal) {
+        target.actor.hp = Math.min(target.actor.maxHp, target.actor.hp + amount);
+      } else {
+        target.actor.hp = Math.max(0, target.actor.hp - amount);
+      }
+      attacker.actor.acted = true;
+      attacker.actor.remainingMovement = 0;
+      if (target.actor.hp <= 0) {
+        target.full.visible = false;
+        target.fullOutline && (target.fullOutline.visible = false);
+        target.badge.visible = false;
+        target.badgeOutline && (target.badgeOutline.visible = false);
+        target.hexMarker.fill.visible = false;
+        target.hexMarker.outline.visible = false;
+      }
+      clearSelection(
+        `${label} · ${target.actor.name} 체력 ${target.actor.hp}/${target.actor.maxHp}`,
+      );
+    };
+    const performAttack = (
+      attacker: ActorVisual,
+      target: ActorVisual,
+      mode: AttackMode,
+    ) => {
+      finishCombatAction(
+        attacker,
+        target,
+        mode.damage,
+        `${attacker.actor.name}의 ${mode.label}`,
+      );
+    };
+    const performHeal = (healer: ActorVisual, target: ActorVisual) => {
+      finishCombatAction(
+        healer,
+        target,
+        healer.actor.healAmount ?? 0,
+        `${healer.actor.name}의 회복`,
+        true,
+      );
+    };
+    const performSkill = (
+      user: ActorVisual,
+      target: ActorVisual,
+      skill: TacticalSkill,
+    ) => {
+      skill.remainingUses -= 1;
+      finishCombatAction(
+        user,
+        target,
+        skill.amount,
+        `${user.actor.name}의 ${skill.label}`,
+        skill.kind === "heal",
+      );
+    };
+
     const raycaster = new THREE.Raycaster();
     const pointer = new THREE.Vector2();
     let pointerDown: THREE.Vector2 | null = null;
@@ -1981,8 +2644,118 @@ function WorldScene({
         -((event.clientY - bounds.top) / bounds.height) * 2 + 1,
       );
       raycaster.setFromCamera(pointer, camera);
+      const interactiveSprites = [
+        ...livingActors().flatMap((visual) => [
+          visual.full,
+          visual.fullOutline,
+          visual.badge,
+          visual.badgeOutline,
+        ]),
+        ...tacticalActionMarkers.map((marker) => marker.sprite),
+      ].filter(
+        (object): object is THREE.Sprite =>
+          object instanceof THREE.Sprite && object.visible,
+      );
+      const objectHits = raycaster
+        .intersectObjects(interactiveSprites, false)
+        .filter((intersection) => intersection.object.visible);
+      const objectHit =
+        objectHits.find(
+          (intersection) =>
+            intersection.object.userData.type === "tactical-action",
+        ) ?? objectHits[0];
+      if (objectHit) {
+        const data = objectHit.object.userData;
+        if (data.type === "tactical-action") {
+          const attacker = actorVisuals.get(data.actorId as string);
+          const target = actorVisuals.get(data.targetId as string);
+          if (!attacker || !target || attacker.actor.acted) return;
+          if (data.action === "heal") {
+            performHeal(attacker, target);
+            return;
+          }
+          if (data.action === "skill") {
+            const skill = attacker.actor.skills.find(
+              (candidate) => candidate.id === selectedSkillId,
+            );
+            if (skill && skill.remainingUses > 0) {
+              performSkill(attacker, target, skill);
+            }
+            return;
+          }
+          const modes = availableAttackModes(attacker.actor, target.actor);
+          if (modes.length === 1) {
+            performAttack(attacker, target, modes[0]);
+          } else if (modes.length > 1) {
+            pendingAttackTargetId = target.actor.id;
+            setPanelForActor(attacker, "공격 방식을 선택하세요.", {
+              attackChoices: modes.map((mode) => ({
+                id: mode.id,
+                label: mode.label,
+                damage: mode.damage,
+              })),
+            });
+          }
+          return;
+        }
+        const clickedActor = actorVisuals.get(data.actorId as string);
+        if (clickedActor) {
+          if (clickedActor.actor.team === "player") {
+            if (selectedActorId === clickedActor.actor.id) {
+              performWait();
+            } else {
+              selectActor(clickedActor);
+            }
+            return;
+          }
+          const selected = selectedActorId
+            ? actorVisuals.get(selectedActorId)
+            : undefined;
+          if (!selected || selected.actor.acted) {
+            setTacticalPanel({
+              ...DEFAULT_TACTICAL_PANEL,
+              message: `${clickedActor.actor.name} · 체력 ${clickedActor.actor.hp}/${clickedActor.actor.maxHp}`,
+            });
+            return;
+          }
+          const currentModes = availableAttackModes(
+            selected.actor,
+            clickedActor.actor,
+          );
+          if (currentModes.length > 0) {
+            setPanelForActor(
+              selected,
+              "적 위의 붉은 공격 표시를 누르면 공격합니다.",
+            );
+            return;
+          }
+          clearInteractionOverlays();
+          const approaches = attackApproachHexes(
+            selected.actor,
+            clickedActor.actor,
+            [...reachableByKey.values()],
+          );
+          approachByKey = new Map(
+            approaches.map((hex) => [`${hex.row}:${hex.column}`, hex]),
+          );
+          pendingApproachTargetId = clickedActor.actor.id;
+          approaches.forEach((hex) =>
+            addHexOverlay(hex.row, hex.column, "#ffb45d", 0.38),
+          );
+          setPanelForActor(
+            selected,
+            approaches.length > 0
+              ? "주황색 Hex를 선택하면 공격 가능한 위치까지만 이동합니다."
+              : `${clickedActor.actor.name}은(는) 이번 턴에 공격 범위까지 갈 수 없습니다.`,
+          );
+          return;
+        }
+      }
       const hit = raycaster.intersectObject(terrain, false)[0];
-      if (!hit) return;
+      if (!hit) {
+        clearSelection("지도 밖을 선택해 행동을 취소했습니다.");
+        return;
+      }
       const localHit = worldRoot.worldToLocal(hit.point.clone());
       const row = THREE.MathUtils.clamp(
         Math.round((localHit.z + MAP_DEPTH / 2 - HEX_SIZE) / (1.5 * HEX_SIZE)),
@@ -1995,6 +2768,35 @@ function WorldScene({
         0,
         HEX_COLS - 1,
       );
+      const clickedKey = `${row}:${column}`;
+      const selected = selectedActorId
+        ? actorVisuals.get(selectedActorId)
+        : undefined;
+      if (selected && !selected.actor.acted) {
+        if (
+          selected.actor.row === row &&
+          selected.actor.column === column
+        ) {
+          performWait();
+          return;
+        }
+        const approach = approachByKey.get(clickedKey);
+        if (approach && pendingApproachTargetId) {
+          performMove(
+            selected,
+            approach,
+            "공격 가능한 위치까지 이동했습니다. 붉은 공격 표시를 누르세요.",
+          );
+          return;
+        }
+        const reachable = reachableByKey.get(clickedKey);
+        if (reachable) {
+          performMove(selected, reachable);
+          return;
+        }
+        clearSelection("이동 불가능한 곳을 선택해 이동 명령을 취소했습니다.");
+        return;
+      }
       const center = hexCenterAt(row, column);
       const selectedPoints: THREE.Vector3[] = [];
       for (let edge = 0; edge < 6; edge += 1) {
@@ -2084,10 +2886,116 @@ function WorldScene({
     renderer.domElement.addEventListener("pointercancel", handlePointerCancel);
     renderer.domElement.addEventListener("contextmenu", handleContextMenu);
 
+    tacticalCommandRef.current = (command) => {
+      const visual = selectedActorId
+        ? actorVisuals.get(selectedActorId)
+        : undefined;
+      if (command.type === "reset-turn") {
+        livingActors()
+          .filter((candidate) => candidate.actor.team === "player")
+          .forEach((candidate) => {
+            candidate.actor.acted = false;
+            candidate.actor.remainingMovement = candidate.actor.movement;
+          });
+        clearSelection("새 테스트 턴입니다. 모든 아군이 다시 행동할 수 있습니다.");
+        return;
+      }
+      if (command.type === "cancel") {
+        clearSelection("선택을 취소했습니다.");
+        return;
+      }
+      if (!visual) return;
+      if (command.type === "wait") {
+        performWait();
+        return;
+      }
+      if (command.type === "toggle-skills") {
+        setPanelForActor(visual, "사용할 영웅 스킬을 선택하세요.", {
+          skillMenuOpen: true,
+        });
+        return;
+      }
+      if (command.type === "use-skill") {
+        const skill = visual.actor.skills.find(
+          (candidate) => candidate.id === command.skillId,
+        );
+        if (!skill || skill.remainingUses <= 0 || visual.actor.acted) return;
+        selectedSkillId = skill.id;
+        rebuildActionMarkers(visual);
+        setPanelForActor(
+          visual,
+          `${skill.label} 대상에게 표시된 보라색 아이콘을 누르세요.`,
+          { skillMenuOpen: true },
+        );
+        return;
+      }
+      if (command.type === "attack" && pendingAttackTargetId) {
+        const target = actorVisuals.get(pendingAttackTargetId);
+        const mode = visual.actor.attackModes.find(
+          (candidate) => candidate.id === command.modeId,
+        );
+        if (
+          target &&
+          mode &&
+          availableAttackModes(visual.actor, target.actor).some(
+            (candidate) => candidate.id === mode.id,
+          )
+        ) {
+          performAttack(visual, target, mode);
+        }
+      }
+    };
+    const handleOutsideInterfacePointer = (event: PointerEvent) => {
+      if (!selectedActorId) return;
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      if (
+        renderer.domElement.contains(target) ||
+        target.closest(".tactical-action-panel")
+      ) {
+        return;
+      }
+      clearSelection("다른 UI를 선택해 행동을 취소했습니다.");
+    };
+    window.addEventListener("pointerdown", handleOutsideInterfacePointer, true);
+
     const animate = () => {
       waterTexture.offset.y -= 0.00022;
       seaTexture.offset.x += 0.000025;
       controls.update();
+      if (activeActionAnimation) {
+        const elapsed = performance.now() - activeActionAnimation.startedAt;
+        const progress = Math.min(1, elapsed / 360);
+        const attacker = actorVisuals.get(activeActionAnimation.attackerId);
+        const target = actorVisuals.get(activeActionAnimation.targetId);
+        if (attacker) {
+          attacker.full.position.y =
+            activeActionAnimation.attackerY +
+            Math.sin(progress * Math.PI) * 0.22;
+          if (attacker.fullOutline) {
+            attacker.fullOutline.position.y = attacker.full.position.y - 0.002;
+          }
+        }
+        if (target && target.actor.hp > 0) {
+          target.full.position.y =
+            activeActionAnimation.targetY +
+            Math.sin(progress * Math.PI * 4) * 0.04;
+          target.full.material.opacity = progress < 0.7 && Math.floor(progress * 8) % 2 === 0 ? 0.45 : 1;
+        }
+        if (progress >= 1) {
+          if (attacker) {
+            attacker.full.position.y = activeActionAnimation.attackerY;
+            if (attacker.fullOutline) {
+              attacker.fullOutline.position.y = attacker.full.position.y - 0.002;
+            }
+          }
+          if (target) {
+            target.full.position.y = activeActionAnimation.targetY;
+            target.full.material.opacity = 1;
+          }
+          activeActionAnimation = null;
+        }
+      }
       const showFullHero = camera.zoom >= 1.35;
       heroLodPairs.forEach(({ full, fullOutline, badge, badgeOutline }) => {
         const badgeScale = 2.325 / camera.zoom;
@@ -2102,6 +3010,13 @@ function WorldScene({
       unitLodPairs.forEach(({ full, emblem }) => {
         full.visible = showFullUnit;
         emblem.visible = !showFullUnit;
+      });
+      actorVisuals.forEach((visual) => {
+        if (visual.actor.hp > 0) return;
+        visual.full.visible = false;
+        if (visual.fullOutline) visual.fullOutline.visible = false;
+        visual.badge.visible = false;
+        if (visual.badgeOutline) visual.badgeOutline.visible = false;
       });
       renderer.render(scene, camera);
     };
@@ -2126,7 +3041,16 @@ function WorldScene({
       renderer.domElement.removeEventListener("pointerup", handlePointerUp);
       renderer.domElement.removeEventListener("pointercancel", handlePointerCancel);
       renderer.domElement.removeEventListener("contextmenu", handleContextMenu);
+      window.removeEventListener(
+        "pointerdown",
+        handleOutsideInterfacePointer,
+        true,
+      );
       window.removeEventListener("world-map-reset-view", handleResetView);
+      tacticalCommandRef.current = () => undefined;
+      clearInteractionOverlays();
+      clearActionMarkers();
+      actionTextureCache.forEach((texture) => texture.dispose());
       renderer.setAnimationLoop(null);
       controls.dispose();
       scene.traverse((object) => {
@@ -2148,7 +3072,19 @@ function WorldScene({
     };
   }, [mapTierId, mapTypeId, onHexSelected, seed, showGrid]);
 
-  return <div className="world-3d" ref={hostRef} aria-label="WebGL로 렌더링한 2.5D 육각형 세계 지도" />;
+  return (
+    <div className="world-scene-shell">
+      <div
+        className="world-3d"
+        ref={hostRef}
+        aria-label="WebGL로 렌더링한 2.5D 육각형 세계 지도"
+      />
+      <TacticalActionPanel
+        state={tacticalPanel}
+        onCommand={handleTacticalCommand}
+      />
+    </div>
+  );
 }
 
 export function WorldPrototype() {

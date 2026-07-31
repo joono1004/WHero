@@ -26,6 +26,7 @@ button.secondary { background:#17343e; border-color:#43606a; color:#d6ded9; }
 canvas { display:block; width:100%; height:calc(100vh - 148px); min-height:620px; cursor:grab; touch-action:none; }
 .world-3d { width:100%; height:calc(100vh - 148px); min-height:620px; overflow:hidden; background:#d8e5cf; touch-action:none; }
 .world-3d canvas { width:100%; height:100%; min-height:0; }
+.world-scene-shell { position:relative; width:100%; height:100%; }
 .legend, .hex-info-popup { position:absolute; padding:14px 16px; border:1px solid rgba(239,216,154,.38); border-radius:7px; background:rgba(18,48,55,.9); box-shadow:0 12px 32px rgba(0,0,0,.24); backdrop-filter:blur(8px); }
 .legend { left:18px; bottom:18px; font-size:11px; color:#d3ddda; }
 .legend-toggle { display:none; }
@@ -83,6 +84,36 @@ canvas { display:block; width:100%; height:calc(100vh - 148px); min-height:620px
 .unit-visual-guide span { display:inline-flex; align-items:center; gap:4px; color:#d9e7df; font-size:11px; }
 .unit-visual-guide i { width:8px; height:8px; border-radius:50%; }
 .unit-visual-guide p { margin:7px 0 0; color:#aebfba; font-size:10px; line-height:1.45; }
+.tactical-action-panel {
+  position:absolute;
+  z-index:45;
+  right:18px;
+  bottom:18px;
+  width:min(470px,calc(100% - 36px));
+  padding:11px;
+  display:grid;
+  gap:9px;
+  border:1px solid rgba(239,216,154,.42);
+  border-radius:10px;
+  background:rgba(10,31,38,.95);
+  box-shadow:0 14px 38px rgba(0,0,0,.32);
+  backdrop-filter:blur(10px);
+}
+.tactical-status { min-width:0; display:grid; grid-template-columns:auto 1fr; align-items:center; gap:3px 10px; }
+.tactical-status > span { color:#f1d98d; font-weight:800; }
+.tactical-status > strong { overflow:hidden; color:#dce9e3; font-size:12px; font-weight:600; text-overflow:ellipsis; white-space:nowrap; }
+.tactical-status > small { grid-column:1/-1; color:#91aaa6; font-size:10px; }
+.tactical-actions, .tactical-choice-row { display:flex; flex-wrap:wrap; gap:7px; align-items:center; }
+.tactical-actions button, .tactical-choice-row button, .tactical-skill-list button { min-height:38px; padding:7px 11px; }
+.tactical-actions > span { flex:1; color:#a8bbb6; font-size:11px; }
+.tactical-reset { margin-left:auto; border-color:#6f5e43; background:#283b40; color:#d9c995; }
+.tactical-choice { display:flex; align-items:center; gap:8px; background:#763c36; border-color:#d69075; color:#fff2dd; }
+.tactical-choice b { font-size:19px; }
+.tactical-choice span, .tactical-choice small { display:block; text-align:left; }
+.tactical-choice small { color:#edc2a7; font-size:9px; }
+.tactical-skill-list { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; }
+.tactical-skill-list button { display:flex; justify-content:space-between; gap:8px; border-color:#8969b5; background:#3d3154; color:#f0e4ff; }
+.tactical-skill-list button:disabled { opacity:.42; cursor:not-allowed; }
 footer { min-height:58px; display:flex; align-items:center; gap:14px; padding:12px 28px; border-top:1px solid rgba(232,205,133,.32); background:#0d252c; color:#b5c5c1; font-size:11px; }
 footer span { color:#d9bd74; text-transform:uppercase; letter-spacing:.12em; }
 footer b { padding:5px 8px; border:1px solid #28434b; border-radius:4px; color:#c8d3cf; font-weight:500; }
@@ -145,11 +176,23 @@ footer small { margin-left:auto; color:#71898b; }
   .map-tier-active { grid-column:1/-1; min-height:44px; white-space:normal; }
   .controls .toggle { min-height:44px; }
   .stage { min-height:0; height:100%; overflow:hidden; }
+  .world-scene-shell { height:100%; }
   canvas,
   .world-3d {
     width:100%;
     height:100%;
     min-height:0;
+  }
+  .tactical-action-panel {
+    right:calc(8px + env(safe-area-inset-right));
+    bottom:calc(8px + env(safe-area-inset-bottom));
+    left:calc(8px + env(safe-area-inset-left));
+    width:auto;
+    padding:9px;
+  }
+  .tactical-status > strong { font-size:11px; }
+  .tactical-actions button, .tactical-choice-row button, .tactical-skill-list button {
+    min-height:44px;
   }
   footer { display:none; }
   .legend {
