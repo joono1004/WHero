@@ -102,7 +102,7 @@ canvas { display:block; width:100%; height:calc(100vh - 148px); min-height:620px
 }
 .tactical-action-panel.is-active { display:grid; }
 .tactical-action-panel.is-character-anchored {
-  width:min(340px,calc(100% - 16px));
+  width:min(158px,calc(100% - 16px));
   border-color:rgba(239,216,154,.62);
   box-shadow:0 12px 30px rgba(0,0,0,.42);
 }
@@ -122,8 +122,27 @@ canvas { display:block; width:100%; height:calc(100vh - 148px); min-height:620px
 .tactical-status > strong { overflow:hidden; color:#dce9e3; font-size:12px; font-weight:600; text-overflow:ellipsis; white-space:nowrap; }
 .tactical-status > small { grid-column:1/-1; color:#91aaa6; font-size:10px; }
 .tactical-actions, .tactical-choice-row { display:flex; flex-wrap:wrap; gap:7px; align-items:center; }
+.tactical-actions { flex-direction:column; align-items:stretch; }
 .tactical-actions button, .tactical-choice-row button, .tactical-skill-list button { min-height:38px; padding:7px 11px; }
 .tactical-actions > span { flex:1; color:#a8bbb6; font-size:11px; }
+.tactical-command {
+  width:100%;
+  min-height:44px !important;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+}
+.tactical-command > span {
+  padding-left:.35em;
+  letter-spacing:.35em;
+}
+.tactical-command > small {
+  font-size:9px;
+  font-weight:700;
+  letter-spacing:0;
+  opacity:.78;
+}
 .tactical-reset { margin-left:auto; border-color:#6f5e43; background:#283b40; color:#d9c995; }
 .tactical-attack { border-color:#dc8a6e; background:#793c34; color:#fff0dd; }
 .tactical-choice { display:flex; align-items:center; gap:8px; background:#763c36; border-color:#d69075; color:#fff2dd; }
@@ -131,6 +150,8 @@ canvas { display:block; width:100%; height:calc(100vh - 148px); min-height:620px
 .tactical-choice span, .tactical-choice small { display:block; text-align:left; }
 .tactical-choice small { color:#edc2a7; font-size:9px; }
 .tactical-skill-list { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; }
+.tactical-action-panel.is-character-anchored .tactical-choice-row button { width:100%; }
+.tactical-action-panel.is-character-anchored .tactical-skill-list { grid-template-columns:1fr; }
 .tactical-skill-list button { display:flex; justify-content:space-between; gap:8px; border-color:#8969b5; background:#3d3154; color:#f0e4ff; }
 .tactical-skill-list button:disabled { opacity:.42; cursor:not-allowed; }
 footer { min-height:58px; display:flex; align-items:center; gap:14px; padding:12px 28px; border-top:1px solid rgba(232,205,133,.32); background:#0d252c; color:#b5c5c1; font-size:11px; }
@@ -210,7 +231,7 @@ footer small { margin-left:auto; color:#71898b; }
     padding:9px;
   }
   .tactical-action-panel.is-character-anchored {
-    width:min(300px,calc(100% - 16px));
+    width:min(150px,calc(100% - 16px));
   }
   .tactical-status > strong { font-size:11px; }
   .tactical-actions button, .tactical-choice-row button, .tactical-skill-list button {

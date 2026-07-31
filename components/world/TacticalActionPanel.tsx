@@ -38,6 +38,11 @@ export function TacticalActionPanel({
   onCommand: (command: TacticalPanelCommand) => void;
   panelRef?: Ref<HTMLElement>;
 }) {
+  const skillUses = state.skills.reduce(
+    (total, skill) => total + skill.remainingUses,
+    0,
+  );
+
   return (
     <aside
       ref={panelRef}
@@ -45,10 +50,11 @@ export function TacticalActionPanel({
       onPointerDown={(event) => event.stopPropagation()}
       aria-hidden={!state.isOpen}
     >
-      <div className="tactical-status">
-        <span>{state.actorName}</span>
-        {state.message && <strong>{state.message}</strong>}
-      </div>
+      {state.message && (
+        <div className="tactical-status">
+          <strong>{state.message}</strong>
+        </div>
+      )}
 
       {state.attackChoices.length > 1 && (
         <div className="tactical-choice-row" aria-label="공격 방식 선택">
@@ -86,38 +92,36 @@ export function TacticalActionPanel({
         {state.canAttack && (
           <button
             type="button"
-            className="tactical-attack"
+            className="tactical-command tactical-attack"
             onClick={() => onCommand({ type: "start-attack" })}
           >
-            공격
+            <span>공격</span>
           </button>
         )}
         <button
           type="button"
-          className="secondary"
+          className="tactical-command secondary"
           onClick={() => onCommand({ type: "wait" })}
         >
-          대기
+          <span>대기</span>
         </button>
         {state.actorKind === "hero" && (
             <button
               type="button"
-              className="secondary"
+              className="tactical-command secondary"
               disabled={state.skills.length === 0}
               onClick={() => onCommand({ type: "toggle-skills" })}
             >
-              스킬 x {state.skills.reduce(
-                (total, skill) => total + skill.remainingUses,
-                0,
-              )}
+              <span>스킬</span>
+              <small>x {String(skillUses).padStart(2, "0")}</small>
             </button>
         )}
         <button
           type="button"
-          className="secondary"
+          className="tactical-command secondary"
           onClick={() => onCommand({ type: "info" })}
         >
-          정보
+          <span>정보</span>
         </button>
       </div>
     </aside>
