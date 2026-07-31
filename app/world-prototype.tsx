@@ -2871,11 +2871,8 @@ function WorldScene({
           if (clickedActor.actor.team === "player") {
             if (selectedActorId === clickedActor.actor.id) {
               clearActionMarkers();
-              if (movementPreviewActive) {
-                showMovementPlan(clickedActor);
-              } else {
-                clearInteractionOverlays();
-              }
+              movementPreviewActive = true;
+              showMovementPlan(clickedActor);
               setPanelForActor(clickedActor, "");
             } else {
               selectActor(clickedActor);
@@ -3061,11 +3058,7 @@ function WorldScene({
           movementPlanOrigin.column,
         );
         visual.actor.remainingMovement = movementPlanBudget;
-        movementPreviewActive = false;
-        commandPanelOpen = false;
-        clearActionMarkers();
-        showMovementPlan(visual);
-        setTacticalPanel(DEFAULT_TACTICAL_PANEL);
+        clearSelection();
         return;
       }
       if (command.type === "info") {
