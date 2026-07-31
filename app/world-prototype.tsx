@@ -2870,8 +2870,12 @@ function WorldScene({
           }
           if (clickedActor.actor.team === "player") {
             if (selectedActorId === clickedActor.actor.id) {
-              clearInteractionOverlays();
               clearActionMarkers();
+              if (movementPreviewActive) {
+                showMovementPlan(clickedActor);
+              } else {
+                clearInteractionOverlays();
+              }
               setPanelForActor(clickedActor, "");
             } else {
               selectActor(clickedActor);
