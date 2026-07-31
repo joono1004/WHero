@@ -1061,6 +1061,7 @@ function WorldScene({
   ) => void;
 }) {
   const hostRef = useRef<HTMLDivElement>(null);
+  const tacticalPanelRef = useRef<HTMLElement>(null);
   const tacticalCommandRef = useRef<(command: TacticalPanelCommand) => void>(
     () => undefined,
   );
@@ -3018,6 +3019,43 @@ function WorldScene({
         visual.badge.visible = false;
         if (visual.badgeOutline) visual.badgeOutline.visible = false;
       });
+      const actionPanel = tacticalPanelRef.current;
+      const selectedVisual = selectedActorId
+        ? actorVisuals.get(selectedActorId)
+        : undefined;
+      if (actionPanel && selectedVisual && selectedVisual.actor.hp > 0) {
+        const anchor = selectedVisual.badge.position.clone();
+        anchor.y += 0.35;
+        worldRoot.localToWorld(anchor);
+        anchor.project(camera);
+        const anchorX = (anchor.x * 0.5 + 0.5) * host.clientWidth;
+        const anchorY = (-anchor.y * 0.5 + 0.5) * host.clientHeight;
+        const panelWidth = actionPanel.offsetWidth;
+        const panelHeight = actionPanel.offsetHeight;
+        const gap = 18;
+        const margin = 8;
+        const placeOnLeft =
+          anchorX + gap + panelWidth > host.clientWidth - margin;
+        const left = placeOnLeft
+          ? anchorX - gap - panelWidth
+          : anchorX + gap;
+        const top = THREE.MathUtils.clamp(
+          anchorY - panelHeight * 0.5,
+          margin,
+          Math.max(margin, host.clientHeight - panelHeight - margin),
+        );
+        actionPanel.classList.add("is-character-anchored");
+        actionPanel.style.left = `${Math.round(Math.max(margin, left))}px`;
+        actionPanel.style.top = `${Math.round(top)}px`;
+        actionPanel.style.right = "auto";
+        actionPanel.style.bottom = "auto";
+      } else if (actionPanel) {
+        actionPanel.classList.remove("is-character-anchored");
+        actionPanel.style.removeProperty("left");
+        actionPanel.style.removeProperty("top");
+        actionPanel.style.removeProperty("right");
+        actionPanel.style.removeProperty("bottom");
+      }
       renderer.render(scene, camera);
     };
     renderer.setAnimationLoop(animate);
@@ -3082,6 +3120,7 @@ function WorldScene({
       <TacticalActionPanel
         state={tacticalPanel}
         onCommand={handleTacticalCommand}
+        panelRef={tacticalPanelRef}
       />
     </div>
   );

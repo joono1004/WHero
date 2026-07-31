@@ -1,5 +1,7 @@
 "use client";
 
+import type { Ref } from "react";
+
 import type { TacticalSkill } from "@/lib/world/prototype/tactical-interaction";
 
 export type TacticalAttackChoice = {
@@ -31,12 +33,15 @@ export type TacticalPanelCommand =
 export function TacticalActionPanel({
   state,
   onCommand,
+  panelRef,
 }: {
   state: TacticalPanelState;
   onCommand: (command: TacticalPanelCommand) => void;
+  panelRef?: Ref<HTMLElement>;
 }) {
   return (
     <aside
+      ref={panelRef}
       className={`tactical-action-panel ${state.actorName ? "is-active" : ""}`}
       onPointerDown={(event) => event.stopPropagation()}
     >
@@ -126,4 +131,3 @@ export function TacticalActionPanel({
     </aside>
   );
 }
-
