@@ -1910,16 +1910,16 @@ function WorldScene({
     });
     const updateActorActionAppearance = (visual: ActorVisual) => {
       const inactive = visual.actor.acted;
-      const tint = inactive ? "#858b88" : "#ffffff";
+      const tint = inactive ? "#a7aaa7" : "#ffffff";
       visual.full.material.color.set(tint);
-      visual.full.material.opacity = inactive ? 0.58 : 1;
+      visual.full.material.opacity = inactive ? 0.82 : 1;
       visual.badge.material.color.set(tint);
-      visual.badge.material.opacity = inactive ? 0.62 : 1;
+      visual.badge.material.opacity = inactive ? 0.86 : 1;
       if (visual.fullOutline) {
-        visual.fullOutline.material.opacity = inactive ? 0.34 : 0.9;
+        visual.fullOutline.material.opacity = inactive ? 0.66 : 0.9;
       }
       if (visual.badgeOutline) {
-        visual.badgeOutline.material.opacity = inactive ? 0.38 : 0.95;
+        visual.badgeOutline.material.opacity = inactive ? 0.72 : 0.95;
       }
       visual.hexMarker.fill.material.opacity = inactive ? 0.08 : 0.2;
       visual.hexMarker.outline.material.opacity = inactive ? 0.36 : 0.94;
