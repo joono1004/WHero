@@ -158,10 +158,21 @@ canvas { display:block; width:100%; height:calc(100vh - 148px); min-height:620px
 .tactical-info { border-color:#719ca2; background:rgba(52,82,88,.86); color:#e5f7f5; }
 .tactical-move-cancel { border-color:#9d8b78; background:rgba(72,67,60,.86); color:#f0e5d8; }
 .tactical-move-cancel > span { padding-left:0; letter-spacing:.08em; }
-.tactical-choice { display:flex; align-items:center; gap:8px; background:#763c36; border-color:#d69075; color:#fff2dd; }
-.tactical-choice b { font-size:19px; }
+.tactical-choice {
+  min-height:28px !important;
+  padding:4px 6px !important;
+  display:flex;
+  align-items:center;
+  gap:4px;
+  background:#763c36;
+  border-color:#d69075;
+  color:#fff2dd;
+  font-size:10px;
+}
+.tactical-choice b { flex:0 0 14px; font-size:12px; line-height:1; text-align:center; }
 .tactical-choice span, .tactical-choice small { display:block; text-align:left; }
-.tactical-choice small { color:#edc2a7; font-size:9px; }
+.tactical-choice span { font-size:10px; font-weight:700; line-height:1.12; }
+.tactical-choice small { margin-top:1px; color:#edc2a7; font-size:7px; line-height:1.1; }
 .tactical-skill-list { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; }
 .tactical-action-panel.is-character-anchored .tactical-choice-row button { width:100%; }
 .tactical-action-panel.is-character-anchored .tactical-skill-list { grid-template-columns:1fr; }
