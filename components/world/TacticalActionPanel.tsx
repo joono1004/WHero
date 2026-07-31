@@ -46,7 +46,15 @@ export function TacticalActionPanel({
   return (
     <aside
       ref={panelRef}
-      className={`tactical-action-panel ${state.isOpen ? "is-active" : ""}`}
+      className={[
+        "tactical-action-panel",
+        state.isOpen ? "is-active" : "",
+        state.attackChoices.length > 1 || state.skillMenuOpen
+          ? "has-submenu"
+          : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
       onPointerDown={(event) => event.stopPropagation()}
       aria-hidden={!state.isOpen}
     >
@@ -100,7 +108,7 @@ export function TacticalActionPanel({
         )}
         <button
           type="button"
-          className="tactical-command secondary"
+          className="tactical-command tactical-wait"
           onClick={() => onCommand({ type: "wait" })}
         >
           <span>대기</span>
@@ -108,7 +116,7 @@ export function TacticalActionPanel({
         {state.actorKind === "hero" && (
             <button
               type="button"
-              className="tactical-command secondary"
+              className="tactical-command tactical-skill"
               disabled={state.skills.length === 0}
               onClick={() => onCommand({ type: "toggle-skills" })}
             >
@@ -118,7 +126,7 @@ export function TacticalActionPanel({
         )}
         <button
           type="button"
-          className="tactical-command secondary"
+          className="tactical-command tactical-info"
           onClick={() => onCommand({ type: "info" })}
         >
           <span>정보</span>

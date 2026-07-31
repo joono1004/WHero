@@ -1063,6 +1063,8 @@ function WorldScene({
   const tacticalCommandRef = useRef<(command: TacticalPanelCommand) => void>(
     () => undefined,
   );
+  const endTurnRef = useRef<() => void>(() => undefined);
+  const [turnNumber, setTurnNumber] = useState(1);
   const [tacticalPanel, setTacticalPanel] = useState<TacticalPanelState>(
     DEFAULT_TACTICAL_PANEL,
   );
@@ -1075,6 +1077,7 @@ function WorldScene({
     const host = hostRef.current;
     if (!host) return;
     setTacticalPanel(DEFAULT_TACTICAL_PANEL);
+    setTurnNumber(1);
     configureMapTier(mapTierId);
     configureMapType(mapTypeId);
 
@@ -1903,6 +1906,22 @@ function WorldScene({
         hexMarker,
       });
     });
+    const updateActorActionAppearance = (visual: ActorVisual) => {
+      const inactive = visual.actor.acted;
+      const tint = inactive ? "#858b88" : "#ffffff";
+      visual.full.material.color.set(tint);
+      visual.full.material.opacity = inactive ? 0.58 : 1;
+      visual.badge.material.color.set(tint);
+      visual.badge.material.opacity = inactive ? 0.62 : 1;
+      if (visual.fullOutline) {
+        visual.fullOutline.material.opacity = inactive ? 0.34 : 0.9;
+      }
+      if (visual.badgeOutline) {
+        visual.badgeOutline.material.opacity = inactive ? 0.38 : 0.95;
+      }
+      visual.hexMarker.fill.material.opacity = inactive ? 0.08 : 0.2;
+      visual.hexMarker.outline.material.opacity = inactive ? 0.36 : 0.94;
+    };
     const neighborCells = (cell: TerrainCell) => {
       const diagonal = cell.row % 2 === 0 ? -1 : 1;
       return [
@@ -2495,6 +2514,10 @@ function WorldScene({
         });
         return;
       }
+      if (visual.actor.acted) {
+        clearSelection(`${visual.actor.name}은(는) 이번 턴의 행동을 마쳤습니다.`);
+        return;
+      }
       selectedActorId = visual.actor.id;
       commandPanelOpen = false;
       selectedSkillId = null;
@@ -2526,6 +2549,7 @@ function WorldScene({
       if (!visual || visual.actor.acted) return;
       visual.actor.acted = true;
       visual.actor.remainingMovement = 0;
+      updateActorActionAppearance(visual);
       clearSelection(`${visual.actor.name}이(가) 현재 위치에서 대기합니다.`);
     };
     const performMove = (
@@ -2560,6 +2584,7 @@ function WorldScene({
       }
       attacker.actor.acted = true;
       attacker.actor.remainingMovement = 0;
+      updateActorActionAppearance(attacker);
       if (target.actor.hp <= 0) {
         target.full.visible = false;
         target.fullOutline && (target.fullOutline.visible = false);
@@ -2942,6 +2967,16 @@ function WorldScene({
         }
       }
     };
+    endTurnRef.current = () => {
+      actorVisuals.forEach((visual) => {
+        if (visual.actor.team !== "player" || visual.actor.hp <= 0) return;
+        visual.actor.acted = false;
+        visual.actor.remainingMovement = visual.actor.movement;
+        updateActorActionAppearance(visual);
+      });
+      clearSelection("새로운 턴입니다. 모든 아군이 다시 행동할 수 있습니다.");
+      setTurnNumber((current) => current + 1);
+    };
     const handleOutsideInterfacePointer = (event: PointerEvent) => {
       if (!selectedActorId) return;
       const target = event.target;
@@ -3025,28 +3060,29 @@ function WorldScene({
         selectedVisual &&
         selectedVisual.actor.hp > 0
       ) {
-        const anchor = selectedVisual.badge.position.clone();
-        anchor.y += 0.35;
+        // The full sprite position is anchored at the actor's feet. Projecting
+        // that point keeps the compact command panel directly below the hex.
+        const anchor = selectedVisual.full.position.clone();
         worldRoot.localToWorld(anchor);
         anchor.project(camera);
         const anchorX = (anchor.x * 0.5 + 0.5) * host.clientWidth;
         const anchorY = (-anchor.y * 0.5 + 0.5) * host.clientHeight;
         const panelWidth = actionPanel.offsetWidth;
         const panelHeight = actionPanel.offsetHeight;
-        const gap = 18;
+        const gap = 8;
         const margin = 8;
-        const placeOnLeft =
-          anchorX + gap + panelWidth > host.clientWidth - margin;
-        const left = placeOnLeft
-          ? anchorX - gap - panelWidth
-          : anchorX + gap;
+        const left = THREE.MathUtils.clamp(
+          anchorX - panelWidth * 0.5,
+          margin,
+          Math.max(margin, host.clientWidth - panelWidth - margin),
+        );
         const top = THREE.MathUtils.clamp(
-          anchorY - panelHeight * 0.5,
+          anchorY + gap,
           margin,
           Math.max(margin, host.clientHeight - panelHeight - margin),
         );
         actionPanel.classList.add("is-character-anchored");
-        actionPanel.style.left = `${Math.round(Math.max(margin, left))}px`;
+        actionPanel.style.left = `${Math.round(left)}px`;
         actionPanel.style.top = `${Math.round(top)}px`;
         actionPanel.style.right = "auto";
         actionPanel.style.bottom = "auto";
@@ -3087,6 +3123,7 @@ function WorldScene({
       );
       window.removeEventListener("world-map-reset-view", handleResetView);
       tacticalCommandRef.current = () => undefined;
+      endTurnRef.current = () => undefined;
       clearInteractionOverlays();
       clearActionMarkers();
       actionTextureCache.forEach((texture) => texture.dispose());
@@ -3123,6 +3160,14 @@ function WorldScene({
         onCommand={handleTacticalCommand}
         panelRef={tacticalPanelRef}
       />
+      <button
+        type="button"
+        className="turn-end-control"
+        onClick={() => endTurnRef.current()}
+      >
+        <small>TURN {turnNumber}</small>
+        <span>턴 종료</span>
+      </button>
     </div>
   );
 }
