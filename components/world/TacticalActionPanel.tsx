@@ -101,7 +101,7 @@ export function TacticalActionPanel({
       )}
 
       <div className="tactical-actions">
-        {state.attackTargeting ? (
+        {state.attackTargeting || state.attackChoices.length > 1 ? (
           <button
             type="button"
             className="tactical-command tactical-attack-cancel"

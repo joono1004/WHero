@@ -3336,10 +3336,18 @@ export function WorldPrototype() {
     diagnostic: HexDiagnostic,
     pointerPosition: { x: number; y: number },
   ) => {
-    setSelectedHexPopup({
-      diagnostic,
-      x: pointerPosition.x,
-      y: pointerPosition.y,
+    setSelectedHexPopup((current) => {
+      if (
+        current?.diagnostic.row === diagnostic.row &&
+        current.diagnostic.column === diagnostic.column
+      ) {
+        return null;
+      }
+      return {
+        diagnostic,
+        x: pointerPosition.x,
+        y: pointerPosition.y,
+      };
     });
   }, []);
 
