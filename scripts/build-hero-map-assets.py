@@ -9,15 +9,16 @@ ROOT = Path(__file__).resolve().parents[1]
 HERO_DIR = ROOT / "public" / "art" / "heroes"
 BADGE_SIZE = 320
 
-# Pixel crops are deliberately face-first. The resulting face/head occupies
-# roughly 80% of the circular badge instead of showing the hero's full body.
+# Pixel crops are deliberately face-first. Keep the complete headgear, hair
+# and beard while excluding most shoulders and weapons, so the face remains
+# recognizable at the smallest map zoom.
 HERO_SPECS = {
     # outline_filter compensates for each hero's different rendered scale so
     # every contour has the same apparent thickness as Guan Yu on the map.
-    "guan-yu": {"face_crop": (360, 140, 830, 720), "outline_filter": 25},
-    "huang-zhong": {"face_crop": (300, 120, 730, 710), "outline_filter": 33},
-    "wei-yan": {"face_crop": (380, 125, 860, 735), "outline_filter": 33},
-    "zhao-yun": {"face_crop": (370, 115, 850, 670), "outline_filter": 27},
+    "guan-yu": {"face_crop": (390, 140, 800, 650), "outline_filter": 25},
+    "huang-zhong": {"face_crop": (325, 120, 705, 640), "outline_filter": 33},
+    "wei-yan": {"face_crop": (410, 125, 830, 655), "outline_filter": 33},
+    "zhao-yun": {"face_crop": (400, 115, 820, 600), "outline_filter": 27},
 }
 
 
@@ -46,18 +47,18 @@ def build_badge(source: Image.Image, crop_box: tuple[int, int, int, int]) -> Ima
     # the corner/edge cropping caused by square `fit` inside a round mask.
     face = ImageOps.contain(
         source.crop(crop_box),
-        (258, 258),
+        (270, 270),
         method=Image.Resampling.LANCZOS,
     )
-    face_layer = Image.new("RGBA", (278, 278), (0, 0, 0, 0))
+    face_layer = Image.new("RGBA", (282, 282), (0, 0, 0, 0))
     face_layer.alpha_composite(
         face,
-        ((278 - face.width) // 2, (278 - face.height) // 2 + 4),
+        ((282 - face.width) // 2, (282 - face.height) // 2 + 2),
     )
-    circle_mask = Image.new("L", (278, 278), 0)
-    ImageDraw.Draw(circle_mask).ellipse((0, 0, 277, 277), fill=255)
+    circle_mask = Image.new("L", (282, 282), 0)
+    ImageDraw.Draw(circle_mask).ellipse((0, 0, 281, 281), fill=255)
     face_layer.putalpha(ImageChops.multiply(face_layer.getchannel("A"), circle_mask))
-    canvas.alpha_composite(face_layer, (21, 21))
+    canvas.alpha_composite(face_layer, (19, 19))
 
     # Neutral inner keyline; the grade colour is supplied by a separate ring.
     draw.ellipse((20, 20, 300, 300), outline=(15, 20, 22, 235), width=6)
@@ -81,7 +82,7 @@ def main() -> None:
         )
         save_webp(
             build_badge(source, spec["face_crop"]),
-            HERO_DIR / f"{hero_id}-chibi-badge-v4.webp",
+            HERO_DIR / f"{hero_id}-chibi-badge-v5.webp",
         )
         save_webp(
             build_badge_outline(),
