@@ -1050,13 +1050,16 @@ function unitTacticalProfile(unitId: string) {
 }
 
 function WorldScene({
+  generationId,
   seed,
   mapTierId,
   mapTypeId,
   showGrid,
   showFog,
   onHexSelected,
+  onReady,
 }: {
+  generationId: number;
   seed: number;
   mapTierId: MapTierId;
   mapTypeId: MapTypeId;
@@ -1066,6 +1069,7 @@ function WorldScene({
     diagnostic: HexDiagnostic,
     pointerPosition: { x: number; y: number },
   ) => void;
+  onReady: (generationId: number) => void;
 }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const tacticalPanelRef = useRef<HTMLElement>(null);
@@ -1166,7 +1170,24 @@ function WorldScene({
     const worldRoot = new THREE.Group();
     scene.add(worldRoot);
 
-    const textureLoader = new THREE.TextureLoader();
+    let sceneBuildComplete = false;
+    let assetsLoaded = true;
+    let readyNotified = false;
+    let readyFrame = 0;
+    const notifyReady = () => {
+      if (!sceneBuildComplete || !assetsLoaded || readyNotified) return;
+      readyNotified = true;
+      readyFrame = window.requestAnimationFrame(() => onReady(generationId));
+    };
+    const loadingManager = new THREE.LoadingManager();
+    loadingManager.onStart = () => {
+      assetsLoaded = false;
+    };
+    loadingManager.onLoad = () => {
+      assetsLoaded = true;
+      notifyReady();
+    };
+    const textureLoader = new THREE.TextureLoader(loadingManager);
     const loadCharacterTexture = (url: string) => {
       const cached = CHARACTER_TEXTURE_CACHE.get(url);
       if (cached) return cached;
@@ -3385,8 +3406,11 @@ function WorldScene({
     };
     const observer = new ResizeObserver(resize);
     observer.observe(host);
+    sceneBuildComplete = true;
+    notifyReady();
 
     return () => {
+      window.cancelAnimationFrame(readyFrame);
       observer.disconnect();
       renderer.domElement.removeEventListener("pointerdown", handlePointerDown);
       renderer.domElement.removeEventListener("pointermove", handlePointerMove);
@@ -3423,7 +3447,7 @@ function WorldScene({
       renderer.dispose();
       renderer.domElement.remove();
     };
-  }, [mapTierId, mapTypeId, onHexSelected, seed, showFog, showGrid]);
+  }, [generationId, mapTierId, mapTypeId, onHexSelected, onReady, seed, showFog, showGrid]);
 
   return (
     <div className="world-scene-shell">
@@ -3458,6 +3482,9 @@ export function WorldPrototype() {
   const [appliedMapTypeId, setAppliedMapTypeId] = useState<MapTypeId>("continent");
   const [showGrid, setShowGrid] = useState(true);
   const [showFog, setShowFog] = useState(true);
+  const [generationId, setGenerationId] = useState(0);
+  const generationIdRef = useRef(generationId);
+  const [isWorldLoading, setIsWorldLoading] = useState(true);
   const [selectedHexPopup, setSelectedHexPopup] =
     useState<SelectedHexPopup | null>(null);
   const activeTier = configureMapTier(appliedTierId);
@@ -3485,9 +3512,17 @@ export function WorldPrototype() {
       };
     });
   }, []);
+  generationIdRef.current = generationId;
+  const handleWorldReady = useCallback((readyGenerationId: number) => {
+    if (readyGenerationId === generationIdRef.current) {
+      setIsWorldLoading(false);
+    }
+  }, []);
 
   const regenerate = () => {
     const parsed = Number(seedText);
+    setIsWorldLoading(true);
+    setGenerationId((current) => current + 1);
     setAppliedTierId(selectedTierId);
     setAppliedMapTypeId(selectedMapTypeId);
     setSelectedHexPopup(null);
@@ -3496,6 +3531,8 @@ export function WorldPrototype() {
 
   const randomize = () => {
     const next = Math.floor(Math.random() * 99999999);
+    setIsWorldLoading(true);
+    setGenerationId((current) => current + 1);
     setSeedText(String(next));
     setAppliedTierId(selectedTierId);
     setAppliedMapTypeId(selectedMapTypeId);
@@ -3529,13 +3566,32 @@ export function WorldPrototype() {
       </header>
       <section className="stage">
         <WorldScene
+          generationId={generationId}
           seed={seed}
           mapTierId={appliedTierId}
           mapTypeId={appliedMapTypeId}
           showGrid={showGrid}
           showFog={showFog}
           onHexSelected={handleHexSelected}
+          onReady={handleWorldReady}
         />
+        {isWorldLoading && (
+          <div className="world-loading" role="status" aria-live="polite" aria-busy="true">
+            <div className="world-loading-card">
+              <span className="world-loading-kicker">새로운 원정지를 준비하고 있습니다</span>
+              <strong>세계 생성 중</strong>
+              <div className="world-loading-track" aria-hidden="true">
+                <i />
+              </div>
+              <dl>
+                <div><dt>맵 등급</dt><dd>{activeTier.label}</dd></div>
+                <div><dt>맵 유형</dt><dd>{activeMapType.label}</dd></div>
+                <div><dt>월드 시드</dt><dd>{seed}</dd></div>
+              </dl>
+              <p>지형 · 강 · 해안 · 숲 · 시야 정보를 구성하고 있습니다.</p>
+            </div>
+          </div>
+        )}
         <TerrainLegend coastStats={coastStats} />
         <TestHeroPanel />
         <HexInfoPopup popup={selectedHexPopup} />
