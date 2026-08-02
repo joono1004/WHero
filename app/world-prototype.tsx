@@ -59,6 +59,11 @@ import {
   type TacticalActor,
   type TacticalSkill,
 } from "@/lib/world/prototype/tactical-interaction";
+import {
+  fogStateAt,
+  visibleHexKeys,
+  type VisionSource,
+} from "@/lib/world/visibility/fog-of-war";
 
 // Character art is independent from each generated world. Keep the decoded
 // textures between seed changes so regenerating terrain does not decode the
@@ -1049,12 +1054,14 @@ function WorldScene({
   mapTierId,
   mapTypeId,
   showGrid,
+  showFog,
   onHexSelected,
 }: {
   seed: number;
   mapTierId: MapTierId;
   mapTypeId: MapTypeId;
   showGrid: boolean;
+  showFog: boolean;
   onHexSelected: (
     diagnostic: HexDiagnostic,
     pointerPosition: { x: number; y: number },
@@ -2173,6 +2180,122 @@ function WorldScene({
     grid.visible = showGrid;
     worldRoot.add(grid);
 
+    type FogRenderCell = {
+      row: number;
+      column: number;
+      x: number;
+      z: number;
+      y: number;
+    };
+    const fogCells: FogRenderCell[] = [];
+    for (let row = 0; row < HEX_ROWS; row += 1) {
+      for (let column = 0; column < HEX_COLS; column += 1) {
+        const center = hexCenterAt(row, column);
+        if (
+          center.x < -MAP_WIDTH / 2 - HEX_WIDTH ||
+          center.x > MAP_WIDTH / 2 + HEX_WIDTH ||
+          center.z < -MAP_DEPTH / 2 - HEX_SIZE ||
+          center.z > MAP_DEPTH / 2 + HEX_SIZE
+        ) {
+          continue;
+        }
+        fogCells.push({
+          row,
+          column,
+          x: center.x,
+          z: center.z,
+          y: Math.max(heightAt(seed, center.x, center.z, samples) + 0.19, -0.17),
+        });
+      }
+    }
+    const fogGeometry = new THREE.CircleGeometry(HEX_SIZE * 1.035, 6);
+    fogGeometry.rotateZ(-Math.PI / 6);
+    fogGeometry.rotateX(-Math.PI / 2);
+    const unexploredFog = new THREE.InstancedMesh(
+      fogGeometry,
+      new THREE.MeshBasicMaterial({
+        color: "#071216",
+        transparent: true,
+        opacity: 0.88,
+        depthTest: false,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+      }),
+      fogCells.length,
+    );
+    const exploredFog = new THREE.InstancedMesh(
+      fogGeometry,
+      new THREE.MeshBasicMaterial({
+        color: "#314247",
+        transparent: true,
+        opacity: 0.52,
+        depthTest: false,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+      }),
+      fogCells.length,
+    );
+    unexploredFog.renderOrder = 78;
+    exploredFog.renderOrder = 79;
+    unexploredFog.frustumCulled = false;
+    exploredFog.frustumCulled = false;
+    unexploredFog.visible = showFog;
+    exploredFog.visible = showFog;
+    unexploredFog.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    exploredFog.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    worldRoot.add(unexploredFog, exploredFog);
+
+    const exploredHexKeys = new Set<string>();
+    let currentVisibleHexKeys = new Set<string>();
+    const fogTransform = new THREE.Object3D();
+    const hiddenFogMatrix = new THREE.Matrix4().makeScale(0.0001, 0.0001, 0.0001);
+    const playerVisionSources = (radiusBonus = 0): VisionSource[] =>
+      [...actorVisuals.values()]
+        .filter((visual) => visual.actor.team === "player" && visual.actor.hp > 0)
+        .map((visual) => ({
+          row: visual.actor.row,
+          column: visual.actor.column,
+          radius: (visual.actor.kind === "hero" ? 3 : 2) + radiusBonus,
+        }));
+    const updateFogMeshes = () => {
+      fogCells.forEach((cell, index) => {
+        fogTransform.position.set(cell.x, cell.y, cell.z);
+        fogTransform.scale.set(1, 1, 1);
+        fogTransform.updateMatrix();
+        const state = fogStateAt(
+          cell.row,
+          cell.column,
+          currentVisibleHexKeys,
+          exploredHexKeys,
+        );
+        unexploredFog.setMatrixAt(
+          index,
+          state === "unexplored" ? fogTransform.matrix : hiddenFogMatrix,
+        );
+        exploredFog.setMatrixAt(
+          index,
+          state === "explored" ? fogTransform.matrix : hiddenFogMatrix,
+        );
+      });
+      unexploredFog.instanceMatrix.needsUpdate = true;
+      exploredFog.instanceMatrix.needsUpdate = true;
+    };
+    const refreshFogVisibility = (commitExploration = true) => {
+      currentVisibleHexKeys = visibleHexKeys(
+        playerVisionSources(),
+        HEX_ROWS,
+        HEX_COLS,
+      );
+      if (commitExploration) {
+        currentVisibleHexKeys.forEach((key) => exploredHexKeys.add(key));
+      }
+      updateFogMeshes();
+    };
+    visibleHexKeys(playerVisionSources(1), HEX_ROWS, HEX_COLS).forEach((key) =>
+      exploredHexKeys.add(key),
+    );
+    refreshFogVisibility(false);
+
     const selectionGeometry = new THREE.BufferGeometry();
     const selection = new THREE.LineLoop(
       selectionGeometry,
@@ -2595,6 +2718,7 @@ function WorldScene({
       visual.actor.acted = true;
       visual.actor.remainingMovement = 0;
       updateActorActionAppearance(visual);
+      refreshFogVisibility();
       clearSelection(`${visual.actor.name}이(가) 현재 위치에서 대기합니다.`);
     };
     const performMove = (
@@ -2644,6 +2768,7 @@ function WorldScene({
         target.hexMarker.fill.visible = false;
         target.hexMarker.outline.visible = false;
       }
+      refreshFogVisibility();
       clearSelection(
         `${label} · ${target.actor.name} 체력 ${target.actor.hp}/${target.actor.maxHp}`,
       );
@@ -3187,7 +3312,16 @@ function WorldScene({
         emblem.visible = !showFullUnit;
       });
       actorVisuals.forEach((visual) => {
-        if (visual.actor.hp > 0) return;
+        const revealed =
+          !showFog ||
+          visual.actor.team === "player" ||
+          currentVisibleHexKeys.has(
+            `${visual.actor.row}:${visual.actor.column}`,
+          );
+        const showActor = visual.actor.hp > 0 && revealed;
+        visual.hexMarker.fill.visible = showActor;
+        visual.hexMarker.outline.visible = showActor;
+        if (showActor) return;
         visual.full.visible = false;
         if (visual.fullOutline) visual.fullOutline.visible = false;
         visual.badge.visible = false;
@@ -3289,7 +3423,7 @@ function WorldScene({
       renderer.dispose();
       renderer.domElement.remove();
     };
-  }, [mapTierId, mapTypeId, onHexSelected, seed, showGrid]);
+  }, [mapTierId, mapTypeId, onHexSelected, seed, showFog, showGrid]);
 
   return (
     <div className="world-scene-shell">
@@ -3323,6 +3457,7 @@ export function WorldPrototype() {
   const [selectedMapTypeId, setSelectedMapTypeId] = useState<MapTypeId>("continent");
   const [appliedMapTypeId, setAppliedMapTypeId] = useState<MapTypeId>("continent");
   const [showGrid, setShowGrid] = useState(true);
+  const [showFog, setShowFog] = useState(true);
   const [selectedHexPopup, setSelectedHexPopup] =
     useState<SelectedHexPopup | null>(null);
   const activeTier = configureMapTier(appliedTierId);
@@ -3382,12 +3517,14 @@ export function WorldPrototype() {
           activeTier={activeTier}
           seedText={seedText}
           showGrid={showGrid}
+          showFog={showFog}
           onMapTypeChange={setSelectedMapTypeId}
           onTierChange={setSelectedTierId}
           onSeedTextChange={setSeedText}
           onRegenerate={regenerate}
           onRandomize={randomize}
           onGridChange={setShowGrid}
+          onFogChange={setShowFog}
         />
       </header>
       <section className="stage">
@@ -3396,6 +3533,7 @@ export function WorldPrototype() {
           mapTierId={appliedTierId}
           mapTypeId={appliedMapTypeId}
           showGrid={showGrid}
+          showFog={showFog}
           onHexSelected={handleHexSelected}
         />
         <TerrainLegend coastStats={coastStats} />

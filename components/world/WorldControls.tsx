@@ -15,12 +15,14 @@ type WorldControlsProps = {
   activeTier: MapTier;
   seedText: string;
   showGrid: boolean;
+  showFog: boolean;
   onMapTypeChange: (value: MapTypeId) => void;
   onTierChange: (value: MapTierId) => void;
   onSeedTextChange: (value: string) => void;
   onRegenerate: () => void;
   onRandomize: () => void;
   onGridChange: (value: boolean) => void;
+  onFogChange: (value: boolean) => void;
 };
 
 export function WorldControls({
@@ -30,12 +32,14 @@ export function WorldControls({
   activeTier,
   seedText,
   showGrid,
+  showFog,
   onMapTypeChange,
   onTierChange,
   onSeedTextChange,
   onRegenerate,
   onRandomize,
   onGridChange,
+  onFogChange,
 }: WorldControlsProps) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -109,6 +113,14 @@ export function WorldControls({
             onChange={(event) => onGridChange(event.target.checked)}
           />
           Hex 경계
+        </label>
+        <label className="toggle">
+          <input
+            type="checkbox"
+            checked={showFog}
+            onChange={(event) => onFogChange(event.target.checked)}
+          />
+          지도 안개
         </label>
       </div>
     </div>
