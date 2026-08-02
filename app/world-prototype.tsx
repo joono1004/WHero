@@ -2463,6 +2463,7 @@ function WorldScene({
       column: number,
       color: THREE.ColorRepresentation,
       opacity: number,
+      glow = false,
     ) => {
       const center = hexCenterAt(row, column);
       const points = occupantHexPoints(
@@ -2497,6 +2498,23 @@ function WorldScene({
       overlay.renderOrder = 84;
       interactionOverlays.push(overlay);
       worldRoot.add(overlay);
+      if (glow) {
+        const glowOverlay = new THREE.Mesh(
+          geometry.clone(),
+          new THREE.MeshBasicMaterial({
+            color: "#d5ffad",
+            transparent: true,
+            opacity: 0.24,
+            side: THREE.DoubleSide,
+            depthTest: false,
+            depthWrite: false,
+            blending: THREE.AdditiveBlending,
+          }),
+        );
+        glowOverlay.renderOrder = 85;
+        interactionOverlays.push(glowOverlay);
+        worldRoot.add(glowOverlay);
+      }
     };
     const actionTextureCache = new Map<"attack" | "heal" | "skill", THREE.Texture>();
     const createActionTexture = (action: "attack" | "heal" | "skill") => {
@@ -2704,7 +2722,7 @@ function WorldScene({
         ) {
           return;
         }
-        addHexOverlay(hex.row, hex.column, "#9de884", 0.3);
+        addHexOverlay(hex.row, hex.column, "#59ed3f", 0.52, true);
       });
     };
     const rebuildActionMarkers = (visual: ActorVisual) => {
