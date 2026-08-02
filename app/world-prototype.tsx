@@ -2232,28 +2232,101 @@ function WorldScene({
     const fogGeometry = new THREE.CircleGeometry(HEX_SIZE * 1.035, 6);
     fogGeometry.rotateZ(-Math.PI / 6);
     fogGeometry.rotateX(-Math.PI / 2);
-    const unexploredFog = new THREE.InstancedMesh(
-      fogGeometry,
-      new THREE.MeshBasicMaterial({
-        color: "#071216",
+    const createCloudFogMaterial = (
+      color: THREE.ColorRepresentation,
+      shadowColor: THREE.ColorRepresentation,
+      opacity: number,
+      cloudScale: number,
+    ) =>
+      new THREE.ShaderMaterial({
+        uniforms: {
+          cloudColor: { value: new THREE.Color(color) },
+          shadowColor: { value: new THREE.Color(shadowColor) },
+          fogOpacity: { value: opacity },
+          cloudScale: { value: cloudScale },
+          time: { value: 0 },
+        },
+        vertexShader: `
+          varying vec3 vFogWorldPosition;
+          void main() {
+            vec4 localPosition = vec4(position, 1.0);
+            #ifdef USE_INSTANCING
+              localPosition = instanceMatrix * localPosition;
+            #endif
+            vec4 worldPosition = modelMatrix * localPosition;
+            vFogWorldPosition = worldPosition.xyz;
+            gl_Position = projectionMatrix * viewMatrix * worldPosition;
+          }
+        `,
+        fragmentShader: `
+          uniform vec3 cloudColor;
+          uniform vec3 shadowColor;
+          uniform float fogOpacity;
+          uniform float cloudScale;
+          uniform float time;
+          varying vec3 vFogWorldPosition;
+
+          float cloudHash(vec2 point) {
+            return fract(sin(dot(point, vec2(127.1, 311.7))) * 43758.5453);
+          }
+
+          float cloudNoise(vec2 point) {
+            vec2 cell = floor(point);
+            vec2 fraction = fract(point);
+            fraction = fraction * fraction * (3.0 - 2.0 * fraction);
+            float a = cloudHash(cell);
+            float b = cloudHash(cell + vec2(1.0, 0.0));
+            float c = cloudHash(cell + vec2(0.0, 1.0));
+            float d = cloudHash(cell + vec2(1.0, 1.0));
+            return mix(mix(a, b, fraction.x), mix(c, d, fraction.x), fraction.y);
+          }
+
+          float cloudFbm(vec2 point) {
+            float value = 0.0;
+            float amplitude = 0.55;
+            for (int octave = 0; octave < 4; octave++) {
+              value += cloudNoise(point) * amplitude;
+              point = point * 2.03 + vec2(17.1, 9.2);
+              amplitude *= 0.5;
+            }
+            return value;
+          }
+
+          void main() {
+            vec2 drift = vec2(time * 0.014, time * 0.006);
+            float cloud = cloudFbm(vFogWorldPosition.xz * cloudScale + drift);
+            float billow = smoothstep(0.28, 0.82, cloud);
+            vec3 color = mix(shadowColor, cloudColor, 0.55 + billow * 0.45);
+            float alpha = fogOpacity * mix(0.78, 1.0, billow);
+            gl_FragColor = vec4(color, alpha);
+          }
+        `,
         transparent: true,
-        opacity: 0.88,
         depthTest: false,
         depthWrite: false,
         side: THREE.DoubleSide,
-      }),
+        toneMapped: false,
+      });
+    const unexploredFogMaterial = createCloudFogMaterial(
+      "#f6f5eb",
+      "#aab7b6",
+      0.94,
+      0.2,
+    );
+    const exploredFogMaterial = createCloudFogMaterial(
+      "#eef1ed",
+      "#b8c4c1",
+      0.3,
+      0.24,
+    );
+    const unexploredFog = new THREE.InstancedMesh(
+      fogGeometry,
+      unexploredFogMaterial,
       fogCells.length,
     );
     const exploredFog = new THREE.InstancedMesh(
       fogGeometry,
-      new THREE.MeshBasicMaterial({
-        color: "#314247",
-        transparent: true,
-        opacity: 0.52,
-        depthTest: false,
-        depthWrite: false,
-        side: THREE.DoubleSide,
-      }),
+      exploredFogMaterial,
       fogCells.length,
     );
     unexploredFog.renderOrder = 78;
@@ -3281,6 +3354,9 @@ function WorldScene({
     window.addEventListener("pointerdown", handleOutsideInterfacePointer, true);
 
     const animate = () => {
+      const fogTime = performance.now() * 0.001;
+      unexploredFogMaterial.uniforms.time.value = fogTime;
+      exploredFogMaterial.uniforms.time.value = fogTime;
       waterTexture.offset.y -= 0.00022;
       seaTexture.offset.x += 0.000025;
       controls.update();
