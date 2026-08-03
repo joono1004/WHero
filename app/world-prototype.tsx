@@ -84,6 +84,12 @@ import {
   type ResourceSiteKind,
   type ResourceSiteVisual,
 } from "@/lib/world/prototype/resource-site-visual";
+import {
+  canBuildResourceOnTerrain,
+  resourceCapacityForOutpostLevel,
+  resourceProductionMultiplier,
+  type ResourceBuildTerrain,
+} from "@/lib/world/prototype/resource-site-rules";
 
 // Character art is independent from each generated world. Keep the decoded
 // textures between seed changes so regenerating terrain does not decode the
@@ -949,6 +955,10 @@ const DEFAULT_TACTICAL_PANEL: TacticalPanelState = {
   canCancelMove: false,
   canFoundOutpost: false,
   upgradeTargetLevel: null,
+  canBuildResource: false,
+  resourceMenuOpen: false,
+  resourceCount: 0,
+  resourceCapacity: 0,
 };
 
 const MELEE_ATTACK: AttackMode = {
@@ -2109,82 +2119,13 @@ function WorldScene({
       kind: ResourceSiteKind;
       row: number;
       column: number;
+      outpostKey: string;
+      productionMultiplier: 1 | 2;
       visual: ResourceSiteVisual;
     };
     const resourceSites: ResourceSiteState[] = [];
     const resourceSiteKeys = new Set<string>();
-    const occupiedResourceHexes = new Set(occupiedUnitHexes);
-    const resourceDefinitions: Array<{
-      kind: ResourceSiteKind;
-      preferredTerrain: TerrainCell["type"] | "plain";
-      anchorIndex: number;
-      rowOffset: number;
-      columnOffset: number;
-    }> = [
-      { kind: "farm", preferredTerrain: "plain", anchorIndex: 0, rowOffset: 2, columnOffset: 1 },
-      { kind: "logging", preferredTerrain: "forest", anchorIndex: 1, rowOffset: 2, columnOffset: 1 },
-      { kind: "mine", preferredTerrain: "hill", anchorIndex: 2, rowOffset: -2, columnOffset: 1 },
-      { kind: "market", preferredTerrain: "plain", anchorIndex: 3, rowOffset: -2, columnOffset: -1 },
-    ];
-    resourceDefinitions.forEach((definition, definitionIndex) => {
-      const anchor = heroStartCells[definition.anchorIndex] ?? heroStartCells[0];
-      if (!anchor) return;
-      const preferred = hexCenterAt(
-        THREE.MathUtils.clamp(anchor.row + definition.rowOffset, 0, HEX_ROWS - 1),
-        THREE.MathUtils.clamp(anchor.column + definition.columnOffset, 0, HEX_COLS - 1),
-      );
-      let best:
-        | { row: number; column: number; x: number; z: number; score: number }
-        | undefined;
-      for (let row = 0; row < HEX_ROWS; row += 1) {
-        for (let column = 0; column < HEX_COLS; column += 1) {
-          const key = `${row}:${column}`;
-          if (occupiedResourceHexes.has(key)) continue;
-          const center = hexCenterAt(row, column);
-          if (coastKindAt(seed, row, column) !== "land") continue;
-          if (distanceToRiver(center.x, center.z, samples) < 1.15) continue;
-          const terrainType = terrainCells.get(key)?.type;
-          if (terrainType === "mountain" || terrainType === "wetland") continue;
-          const terrainMatches =
-            definition.preferredTerrain === "plain"
-              ? terrainType === undefined
-              : terrainType === definition.preferredTerrain;
-          const score =
-            Math.hypot(center.x - preferred.x, center.z - preferred.z) +
-            (terrainMatches ? 0 : 3);
-          if (!best || score < best.score) {
-            best = { row, column, ...center, score };
-          }
-        }
-      }
-      if (!best) return;
-      const key = `${best.row}:${best.column}`;
-      occupiedResourceHexes.add(key);
-      resourceSiteKeys.add(key);
-      const siteVisual = createResourceSiteVisual({
-        hexSize: HEX_SIZE,
-        kind: definition.kind,
-      });
-      const ground = heightAt(seed, best.x, best.z, samples);
-      siteVisual.group.position.set(best.x, ground + 0.04, best.z);
-      siteVisual.group.rotation.y =
-        (hash(seed + 9911, definitionIndex, best.row + best.column) - 0.5) * 0.24;
-      siteVisual.selectableMeshes.forEach((mesh) => {
-        mesh.userData = {
-          type: "resource-site",
-          resourceKind: definition.kind,
-          row: best!.row,
-          column: best!.column,
-        };
-      });
-      worldRoot.add(siteVisual.group);
-      resourceSites.push({
-        kind: definition.kind,
-        row: best.row,
-        column: best.column,
-        visual: siteVisual,
-      });
-    });
+    const resourceWaterBodies = createWaterBodyIndex(seed);
     const updateActorActionAppearance = (visual: ActorVisual) => {
       const inactive = visual.actor.acted;
       const tint = inactive ? "#a7aaa7" : "#ffffff";
@@ -2380,6 +2321,35 @@ function WorldScene({
     hillMesh.castShadow = true;
     hillMesh.receiveShadow = true;
     worldRoot.add(hillMesh);
+
+    const clearTerrainDecorationAt = (row: number, column: number) => {
+      const zeroScale = new THREE.Vector3(0, 0, 0);
+      treeInstances.forEach((tree, index) => {
+        const hex = hexCoordinatesAt(tree.x, tree.z);
+        if (hex.row !== row || hex.column !== column) return;
+        matrix.compose(
+          new THREE.Vector3(tree.x, tree.y, tree.z),
+          quaternion.identity(),
+          zeroScale,
+        );
+        trunkMesh.setMatrixAt(index, matrix);
+        lowerCanopy.setMatrixAt(index, matrix);
+        upperCanopy.setMatrixAt(index, matrix);
+      });
+      [trunkMesh, lowerCanopy, upperCanopy].forEach((mesh) => {
+        mesh.instanceMatrix.needsUpdate = true;
+      });
+      hillCells.forEach((cell, index) => {
+        if (cell.row !== row || cell.column !== column) return;
+        matrix.compose(
+          new THREE.Vector3(cell.x, cell.y, cell.z),
+          quaternion.identity(),
+          zeroScale,
+        );
+        hillMesh.setMatrixAt(index, matrix);
+        hillMesh.instanceMatrix.needsUpdate = true;
+      });
+    };
 
     const wetlandCells = componentsFor("wetland")
       .flat()
@@ -2686,10 +2656,19 @@ function WorldScene({
       actorId: string;
       targetId: string;
     };
+    type ResourceBuildCandidate = {
+      row: number;
+      column: number;
+      productionMultiplier: 1 | 2;
+    };
     const interactionOverlays: THREE.Mesh[] = [];
     const tacticalActionMarkers: TacticalActionMarker[] = [];
+    const resourceBuildMarkers: THREE.Sprite[] = [];
     let selectedActorId: string | null = null;
     let selectedOutpostKey: string | null = null;
+    let selectedResourceKind: ResourceSiteKind | null = null;
+    let resourceBuildMenuOpen = false;
+    let resourceBuildCandidates = new Map<string, ResourceBuildCandidate>();
     let commandPanelOpen = false;
     let attackTargeting = false;
     let selectedSkillId: string | null = null;
@@ -2774,6 +2753,15 @@ function WorldScene({
         sprite.material.dispose();
       });
     };
+    const clearResourceBuildMarkers = () => {
+      resourceBuildMarkers.splice(0).forEach((sprite) => {
+        worldRoot.remove(sprite);
+        sprite.material.map?.dispose();
+        sprite.material.dispose();
+      });
+      resourceBuildCandidates.clear();
+      selectedResourceKind = null;
+    };
     const addHexOverlay = (
       row: number,
       column: number,
@@ -2831,6 +2819,60 @@ function WorldScene({
         interactionOverlays.push(glowOverlay);
         worldRoot.add(glowOverlay);
       }
+    };
+    const createResourceBuildMarkerTexture = (multiplier: 1 | 2) => {
+      const canvas = document.createElement("canvas");
+      canvas.width = 192;
+      canvas.height = 192;
+      const context = canvas.getContext("2d")!;
+      context.beginPath();
+      context.arc(96, 96, 72, 0, Math.PI * 2);
+      context.fillStyle = "rgba(88, 62, 27, .88)";
+      context.fill();
+      context.lineWidth = 9;
+      context.strokeStyle = multiplier === 2 ? "#ffe27a" : "#f4d29a";
+      context.stroke();
+      context.save();
+      context.translate(82, 92);
+      context.rotate(-0.72);
+      context.fillStyle = "#d6e2e0";
+      context.fillRect(-9, -48, 18, 78);
+      context.fillStyle = "#78502e";
+      context.fillRect(-7, 24, 14, 47);
+      context.fillStyle = "#eff6f2";
+      context.fillRect(-38, -53, 76, 20);
+      context.restore();
+      context.save();
+      context.translate(108, 102);
+      context.rotate(0.62);
+      context.strokeStyle = "#edf4ee";
+      context.lineWidth = 11;
+      context.beginPath();
+      context.moveTo(-30, 2);
+      context.lineTo(38, 2);
+      context.stroke();
+      context.fillStyle = "#edf4ee";
+      for (let tooth = -20; tooth <= 26; tooth += 12) {
+        context.beginPath();
+        context.moveTo(tooth, 6);
+        context.lineTo(tooth + 6, 19);
+        context.lineTo(tooth + 11, 6);
+        context.fill();
+      }
+      context.restore();
+      if (multiplier === 2) {
+        context.fillStyle = "#fff2a8";
+        context.strokeStyle = "#5b3517";
+        context.lineWidth = 7;
+        context.font = "900 50px sans-serif";
+        context.textAlign = "right";
+        context.textBaseline = "bottom";
+        context.strokeText("×2", 184, 184);
+        context.fillText("×2", 184, 184);
+      }
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      return texture;
     };
     const actionTextureCache = new Map<"attack" | "heal" | "skill", THREE.Texture>();
     const createActionTexture = (action: "attack" | "heal" | "skill") => {
@@ -2994,7 +3036,76 @@ function WorldScene({
         materials.forEach((material) => material.dispose());
       });
     };
-    const setPanelForOutpost = (outpost: OutpostState, message = "") => {
+    const resourceTerrainAt = (
+      row: number,
+      column: number,
+    ): ResourceBuildTerrain => {
+      if (!isInsideMap(row, column)) return "blocked";
+      if (coastKindAt(seed, row, column, resourceWaterBodies) !== "land") {
+        return "blocked";
+      }
+      const center = hexCenterAt(row, column);
+      const nearestRiver = nearestRiverSample(center.x, center.z, samples);
+      if (
+        riverCurves.length > 0 &&
+        nearestRiver.distance <= riverWidthAt(nearestRiver.t) * 0.5 + 0.2
+      ) {
+        return "blocked";
+      }
+      const terrainType = terrainCells.get(`${row}:${column}`)?.type;
+      if (terrainType === "forest" || terrainType === "hill") {
+        return terrainType;
+      }
+      if (terrainType === "mountain" || terrainType === "wetland") {
+        return "blocked";
+      }
+      return "plain";
+    };
+    const hasAdjacentFreshWater = (row: number, column: number) =>
+      neighborsOf(row, column).some(([neighborRow, neighborColumn]) => {
+        if (!isInsideMap(neighborRow, neighborColumn)) return false;
+        const key = `${neighborRow}:${neighborColumn}`;
+        const waterBody = resourceWaterBodies.get(key);
+        if (waterBody && !waterBody.ocean) return true;
+        if (terrainCells.get(key)?.type === "wetland") return true;
+        const center = hexCenterAt(neighborRow, neighborColumn);
+        const nearestRiver = nearestRiverSample(center.x, center.z, samples);
+        return (
+          riverCurves.length > 0 &&
+          nearestRiver.distance <= riverWidthAt(nearestRiver.t) * 0.5 + 0.2
+        );
+      });
+    const adjacentResourceKindsAt = (row: number, column: number) => {
+      const neighborKeys = new Set(
+        neighborsOf(row, column).map(
+          ([neighborRow, neighborColumn]) => `${neighborRow}:${neighborColumn}`,
+        ),
+      );
+      return resourceSites
+        .filter((site) => neighborKeys.has(`${site.row}:${site.column}`))
+        .map((site) => site.kind);
+    };
+    const productionMultiplierAt = (
+      kind: ResourceSiteKind,
+      row: number,
+      column: number,
+    ) =>
+      resourceProductionMultiplier({
+        kind,
+        terrain: resourceTerrainAt(row, column),
+        adjacentFreshWater: hasAdjacentFreshWater(row, column),
+        adjacentResourceKinds: adjacentResourceKindsAt(row, column),
+      });
+    const resourceCountForOutpost = (outpost: OutpostState) => {
+      const outpostKey = `${outpost.row}:${outpost.column}`;
+      return resourceSites.filter((site) => site.outpostKey === outpostKey).length;
+    };
+    const setPanelForOutpost = (
+      outpost: OutpostState,
+      message = "",
+      overrides: Partial<TacticalPanelState> = {},
+    ) => {
+      resourceBuildMenuOpen = overrides.resourceMenuOpen ?? false;
       selectedActorId = null;
       selectedOutpostKey = `${outpost.row}:${outpost.column}`;
       commandPanelOpen = true;
@@ -3007,6 +3118,9 @@ function WorldScene({
       reachableByKey.clear();
       clearInteractionOverlays();
       clearActionMarkers();
+      if (!overrides.resourceMenuOpen) clearResourceBuildMarkers();
+      const resourceCount = resourceCountForOutpost(outpost);
+      const resourceCapacity = resourceCapacityForOutpostLevel(outpost.level);
       setTacticalPanel({
         ...DEFAULT_TACTICAL_PANEL,
         isOpen: true,
@@ -3021,7 +3135,132 @@ function WorldScene({
               : outpost.level === 3
                 ? 4
                 : null,
+        canBuildResource: resourceCount < resourceCapacity,
+        resourceMenuOpen: false,
+        resourceCount,
+        resourceCapacity,
+        ...overrides,
       });
+    };
+    const resourceBuildCandidatesFor = (
+      outpost: OutpostState,
+      kind: ResourceSiteKind,
+    ) => {
+      const occupiedActors = occupiedActorKeys();
+      return neighborsOf(outpost.row, outpost.column)
+        .filter(([row, column]) => isInsideMap(row, column))
+        .filter(([row, column]) => {
+          const key = `${row}:${column}`;
+          return (
+            canBuildResourceOnTerrain(resourceTerrainAt(row, column)) &&
+            !occupiedActors.has(key) &&
+            !resourceSiteKeys.has(key) &&
+            !outposts.has(key)
+          );
+        })
+        .map(([row, column]) => ({
+          row,
+          column,
+          productionMultiplier: productionMultiplierAt(kind, row, column),
+        }));
+    };
+    const showResourceBuildCandidates = (
+      outpost: OutpostState,
+      kind: ResourceSiteKind,
+    ) => {
+      clearResourceBuildMarkers();
+      clearInteractionOverlays();
+      selectedResourceKind = kind;
+      resourceBuildCandidatesFor(outpost, kind).forEach((candidate) => {
+        const key = `${candidate.row}:${candidate.column}`;
+        resourceBuildCandidates.set(key, candidate);
+        addHexOverlay(candidate.row, candidate.column, "#ffe66f", 0.38, true);
+        const center = hexCenterAt(candidate.row, candidate.column);
+        const ground = heightAt(seed, center.x, center.z, samples);
+        const sprite = new THREE.Sprite(
+          new THREE.SpriteMaterial({
+            map: createResourceBuildMarkerTexture(candidate.productionMultiplier),
+            transparent: true,
+            depthTest: false,
+            depthWrite: false,
+          }),
+        );
+        sprite.scale.set(HEX_SIZE * 0.76, HEX_SIZE * 0.76, 1);
+        sprite.position.set(center.x, ground + 0.48, center.z);
+        sprite.renderOrder = 124;
+        sprite.userData = {
+          type: "resource-build-target",
+          row: candidate.row,
+          column: candidate.column,
+        };
+        resourceBuildMarkers.push(sprite);
+        worldRoot.add(sprite);
+      });
+      setPanelForOutpost(
+        outpost,
+        `${RESOURCE_SITE_LABELS[kind]} 건설 위치를 선택하세요.`,
+        { resourceMenuOpen: true },
+      );
+      // setPanelForOutpost clears overlays before applying overrides.
+      clearInteractionOverlays();
+      resourceBuildCandidates.forEach((candidate) => {
+        addHexOverlay(candidate.row, candidate.column, "#ffe66f", 0.38, true);
+      });
+    };
+    const buildResourceSite = (
+      outpost: OutpostState,
+      kind: ResourceSiteKind,
+      candidate: ResourceBuildCandidate,
+    ) => {
+      if (
+        resourceCountForOutpost(outpost) >=
+        resourceCapacityForOutpostLevel(outpost.level)
+      ) {
+        setPanelForOutpost(outpost, "현재 거점 레벨의 건설 한도에 도달했습니다.");
+        return;
+      }
+      const key = `${candidate.row}:${candidate.column}`;
+      if (!resourceBuildCandidates.has(key)) return;
+      clearTerrainDecorationAt(candidate.row, candidate.column);
+      const center = hexCenterAt(candidate.row, candidate.column);
+      const ground = heightAt(seed, center.x, center.z, samples);
+      const visual = createResourceSiteVisual({ hexSize: HEX_SIZE, kind });
+      visual.group.position.set(center.x, ground + 0.045, center.z);
+      visual.group.rotation.y =
+        (hash(seed + 9911, candidate.row, candidate.column) - 0.5) * 0.24;
+      visual.selectableMeshes.forEach((mesh) => {
+        mesh.userData = {
+          type: "resource-site",
+          resourceKind: kind,
+          row: candidate.row,
+          column: candidate.column,
+        };
+      });
+      worldRoot.add(visual.group);
+      resourceSiteKeys.add(key);
+      resourceSites.push({
+        kind,
+        row: candidate.row,
+        column: candidate.column,
+        outpostKey: `${outpost.row}:${outpost.column}`,
+        productionMultiplier: candidate.productionMultiplier,
+        visual,
+      });
+      resourceSites.forEach((site) => {
+        site.productionMultiplier = productionMultiplierAt(
+          site.kind,
+          site.row,
+          site.column,
+        );
+      });
+      clearResourceBuildMarkers();
+      clearInteractionOverlays();
+      setPanelForOutpost(
+        outpost,
+        `${RESOURCE_SITE_LABELS[kind]} 건설 완료${
+          candidate.productionMultiplier === 2 ? " · 생산 ×2" : ""
+        }`,
+      );
     };
     const upgradeOutpost = (outpost: OutpostState) => {
       const nextLevel = outpost.level + 1;
@@ -3204,6 +3443,10 @@ function WorldScene({
         canCancelMove: movementPreviewActive,
         canFoundOutpost: canFoundOutpostAt(visual),
         upgradeTargetLevel: null,
+        canBuildResource: false,
+        resourceMenuOpen: false,
+        resourceCount: 0,
+        resourceCapacity: 0,
         ...overrides,
       });
     };
@@ -3283,6 +3526,7 @@ function WorldScene({
         );
     };
     const clearSelection = (message = DEFAULT_TACTICAL_PANEL.message) => {
+      resourceBuildMenuOpen = false;
       selectedActorId = null;
       selectedOutpostKey = null;
       commandPanelOpen = false;
@@ -3295,6 +3539,7 @@ function WorldScene({
       reachableByKey.clear();
       clearInteractionOverlays();
       clearActionMarkers();
+      clearResourceBuildMarkers();
       setTacticalPanel({ ...DEFAULT_TACTICAL_PANEL, message });
     };
     const selectActor = (visual: ActorVisual) => {
@@ -3311,11 +3556,13 @@ function WorldScene({
       }
       selectedActorId = visual.actor.id;
       selectedOutpostKey = null;
+      resourceBuildMenuOpen = false;
       commandPanelOpen = false;
       selectedSkillId = null;
       pendingAttackTargetId = null;
       clearInteractionOverlays();
       clearActionMarkers();
+      clearResourceBuildMarkers();
       const reachable = visual.actor.acted
         ? []
         : reachableHexes({
@@ -3550,6 +3797,7 @@ function WorldScene({
           visual.badgeOutline,
         ]),
         ...tacticalActionMarkers.map((marker) => marker.sprite),
+        ...resourceBuildMarkers,
       ].filter(
         (object): object is THREE.Sprite =>
           object instanceof THREE.Sprite && object.visible,
@@ -3575,15 +3823,33 @@ function WorldScene({
         ) ?? objectHits[0];
       if (objectHit) {
         const data = objectHit.object.userData;
+        if (data.type === "resource-build-target") {
+          const candidate = resourceBuildCandidates.get(
+            `${data.row as number}:${data.column as number}`,
+          );
+          const outpost = selectedOutpostKey
+            ? outposts.get(selectedOutpostKey)
+            : undefined;
+          if (candidate && outpost && selectedResourceKind) {
+            buildResourceSite(outpost, selectedResourceKind, candidate);
+          }
+          return;
+        }
         if (data.type === "resource-site") {
           const row = data.row as number;
           const column = data.column as number;
           const kind = data.resourceKind as ResourceSiteKind;
+          const site = resourceSites.find(
+            (candidate) =>
+              candidate.row === row && candidate.column === column,
+          );
           const diagnostic = diagnosticForHex(row, column);
           onHexSelected(
             {
               ...diagnostic,
-              terrain: `${diagnostic.terrain} · ${RESOURCE_SITE_LABELS[kind]}`,
+              terrain: `${diagnostic.terrain} · ${RESOURCE_SITE_LABELS[kind]}${
+                site?.productionMultiplier === 2 ? " · 생산 ×2" : ""
+              }`,
             },
             {
               x: THREE.MathUtils.clamp(
@@ -3744,6 +4010,14 @@ function WorldScene({
         HEX_COLS - 1,
       );
       const clickedKey = `${row}:${column}`;
+      if (selectedResourceKind && selectedOutpostKey) {
+        const candidate = resourceBuildCandidates.get(clickedKey);
+        const outpost = outposts.get(selectedOutpostKey);
+        if (candidate && outpost) {
+          buildResourceSite(outpost, selectedResourceKind, candidate);
+          return;
+        }
+      }
       const selected = selectedActorId
         ? actorVisuals.get(selectedActorId)
         : undefined;
@@ -3834,6 +4108,30 @@ function WorldScene({
         : undefined;
       if (command.type === "upgrade-outpost") {
         if (selectedOutpost) upgradeOutpost(selectedOutpost);
+        return;
+      }
+      if (command.type === "toggle-resource-menu") {
+        if (!selectedOutpost) return;
+        const isClosing = resourceBuildMenuOpen;
+        if (isClosing) {
+          clearResourceBuildMarkers();
+          clearInteractionOverlays();
+        }
+        setPanelForOutpost(selectedOutpost, "", {
+          resourceMenuOpen: !isClosing,
+        });
+        return;
+      }
+      if (command.type === "select-resource") {
+        if (!selectedOutpost) return;
+        showResourceBuildCandidates(selectedOutpost, command.resourceKind);
+        return;
+      }
+      if (command.type === "cancel-resource-build") {
+        if (!selectedOutpost) return;
+        clearResourceBuildMarkers();
+        clearInteractionOverlays();
+        setPanelForOutpost(selectedOutpost);
         return;
       }
       if (command.type === "info" && selectedOutpost) {

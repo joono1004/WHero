@@ -3,6 +3,10 @@
 import type { Ref } from "react";
 
 import type { TacticalSkill } from "@/lib/world/prototype/tactical-interaction";
+import {
+  RESOURCE_SITE_LABELS,
+  type ResourceSiteKind,
+} from "@/lib/world/prototype/resource-site-visual";
 
 export type TacticalAttackChoice = {
   id: "melee" | "ranged";
@@ -24,6 +28,10 @@ export type TacticalPanelState = {
   canCancelMove: boolean;
   canFoundOutpost: boolean;
   upgradeTargetLevel: 2 | 3 | 4 | null;
+  canBuildResource: boolean;
+  resourceMenuOpen: boolean;
+  resourceCount: number;
+  resourceCapacity: number;
 };
 
 export type TacticalPanelCommand =
@@ -33,6 +41,9 @@ export type TacticalPanelCommand =
   | { type: "cancel-move" }
   | { type: "found-outpost" }
   | { type: "upgrade-outpost" }
+  | { type: "toggle-resource-menu" }
+  | { type: "select-resource"; resourceKind: ResourceSiteKind }
+  | { type: "cancel-resource-build" }
   | { type: "toggle-skills" }
   | { type: "use-skill"; skillId: string }
   | { type: "attack"; modeId: "melee" | "ranged" }
@@ -51,6 +62,18 @@ export function TacticalActionPanel({
     (total, skill) => total + skill.remainingUses,
     0,
   );
+  const resourceKinds: ResourceSiteKind[] = [
+    "farm",
+    "logging",
+    "mine",
+    "market",
+  ];
+  const resourceIcons: Record<ResourceSiteKind, string> = {
+    farm: "🌾",
+    logging: "🪵",
+    mine: "⛏",
+    market: "🏪",
+  };
 
   return (
     <aside
@@ -58,9 +81,10 @@ export function TacticalActionPanel({
       className={[
         "tactical-action-panel",
         state.isOpen ? "is-active" : "",
-        state.attackChoices.length > 1 || state.skillMenuOpen
+        state.attackChoices.length > 1 || state.skillMenuOpen || state.resourceMenuOpen
           ? "has-submenu"
           : "",
+        state.resourceMenuOpen ? "has-resource-menu" : "",
       ]
         .filter(Boolean)
         .join(" ")}
@@ -105,9 +129,44 @@ export function TacticalActionPanel({
         </div>
       )}
 
+      {state.resourceMenuOpen && state.panelKind === "structure" && (
+        <div className="resource-build-menu" aria-label="자원 거점 선택">
+          <div className="resource-build-heading">
+            <strong>자원 거점 건설</strong>
+            <small>{state.resourceCount}/{state.resourceCapacity}</small>
+          </div>
+          <div className="resource-build-grid">
+            {resourceKinds.map((kind) => (
+              <button
+                type="button"
+                key={kind}
+                className={`resource-build-card resource-${kind}`}
+                onClick={() =>
+                  onCommand({ type: "select-resource", resourceKind: kind })
+                }
+              >
+                <span className="resource-card-art" aria-hidden="true">
+                  {resourceIcons[kind]}
+                </span>
+                <b>{RESOURCE_SITE_LABELS[kind]}</b>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="tactical-actions">
         {state.panelKind === "structure" ? (
           <>
+            <button
+              type="button"
+              className="tactical-command tactical-build-resource"
+              disabled={!state.canBuildResource}
+              onClick={() => onCommand({ type: "toggle-resource-menu" })}
+            >
+              <span>{state.resourceMenuOpen ? "건설 닫기" : "건설"}</span>
+              <small>{state.resourceCount}/{state.resourceCapacity}</small>
+            </button>
             {state.upgradeTargetLevel && (
               <button
                 type="button"

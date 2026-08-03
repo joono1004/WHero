@@ -152,6 +152,9 @@ canvas { display:block; width:100%; height:calc(100vh - 148px); min-height:620px
 .tactical-action-panel.is-character-anchored.has-submenu {
   width:min(144px,calc(100% - 16px));
 }
+.tactical-action-panel.is-character-anchored.has-resource-menu {
+  width:min(224px,calc(100% - 16px));
+}
 .tactical-action-panel.is-character-anchored .tactical-status {
   grid-template-columns:1fr;
 }
@@ -203,6 +206,22 @@ canvas { display:block; width:100%; height:calc(100vh - 148px); min-height:620px
 .tactical-found-outpost > span { padding-left:0; letter-spacing:.06em; }
 .tactical-upgrade-outpost { border-color:#d9b56f; background:rgba(91,67,39,.92); color:#fff0bf; }
 .tactical-upgrade-outpost > span { padding-left:0; letter-spacing:.04em; }
+.tactical-build-resource { border-color:#d8bd68; background:rgba(101,82,39,.9); color:#fff3bd; }
+.tactical-build-resource > span { padding-left:0; letter-spacing:.08em; }
+.tactical-build-resource:disabled { opacity:.42; cursor:not-allowed; }
+.resource-build-menu { display:grid; gap:6px; padding:6px; border:1px solid rgba(235,206,124,.32); border-radius:8px; background:rgba(18,39,42,.9); }
+.resource-build-heading { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.resource-build-heading strong { color:#f4dfa0; font-size:10px; }
+.resource-build-heading small { padding:2px 5px; border-radius:8px; background:#554729; color:#ffeaa7; font-size:8px; }
+.resource-build-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:5px; }
+.resource-build-card { min-height:64px; padding:5px 4px; display:grid; place-items:center; gap:2px; border:1px solid rgba(235,213,158,.36); border-radius:7px; color:#fff5dc; background:linear-gradient(145deg,rgba(96,75,43,.94),rgba(48,48,34,.94)); }
+.resource-build-card:hover,.resource-build-card:focus-visible { border-color:#ffe28b; transform:translateY(-1px); }
+.resource-build-card b { font-size:9px; }
+.resource-card-art { width:36px; height:36px; display:grid; place-items:center; border:1px solid rgba(255,239,185,.44); border-radius:50%; background:radial-gradient(circle at 38% 30%,rgba(255,237,174,.36),rgba(31,47,39,.94)); box-shadow:0 3px 8px rgba(0,0,0,.28); font-size:22px; line-height:1; }
+.resource-farm .resource-card-art { background-color:#806331; }
+.resource-logging .resource-card-art { background-color:#34583b; }
+.resource-mine .resource-card-art { background-color:#4b4b48; }
+.resource-market .resource-card-art { background-color:#704437; }
 .tactical-move-cancel { border-color:#9d8b78; background:rgba(72,67,60,.86); color:#f0e5d8; }
 .tactical-move-cancel > span { padding-left:0; letter-spacing:.08em; }
 .tactical-choice {
