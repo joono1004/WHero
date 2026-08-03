@@ -2883,10 +2883,7 @@ function WorldScene({
       );
       showMovementPlan(visual);
       showMovementRoute(visual, destination);
-      setPanelForActor(
-        visual,
-        `이동 비용 ${destination.cost} · 남은 이동력 ${visual.actor.remainingMovement}`,
-      );
+      setPanelForActor(visual, "");
     };
     const finishCombatAction = (
       attacker: ActorVisual,
