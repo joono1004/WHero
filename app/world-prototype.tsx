@@ -68,6 +68,7 @@ import {
   type VisionSource,
 } from "@/lib/world/visibility/fog-of-war";
 import {
+  createLargeCityVisual,
   createMediumCityVisual,
   createOutpostVisual,
   createSmallCityVisual,
@@ -2913,12 +2914,18 @@ function WorldScene({
         actorName: outpost.name,
         message,
         upgradeTargetLevel:
-          outpost.level === 1 ? 2 : outpost.level === 2 ? 3 : null,
+          outpost.level === 1
+            ? 2
+            : outpost.level === 2
+              ? 3
+              : outpost.level === 3
+                ? 4
+                : null,
       });
     };
     const upgradeOutpost = (outpost: OutpostState) => {
       const nextLevel = outpost.level + 1;
-      if (nextLevel !== 2 && nextLevel !== 3) return;
+      if (nextLevel !== 2 && nextLevel !== 3 && nextLevel !== 4) return;
       const center = hexCenterAt(outpost.row, outpost.column);
       const terrainType = terrainCells.get(`${outpost.row}:${outpost.column}`)?.type;
       const ground = heightAt(seed, center.x, center.z, samples);
@@ -2930,7 +2937,9 @@ function WorldScene({
       const upgradedVisual =
         nextLevel === 2
           ? createSmallCityVisual(visualOptions)
-          : createMediumCityVisual(visualOptions);
+          : nextLevel === 3
+            ? createMediumCityVisual(visualOptions)
+            : createLargeCityVisual(visualOptions);
       upgradedVisual.group.position.set(
         center.x,
         ground + (terrainType === "hill" ? 0.23 : 0.035),
@@ -2947,9 +2956,13 @@ function WorldScene({
           ? outpost.isCapital
             ? "수도 소도시"
             : "소도시"
-          : outpost.isCapital
-            ? "수도 중도시"
-            : "중도시";
+          : nextLevel === 3
+            ? outpost.isCapital
+              ? "수도 중도시"
+              : "중도시"
+            : outpost.isCapital
+              ? "수도 대도시"
+              : "대도시";
       outpost.visual = upgradedVisual;
       refreshFogVisibility(false);
       clearSelection();

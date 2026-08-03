@@ -23,7 +23,7 @@ export type TacticalPanelState = {
   attackTargeting: boolean;
   canCancelMove: boolean;
   canFoundOutpost: boolean;
-  upgradeTargetLevel: 2 | 3 | null;
+  upgradeTargetLevel: 2 | 3 | 4 | null;
 };
 
 export type TacticalPanelCommand =

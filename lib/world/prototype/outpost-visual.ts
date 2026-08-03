@@ -482,6 +482,10 @@ export function createMediumCityVisual({
     selectableMeshes.push(object);
     return object;
   };
+  const addInterior = <T extends THREE.Object3D>(object: T) => {
+    object.userData.cityInterior = true;
+    return add(object);
+  };
   const stone = new THREE.MeshStandardMaterial({ color: "#77756c", roughness: 0.96 });
   const stoneLight = new THREE.MeshStandardMaterial({ color: "#a5a196", roughness: 0.94 });
   const stoneDark = new THREE.MeshStandardMaterial({ color: "#555851", roughness: 0.98 });
@@ -625,7 +629,7 @@ export function createMediumCityVisual({
     );
     body.position.set(hexSize * x, elevatedY + hexSize * 0.135, hexSize * z);
     body.rotation.y = rotation;
-    add(body);
+    addInterior(body);
     const beams = shadowed(
       new THREE.Mesh(
         new THREE.BoxGeometry(hexSize * 0.25, hexSize * 0.055, hexSize * 0.2),
@@ -634,13 +638,13 @@ export function createMediumCityVisual({
     );
     beams.position.set(hexSize * x, elevatedY + hexSize * 0.26, hexSize * z);
     beams.rotation.y = rotation;
-    add(beams);
+    addInterior(beams);
     const houseRoof = shadowed(
       new THREE.Mesh(new THREE.ConeGeometry(hexSize * 0.18, hexSize * 0.19, 4), timber),
     );
     houseRoof.position.set(hexSize * x, elevatedY + hexSize * 0.38, hexSize * z);
     houseRoof.rotation.y = Math.PI / 4 + rotation;
-    add(houseRoof);
+    addInterior(houseRoof);
   };
   addWoodHouse(-0.47, -0.22, 0.15);
   addWoodHouse(0.47, -0.22, -0.15);
@@ -655,7 +659,7 @@ export function createMediumCityVisual({
     ),
   );
   hallBase.position.set(0, elevatedY + hexSize * 0.22, -hexSize * 0.04);
-  add(hallBase);
+  addInterior(hallBase);
   const hallUpper = shadowed(
     new THREE.Mesh(
       new THREE.BoxGeometry(hexSize * 0.38, hexSize * 0.2, hexSize * 0.3),
@@ -663,13 +667,13 @@ export function createMediumCityVisual({
     ),
   );
   hallUpper.position.set(0, elevatedY + hexSize * 0.51, -hexSize * 0.04);
-  add(hallUpper);
+  addInterior(hallUpper);
   const lowerRoof = shadowed(
     new THREE.Mesh(new THREE.ConeGeometry(hexSize * 0.42, hexSize * 0.25, 4), roofTile),
   );
   lowerRoof.position.set(0, elevatedY + hexSize * 0.54, -hexSize * 0.04);
   lowerRoof.rotation.y = Math.PI / 4;
-  add(lowerRoof);
+  addInterior(lowerRoof);
   const lowerEave = shadowed(
     new THREE.Mesh(
       new THREE.BoxGeometry(hexSize * 0.66, hexSize * 0.045, hexSize * 0.5),
@@ -677,13 +681,13 @@ export function createMediumCityVisual({
     ),
   );
   lowerEave.position.set(0, elevatedY + hexSize * 0.44, -hexSize * 0.04);
-  add(lowerEave);
+  addInterior(lowerEave);
   const upperRoof = shadowed(
     new THREE.Mesh(new THREE.ConeGeometry(hexSize * 0.28, hexSize * 0.21, 4), roofTile),
   );
   upperRoof.position.set(0, elevatedY + hexSize * 0.75, -hexSize * 0.04);
   upperRoof.rotation.y = Math.PI / 4;
-  add(upperRoof);
+  addInterior(upperRoof);
   const ridge = shadowed(
     new THREE.Mesh(
       new THREE.CylinderGeometry(hexSize * 0.025, hexSize * 0.025, hexSize * 0.42, 8),
@@ -692,7 +696,7 @@ export function createMediumCityVisual({
   );
   ridge.rotation.z = Math.PI / 2;
   ridge.position.set(0, elevatedY + hexSize * 0.86, -hexSize * 0.04);
-  add(ridge);
+  addInterior(ridge);
 
   const road = new THREE.Mesh(
     new THREE.PlaneGeometry(hexSize * 0.2, hexSize * 0.72),
@@ -702,7 +706,13 @@ export function createMediumCityVisual({
   road.position.set(0, elevatedY + 0.024, hexSize * 0.48);
   add(road);
 
-  const addFlag = (x: number, z: number, height: number, scale = 1) => {
+  const addFlag = (
+    x: number,
+    z: number,
+    height: number,
+    scale = 1,
+    interior = false,
+  ) => {
     const pole = shadowed(
       new THREE.Mesh(
         new THREE.CylinderGeometry(hexSize * 0.012, hexSize * 0.017, height, 7),
@@ -710,7 +720,7 @@ export function createMediumCityVisual({
       ),
     );
     pole.position.set(x, elevatedY + height * 0.5, z);
-    add(pole);
+    (interior ? addInterior : add)(pole);
     const flagHeight = hexSize * 0.15 * scale;
     const flag = new THREE.Mesh(
       new THREE.PlaneGeometry(hexSize * 0.25 * scale, flagHeight),
@@ -721,13 +731,191 @@ export function createMediumCityVisual({
       elevatedY + height - flagHeight * 0.5,
       z,
     );
-    add(flag);
+    (interior ? addInterior : add)(flag);
   };
-  addFlag(-hexSize * 0.19, -hexSize * 0.04, hexSize * 1.16, 1.12);
+  addFlag(-hexSize * 0.19, -hexSize * 0.04, hexSize * 1.16, 1.12, true);
   corners.forEach((point, index) => {
     if (index % 2 === 0) addFlag(point.x, point.z, hexSize * 1.16, 0.64);
   });
 
   group.scale.setScalar(1);
   return { group, selectableMeshes };
+}
+
+/** Level 4 settlement: keeps the stone outer city and replaces its core with tower keeps. */
+export function createLargeCityVisual(
+  options: OutpostVisualOptions,
+): OutpostVisual {
+  const visual = createMediumCityVisual(options);
+  const { group, selectableMeshes } = visual;
+  group.name = options.isCapital ? "capital-large-city" : "large-city";
+
+  // Lv.4 retains the entire Lv.3 outer fortification and replaces only its interior.
+  const oldInterior = group.children.filter(
+    (object) => object.userData.cityInterior === true,
+  );
+  oldInterior.forEach((object) => {
+    group.remove(object);
+    if (object instanceof THREE.Mesh) object.geometry.dispose();
+    const index = selectableMeshes.indexOf(object);
+    if (index >= 0) selectableMeshes.splice(index, 1);
+  });
+
+  const { hexSize, factionColor = "#2f86df", isCapital = false } = options;
+  const elevatedY = hexSize * 0.16;
+  const stone = new THREE.MeshStandardMaterial({ color: "#6f716c", roughness: 0.94 });
+  const stoneLight = new THREE.MeshStandardMaterial({ color: "#aaa79d", roughness: 0.92 });
+  const plaster = new THREE.MeshStandardMaterial({ color: "#ded0a9", roughness: 0.98 });
+  const darkTimber = new THREE.MeshStandardMaterial({ color: "#603923", roughness: 0.9 });
+  const roofTile = new THREE.MeshStandardMaterial({ color: "#223a45", roughness: 0.84 });
+  const redEave = new THREE.MeshStandardMaterial({ color: "#963c2d", roughness: 0.8 });
+  const faction = new THREE.MeshStandardMaterial({
+    color: factionColor,
+    roughness: 0.68,
+    side: THREE.DoubleSide,
+  });
+  const metal = new THREE.MeshStandardMaterial({
+    color: isCapital ? "#f2c95f" : "#c7b98e",
+    metalness: 0.34,
+    roughness: 0.5,
+  });
+  const add = <T extends THREE.Object3D>(object: T) => {
+    group.add(object);
+    selectableMeshes.push(object);
+    return object;
+  };
+
+  const addTierRoof = (
+    x: number,
+    y: number,
+    z: number,
+    radius: number,
+    height: number,
+  ) => {
+    const eave = shadowed(
+      new THREE.Mesh(
+        new THREE.BoxGeometry(hexSize * radius * 1.62, hexSize * 0.045, hexSize * radius * 1.62),
+        redEave,
+      ),
+    );
+    eave.position.set(hexSize * x, elevatedY + hexSize * (y - height * 0.32), hexSize * z);
+    add(eave);
+    const tiledRoof = shadowed(
+      new THREE.Mesh(
+        new THREE.ConeGeometry(hexSize * radius, hexSize * height, 4),
+        roofTile,
+      ),
+    );
+    tiledRoof.position.set(hexSize * x, elevatedY + hexSize * y, hexSize * z);
+    tiledRoof.rotation.y = Math.PI / 4;
+    add(tiledRoof);
+  };
+
+  // Four medium-height inner keeps surround the command keep.
+  const innerKeeps = [
+    [-0.43, -0.28],
+    [0.43, -0.28],
+    [-0.43, 0.3],
+    [0.43, 0.3],
+  ] as const;
+  innerKeeps.forEach(([x, z], index) => {
+    const plinth = shadowed(
+      new THREE.Mesh(
+        new THREE.CylinderGeometry(hexSize * 0.18, hexSize * 0.2, hexSize * 0.12, 6),
+        stone,
+      ),
+    );
+    plinth.position.set(hexSize * x, elevatedY + hexSize * 0.06, hexSize * z);
+    add(plinth);
+    const towerBody = shadowed(
+      new THREE.Mesh(
+        new THREE.BoxGeometry(hexSize * 0.25, hexSize * 0.48, hexSize * 0.22),
+        index % 2 === 0 ? stoneLight : plaster,
+      ),
+    );
+    towerBody.position.set(hexSize * x, elevatedY + hexSize * 0.34, hexSize * z);
+    add(towerBody);
+    const timberBand = shadowed(
+      new THREE.Mesh(
+        new THREE.BoxGeometry(hexSize * 0.28, hexSize * 0.06, hexSize * 0.25),
+        darkTimber,
+      ),
+    );
+    timberBand.position.set(hexSize * x, elevatedY + hexSize * 0.55, hexSize * z);
+    add(timberBand);
+    addTierRoof(x, 0.7, z, 0.22, 0.22);
+  });
+
+  // The central three-tier keep is the tallest object in the city.
+  const commandPlinth = shadowed(
+    new THREE.Mesh(
+      new THREE.CylinderGeometry(hexSize * 0.3, hexSize * 0.34, hexSize * 0.16, 8),
+      stone,
+    ),
+  );
+  commandPlinth.position.set(0, elevatedY + hexSize * 0.08, -hexSize * 0.03);
+  add(commandPlinth);
+
+  const lowerBody = shadowed(
+    new THREE.Mesh(
+      new THREE.BoxGeometry(hexSize * 0.4, hexSize * 0.42, hexSize * 0.34),
+      stoneLight,
+    ),
+  );
+  lowerBody.position.set(0, elevatedY + hexSize * 0.34, -hexSize * 0.03);
+  add(lowerBody);
+  addTierRoof(0, 0.59, -0.03, 0.34, 0.25);
+
+  const middleBody = shadowed(
+    new THREE.Mesh(
+      new THREE.BoxGeometry(hexSize * 0.31, hexSize * 0.3, hexSize * 0.27),
+      plaster,
+    ),
+  );
+  middleBody.position.set(0, elevatedY + hexSize * 0.76, -hexSize * 0.03);
+  add(middleBody);
+  addTierRoof(0, 0.94, -0.03, 0.28, 0.22);
+
+  const upperBody = shadowed(
+    new THREE.Mesh(
+      new THREE.BoxGeometry(hexSize * 0.22, hexSize * 0.25, hexSize * 0.2),
+      darkTimber,
+    ),
+  );
+  upperBody.position.set(0, elevatedY + hexSize * 1.08, -hexSize * 0.03);
+  add(upperBody);
+  addTierRoof(0, 1.23, -0.03, 0.22, 0.2);
+
+  const ridge = shadowed(
+    new THREE.Mesh(
+      new THREE.CylinderGeometry(hexSize * 0.022, hexSize * 0.022, hexSize * 0.32, 8),
+      metal,
+    ),
+  );
+  ridge.rotation.z = Math.PI / 2;
+  ridge.position.set(0, elevatedY + hexSize * 1.34, -hexSize * 0.03);
+  add(ridge);
+
+  const flagHeight = hexSize * 0.17;
+  const poleHeight = hexSize * 1.58;
+  const pole = shadowed(
+    new THREE.Mesh(
+      new THREE.CylinderGeometry(hexSize * 0.013, hexSize * 0.018, poleHeight, 8),
+      metal,
+    ),
+  );
+  pole.position.set(-hexSize * 0.12, elevatedY + poleHeight * 0.5, -hexSize * 0.03);
+  add(pole);
+  const commandFlag = new THREE.Mesh(
+    new THREE.PlaneGeometry(hexSize * 0.3, flagHeight),
+    faction,
+  );
+  commandFlag.position.set(
+    hexSize * 0.03,
+    elevatedY + poleHeight - flagHeight * 0.5,
+    -hexSize * 0.03,
+  );
+  add(commandFlag);
+
+  return visual;
 }
