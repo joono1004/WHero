@@ -1209,6 +1209,55 @@ function WorldScene({
       CHARACTER_TEXTURE_CACHE.set(url, texture);
       return texture;
     };
+    const loadFactionUnitTexture = (
+      url: string,
+      factionId: FactionVisualId,
+      sourceAccent: "blue" | "red",
+    ) => {
+      const faction = factionVisual(factionId);
+      const cacheKey = `faction-unit-v1:${url}:${factionId}:${sourceAccent}`;
+      const cached = CHARACTER_TEXTURE_CACHE.get(cacheKey);
+      if (cached) return cached;
+      const texture = textureLoader.load(url, (loadedTexture) => {
+        const image = loadedTexture.image as HTMLImageElement;
+        const canvas = document.createElement("canvas");
+        canvas.width = image.naturalWidth || image.width;
+        canvas.height = image.naturalHeight || image.height;
+        const context = canvas.getContext("2d", { willReadFrequently: true });
+        if (!context) return;
+        context.drawImage(image, 0, 0);
+        const pixels = context.getImageData(0, 0, canvas.width, canvas.height);
+        const target = new THREE.Color(faction.color);
+        const targetLuma = Math.max(
+          0.12,
+          target.r * 0.2126 + target.g * 0.7152 + target.b * 0.0722,
+        );
+        for (let index = 0; index < pixels.data.length; index += 4) {
+          const red = pixels.data[index] / 255;
+          const green = pixels.data[index + 1] / 255;
+          const blue = pixels.data[index + 2] / 255;
+          const alpha = pixels.data[index + 3];
+          if (alpha < 20) continue;
+          const matchesAccent =
+            sourceAccent === "blue"
+              ? blue > red * 1.16 && blue > green * 1.06 && blue - red > 0.08
+              : red > blue * 1.18 && red > green * 1.08 && red - blue > 0.08;
+          if (!matchesAccent) continue;
+          const luma = red * 0.2126 + green * 0.7152 + blue * 0.0722;
+          const shade = THREE.MathUtils.clamp(luma / targetLuma, 0.34, 1.65);
+          pixels.data[index] = Math.min(255, target.r * shade * 255);
+          pixels.data[index + 1] = Math.min(255, target.g * shade * 255);
+          pixels.data[index + 2] = Math.min(255, target.b * shade * 255);
+        }
+        context.putImageData(pixels, 0, 0);
+        loadedTexture.image = canvas;
+        loadedTexture.needsUpdate = true;
+      });
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+      CHARACTER_TEXTURE_CACHE.set(cacheKey, texture);
+      return texture;
+    };
     const createUnitEmblemTexture = (unitId: string, accent: string) => {
       const cacheKey = `unit-emblem-v4:${unitId}:${accent}`;
       const cached = CHARACTER_TEXTURE_CACHE.get(cacheKey);
@@ -2025,7 +2074,10 @@ function WorldScene({
         skills: [],
       };
 
-      const unitTexture = loadCharacterTexture(unit.visual.image);
+      const unitTexture =
+        unit.id === "cavalry"
+          ? loadFactionUnitTexture(unit.visual.image, factionId, "blue")
+          : loadCharacterTexture(unit.visual.image);
       const unitMarker = new THREE.Sprite(
           new THREE.SpriteMaterial({
           map: unitTexture,
