@@ -100,46 +100,54 @@ export function createResourceSiteVisual({
   };
 
   if (kind === "farm") {
-    const fieldColors = ["#b98536", "#cda348", "#96713b"];
-    [-0.28, 0, 0.28].forEach((x, index) => {
+    const fieldBase = new THREE.Mesh(
+      new THREE.CylinderGeometry(hexSize * 0.82, hexSize * 0.86, hexSize * 0.018, 12),
+      new THREE.MeshStandardMaterial({ color: "#76522f", roughness: 1 }),
+    );
+    fieldBase.position.y = hexSize * 0.01;
+    fieldBase.receiveShadow = true;
+    add(fieldBase);
+    const fieldColors = ["#b98536", "#d0aa4c", "#96713b", "#c4933e", "#ad7935"];
+    [-0.56, -0.34, -0.12, 0.1, 0.32].forEach((x, index) => {
       const field = new THREE.Mesh(
-        new THREE.BoxGeometry(hexSize * 0.2, hexSize * 0.025, hexSize * 0.75),
+        new THREE.BoxGeometry(hexSize * 0.18, hexSize * 0.035, hexSize * 1.18),
         new THREE.MeshStandardMaterial({ color: fieldColors[index], roughness: 1 }),
       );
-      field.position.set(hexSize * x, hexSize * 0.02, hexSize * 0.08);
-      field.rotation.y = -0.12;
+      field.position.set(hexSize * x, hexSize * 0.03, hexSize * 0.03);
+      field.rotation.y = -0.07;
       field.receiveShadow = true;
       add(field);
-      for (let row = 0; row < 4; row += 1) {
+      for (let row = 0; row < 6; row += 1) {
         const crop = shadowed(
           new THREE.Mesh(
-            new THREE.CylinderGeometry(hexSize * 0.018, hexSize * 0.025, hexSize * 0.16, 6),
+            new THREE.CylinderGeometry(hexSize * 0.02, hexSize * 0.027, hexSize * 0.18, 6),
             gold,
           ),
         );
         crop.position.set(
           hexSize * (x + 0.02),
-          hexSize * 0.1,
-          hexSize * (-0.18 + row * 0.17),
+          hexSize * 0.12,
+          hexSize * (-0.43 + row * 0.18),
         );
         add(crop);
       }
     });
-    addBuilding(0.38, -0.31, 0.34, 0.28, 0.28);
+    addBuilding(0.56, -0.37, 0.34, 0.28, 0.28);
     const silo = shadowed(
       new THREE.Mesh(
         new THREE.CylinderGeometry(hexSize * 0.11, hexSize * 0.13, hexSize * 0.3, 10),
         wood,
       ),
     );
-    silo.position.set(hexSize * 0.62, hexSize * 0.15, hexSize * -0.16);
+    silo.position.set(hexSize * 0.61, hexSize * 0.15, hexSize * -0.05);
     add(silo);
     const siloRoof = shadowed(
       new THREE.Mesh(new THREE.ConeGeometry(hexSize * 0.14, hexSize * 0.14, 10), roof),
     );
-    siloRoof.position.set(hexSize * 0.62, hexSize * 0.37, hexSize * -0.16);
+    siloRoof.position.set(hexSize * 0.61, hexSize * 0.37, hexSize * -0.05);
     add(siloRoof);
-    addFence(-0.47, 0.48, 0.55, 0.08);
+    addFence(-0.34, 0.67, 0.86, 0.04);
+    addFence(-0.67, -0.02, 0.66, Math.PI / 2);
   }
 
   if (kind === "logging") {
@@ -189,34 +197,51 @@ export function createResourceSiteVisual({
   }
 
   if (kind === "mine") {
-    [-0.52, -0.35, -0.15, 0.1, 0.35, 0.54].forEach((x, index) => {
+    const rockLayout = [
+      [-0.58, -0.28, 0.27, 1.35],
+      [-0.39, -0.4, 0.32, 1.7],
+      [-0.18, -0.48, 0.35, 1.95],
+      [0.08, -0.49, 0.38, 2.15],
+      [0.33, -0.42, 0.34, 1.85],
+      [0.55, -0.28, 0.28, 1.45],
+      [-0.52, -0.03, 0.23, 1.05],
+      [0.51, -0.02, 0.23, 1.08],
+    ];
+    rockLayout.forEach(([x, z, radius, heightScale], index) => {
       const rock = shadowed(
         new THREE.Mesh(
-          new THREE.DodecahedronGeometry(hexSize * (0.17 + (index % 3) * 0.035), 0),
+          new THREE.DodecahedronGeometry(hexSize * radius, 0),
           index % 2 ? stone : new THREE.MeshStandardMaterial({ color: "#929087", roughness: 1, flatShading: true }),
         ),
       );
-      rock.scale.y = 0.7 + (index % 2) * 0.3;
-      rock.position.set(hexSize * x, hexSize * (0.11 + (index % 2) * 0.05), hexSize * -0.18);
+      rock.scale.y = heightScale;
+      rock.rotation.set(index * 0.13, index * 0.41, index * 0.09);
+      rock.position.set(hexSize * x, hexSize * radius * heightScale * 0.72, hexSize * z);
       add(rock);
     });
-    const portal = new THREE.Mesh(
-      new THREE.PlaneGeometry(hexSize * 0.36, hexSize * 0.34),
+    const portalBody = new THREE.Mesh(
+      new THREE.PlaneGeometry(hexSize * 0.5, hexSize * 0.38),
       darkStone,
     );
-    portal.position.set(0, hexSize * 0.2, hexSize * -0.35);
-    add(portal);
-    [-0.21, 0.21].forEach((x) => {
+    portalBody.position.set(0, hexSize * 0.22, hexSize * -0.67);
+    add(portalBody);
+    const portalArch = new THREE.Mesh(
+      new THREE.CircleGeometry(hexSize * 0.25, 18, 0, Math.PI),
+      darkStone,
+    );
+    portalArch.position.set(0, hexSize * 0.41, hexSize * -0.665);
+    add(portalArch);
+    [-0.29, 0.29].forEach((x) => {
       const post = shadowed(
-        new THREE.Mesh(new THREE.BoxGeometry(hexSize * 0.07, hexSize * 0.43, hexSize * 0.08), darkWood),
+        new THREE.Mesh(new THREE.BoxGeometry(hexSize * 0.085, hexSize * 0.62, hexSize * 0.11), darkWood),
       );
-      post.position.set(hexSize * x, hexSize * 0.215, hexSize * -0.31);
+      post.position.set(hexSize * x, hexSize * 0.31, hexSize * -0.62);
       add(post);
     });
     const beam = shadowed(
-      new THREE.Mesh(new THREE.BoxGeometry(hexSize * 0.5, hexSize * 0.075, hexSize * 0.09), darkWood),
+      new THREE.Mesh(new THREE.BoxGeometry(hexSize * 0.7, hexSize * 0.095, hexSize * 0.12), darkWood),
     );
-    beam.position.set(0, hexSize * 0.42, hexSize * -0.31);
+    beam.position.set(0, hexSize * 0.59, hexSize * -0.62);
     add(beam);
     [-0.13, 0.13].forEach((x) => {
       const rail = new THREE.Mesh(
@@ -240,6 +265,17 @@ export function createResourceSiteVisual({
       wheel.position.set(hexSize * x, hexSize * 0.07, hexSize * 0.28);
       add(wheel);
     });
+    const oreColors = ["#c59b3c", "#6d91a5", "#b7b4aa"];
+    [-0.48, 0.43, 0.58].forEach((x, index) => {
+      const ore = shadowed(
+        new THREE.Mesh(
+          new THREE.OctahedronGeometry(hexSize * (0.09 + index * 0.012), 0),
+          new THREE.MeshStandardMaterial({ color: oreColors[index], roughness: 0.72, metalness: 0.18 }),
+        ),
+      );
+      ore.position.set(hexSize * x, hexSize * 0.1, hexSize * (0.28 + (index % 2) * 0.12));
+      add(ore);
+    });
   }
 
   if (kind === "market") {
@@ -250,34 +286,65 @@ export function createResourceSiteVisual({
     plaza.position.y = hexSize * 0.018;
     plaza.receiveShadow = true;
     add(plaza);
-    const canopyColors = ["#b84f43", "#315f91", "#d2a242"];
+    const canopyColors = ["#b84f43", "#315f91", "#d2a242", "#60834a"];
+    const stripeColors = ["#f1d8b0", "#e7e0c7", "#f3d8a0", "#e6d7bd"];
     [
-      [-0.36, -0.24, -0.05],
-      [0.35, -0.19, 0.12],
-      [0.02, 0.37, -0.08],
+      [0, -0.5, 0],
+      [0.5, 0, Math.PI / 2],
+      [0, 0.5, Math.PI],
+      [-0.5, 0, -Math.PI / 2],
     ].forEach(([x, z, rotation], index) => {
+      const stall = new THREE.Group();
+      stall.position.set(hexSize * x, 0, hexSize * z);
+      stall.rotation.y = rotation;
+      group.add(stall);
+      const addStallPart = <T extends THREE.Object3D>(object: T) => {
+        stall.add(object);
+        selectableMeshes.push(object);
+        return object;
+      };
       const counter = shadowed(
         new THREE.Mesh(new THREE.BoxGeometry(hexSize * 0.42, hexSize * 0.16, hexSize * 0.22), wood),
       );
-      counter.position.set(hexSize * x, hexSize * 0.12, hexSize * z);
-      counter.rotation.y = rotation;
-      add(counter);
+      counter.position.set(0, hexSize * 0.12, 0);
+      addStallPart(counter);
       const canopy = shadowed(
         new THREE.Mesh(
-          new THREE.BoxGeometry(hexSize * 0.5, hexSize * 0.055, hexSize * 0.32),
+          new THREE.BoxGeometry(hexSize * 0.52, hexSize * 0.055, hexSize * 0.34),
           new THREE.MeshStandardMaterial({ color: canopyColors[index], roughness: 0.88 }),
         ),
       );
-      canopy.position.set(hexSize * x, hexSize * 0.39, hexSize * z);
-      canopy.rotation.y = rotation;
-      add(canopy);
+      canopy.position.set(0, hexSize * 0.42, 0);
+      addStallPart(canopy);
+      [-0.18, 0, 0.18].forEach((stripeX) => {
+        const stripe = shadowed(
+          new THREE.Mesh(
+            new THREE.BoxGeometry(hexSize * 0.075, hexSize * 0.012, hexSize * 0.35),
+            new THREE.MeshStandardMaterial({ color: stripeColors[index], roughness: 0.9 }),
+          ),
+        );
+        stripe.position.set(hexSize * stripeX, hexSize * 0.455, 0);
+        addStallPart(stripe);
+      });
       [-0.18, 0.18].forEach((side) => {
         const post = shadowed(
           new THREE.Mesh(new THREE.CylinderGeometry(hexSize * 0.018, hexSize * 0.022, hexSize * 0.35, 7), darkWood),
         );
-        post.position.set(hexSize * (x + side), hexSize * 0.22, hexSize * z);
-        post.rotation.y = rotation;
-        add(post);
+        post.position.set(hexSize * side, hexSize * 0.22, 0);
+        addStallPart(post);
+      });
+      [-0.1, 0.1].forEach((goodsX, goodsIndex) => {
+        const goods = shadowed(
+          new THREE.Mesh(
+            new THREE.SphereGeometry(hexSize * 0.055, 8, 6),
+            new THREE.MeshStandardMaterial({
+              color: goodsIndex === 0 ? "#d58a35" : index % 2 ? "#7e9b50" : "#a64235",
+              roughness: 0.92,
+            }),
+          ),
+        );
+        goods.position.set(hexSize * goodsX, hexSize * 0.235, hexSize * -0.01);
+        addStallPart(goods);
       });
     });
     const tradePost = shadowed(
@@ -291,6 +358,35 @@ export function createResourceSiteVisual({
     );
     pennant.position.set(hexSize * 0.12, hexSize * 0.48, 0);
     add(pennant);
+    const tradeEmblem = shadowed(
+      new THREE.Mesh(
+        new THREE.TorusGeometry(hexSize * 0.12, hexSize * 0.025, 8, 18),
+        new THREE.MeshStandardMaterial({ color: "#e0b84f", roughness: 0.6, metalness: 0.25 }),
+      ),
+    );
+    tradeEmblem.position.set(0, hexSize * 0.61, 0);
+    add(tradeEmblem);
+    [-0.22, 0.22].forEach((x, index) => {
+      const crate = shadowed(
+        new THREE.Mesh(
+          new THREE.BoxGeometry(hexSize * 0.15, hexSize * 0.14, hexSize * 0.15),
+          index ? darkWood : cutWood,
+        ),
+      );
+      crate.position.set(hexSize * x, hexSize * 0.09, hexSize * 0.13);
+      crate.rotation.y = index ? 0.28 : -0.18;
+      add(crate);
+    });
+    [-0.31, 0.31].forEach((x, index) => {
+      const jar = shadowed(
+        new THREE.Mesh(
+          new THREE.CylinderGeometry(hexSize * 0.045, hexSize * 0.075, hexSize * 0.16, 9),
+          new THREE.MeshStandardMaterial({ color: index ? "#b57a4c" : "#6f8b8e", roughness: 0.9 }),
+        ),
+      );
+      jar.position.set(hexSize * x, hexSize * 0.1, hexSize * -0.1);
+      add(jar);
+    });
   }
 
   return { group, selectableMeshes };
