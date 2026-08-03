@@ -62,6 +62,7 @@ import {
 } from "@/lib/world/prototype/tactical-interaction";
 import {
   fogStateAt,
+  outpostVisionRadius,
   visionRadiusFor,
   visibleHexKeys,
   type VisionSource,
@@ -2373,11 +2374,21 @@ function WorldScene({
             )?.type,
           ),
         })),
-        ...[...outposts.values()].map((outpost) => ({
-          row: outpost.row,
-          column: outpost.column,
-          radius: 2,
-        })),
+        ...[...outposts.values()].map((outpost) => {
+          const hasHero = [...actorVisuals.values()].some(
+            (visual) =>
+              visual.actor.team === "player" &&
+              visual.actor.kind === "hero" &&
+              visual.actor.hp > 0 &&
+              visual.actor.row === outpost.row &&
+              visual.actor.column === outpost.column,
+          );
+          return {
+            row: outpost.row,
+            column: outpost.column,
+            radius: outpostVisionRadius(hasHero),
+          };
+        }),
       ];
     const updateFogMeshes = () => {
       fogCells.forEach((cell, index) => {
@@ -2782,6 +2793,16 @@ function WorldScene({
               name: outpostAt(row, column)!.name,
               level: outpostAt(row, column)!.level,
               isCapital: outpostAt(row, column)!.isCapital,
+              visionRadius: outpostVisionRadius(
+                [...actorVisuals.values()].some(
+                  (visual) =>
+                    visual.actor.team === "player" &&
+                    visual.actor.kind === "hero" &&
+                    visual.actor.hp > 0 &&
+                    visual.actor.row === row &&
+                    visual.actor.column === column,
+                ),
+              ),
             }
           : undefined,
       };

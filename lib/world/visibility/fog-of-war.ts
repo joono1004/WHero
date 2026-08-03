@@ -17,6 +17,10 @@ export function visionRadiusFor(
   return Math.max(1, baseRadius + terrainModifier);
 }
 
+export function outpostVisionRadius(hasStationedHero: boolean) {
+  return hasStationedHero ? 5 : 4;
+}
+
 export function fogHexKey(row: number, column: number) {
   return `${row}:${column}`;
 }

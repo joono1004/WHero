@@ -40,6 +40,7 @@ export type HexDiagnostic = HexCoordinate & {
     name: string;
     level: number;
     isCapital: boolean;
+    visionRadius: number;
   };
 };
 

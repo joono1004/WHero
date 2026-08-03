@@ -30,7 +30,7 @@ export function HexInfoPopup({ popup }: HexInfoPopupProps) {
           <b>{popup.diagnostic.structure.name}</b>
           {popup.diagnostic.structure.isCapital ? " · 수도" : ""}
           <br />
-          도시 단계 {popup.diagnostic.structure.level} · 시야 2칸
+          도시 단계 {popup.diagnostic.structure.level} · 시야 {popup.diagnostic.structure.visionRadius}칸
         </em>
       )}
       <strong>{popup.diagnostic.terrain}</strong>
