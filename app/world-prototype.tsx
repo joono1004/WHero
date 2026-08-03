@@ -69,6 +69,7 @@ import {
 } from "@/lib/world/visibility/fog-of-war";
 import {
   createOutpostVisual,
+  createSmallCityVisual,
   type OutpostVisual,
 } from "@/lib/world/prototype/outpost-visual";
 import {
@@ -928,6 +929,7 @@ function createShallowCoastGeometry(seed: number) {
 
 const DEFAULT_TACTICAL_PANEL: TacticalPanelState = {
   isOpen: false,
+  panelKind: null,
   actorName: null,
   actorKind: null,
   message: "",
@@ -938,6 +940,7 @@ const DEFAULT_TACTICAL_PANEL: TacticalPanelState = {
   attackTargeting: false,
   canCancelMove: false,
   canFoundOutpost: false,
+  canUpgradeOutpost: false,
 };
 
 const MELEE_ATTACK: AttackMode = {
@@ -1810,14 +1813,14 @@ function WorldScene({
         heroFoot.z,
         samples,
       );
-      const hexMarker = addOccupantHexMarker(
-        heroStart,
-        heroGroundHeight,
-        "#69c8ff",
-      );
       heroStartCells.push(heroStart);
       const profile = heroTacticalProfile(hero.id);
       const factionId: FactionVisualId = "player";
+      const hexMarker = addOccupantHexMarker(
+        heroStart,
+        heroGroundHeight,
+        factionVisual(factionId).color,
+      );
       const actor: TacticalActor = {
         id: `hero:${hero.id}`,
         name: hero.name,
@@ -2584,6 +2587,7 @@ function WorldScene({
     const interactionOverlays: THREE.Mesh[] = [];
     const tacticalActionMarkers: TacticalActionMarker[] = [];
     let selectedActorId: string | null = null;
+    let selectedOutpostKey: string | null = null;
     let commandPanelOpen = false;
     let attackTargeting = false;
     let selectedSkillId: string | null = null;
@@ -2869,6 +2873,73 @@ function WorldScene({
           : `${visual.actor.name}이(가) 새로운 주둔지를 세웠습니다.`,
       );
     };
+    const setOutpostSelectableData = (
+      outpostVisual: OutpostVisual,
+      row: number,
+      column: number,
+    ) => {
+      outpostVisual.selectableMeshes.forEach((mesh) => {
+        mesh.userData = { type: "outpost", row, column };
+      });
+    };
+    const disposeOutpostVisual = (outpostVisual: OutpostVisual) => {
+      outpostVisual.group.traverse((object) => {
+        if (!(object instanceof THREE.Mesh)) return;
+        object.geometry.dispose();
+        const materials = Array.isArray(object.material)
+          ? object.material
+          : [object.material];
+        materials.forEach((material) => material.dispose());
+      });
+    };
+    const setPanelForOutpost = (outpost: OutpostState, message = "") => {
+      selectedActorId = null;
+      selectedOutpostKey = `${outpost.row}:${outpost.column}`;
+      commandPanelOpen = true;
+      attackTargeting = false;
+      selectedSkillId = null;
+      pendingAttackTargetId = null;
+      movementPlanBudget = 0;
+      movementPlanOrigin = null;
+      movementPreviewActive = false;
+      reachableByKey.clear();
+      clearInteractionOverlays();
+      clearActionMarkers();
+      setTacticalPanel({
+        ...DEFAULT_TACTICAL_PANEL,
+        isOpen: true,
+        panelKind: "structure",
+        actorName: outpost.name,
+        message,
+        canUpgradeOutpost: outpost.level === 1,
+      });
+    };
+    const upgradeOutpost = (outpost: OutpostState) => {
+      if (outpost.level !== 1) return;
+      const center = hexCenterAt(outpost.row, outpost.column);
+      const terrainType = terrainCells.get(`${outpost.row}:${outpost.column}`)?.type;
+      const ground = heightAt(seed, center.x, center.z, samples);
+      const upgradedVisual = createSmallCityVisual({
+        hexSize: HEX_SIZE,
+        factionColor: factionVisual("player").color,
+        isCapital: outpost.isCapital,
+      });
+      upgradedVisual.group.position.set(
+        center.x,
+        ground + (terrainType === "hill" ? 0.23 : 0.035),
+        center.z,
+      );
+      upgradedVisual.group.rotation.y += outpost.visual.group.rotation.y + 0.08;
+      setOutpostSelectableData(upgradedVisual, outpost.row, outpost.column);
+      worldRoot.remove(outpost.visual.group);
+      disposeOutpostVisual(outpost.visual);
+      worldRoot.add(upgradedVisual.group);
+      outpost.level = 2;
+      outpost.name = outpost.isCapital ? "수도 소도시" : "소도시";
+      outpost.visual = upgradedVisual;
+      refreshFogVisibility(false);
+      setPanelForOutpost(outpost, "목조 성채를 갖춘 소도시로 증축했습니다.");
+    };
     const diagnosticForHex = (
       row: number,
       column: number,
@@ -2964,6 +3035,24 @@ function WorldScene({
         ),
       };
     };
+    const popupPositionForOutpost = (outpost: OutpostState) => {
+      const anchor = outpost.visual.group.position.clone();
+      anchor.y += HEX_SIZE * 0.75;
+      worldRoot.localToWorld(anchor);
+      anchor.project(camera);
+      return {
+        x: THREE.MathUtils.clamp(
+          (anchor.x * 0.5 + 0.5) * host.clientWidth,
+          8,
+          Math.max(8, host.clientWidth - 240),
+        ),
+        y: THREE.MathUtils.clamp(
+          (-anchor.y * 0.5 + 0.5) * host.clientHeight,
+          8,
+          Math.max(8, host.clientHeight - 145),
+        ),
+      };
+    };
     const setPanelForActor = (
       visual: ActorVisual,
       message: string,
@@ -2973,6 +3062,7 @@ function WorldScene({
       attackTargeting = overrides.attackTargeting ?? false;
       setTacticalPanel({
         isOpen: true,
+        panelKind: "actor",
         actorName: visual.actor.name,
         actorKind: visual.actor.kind,
         message,
@@ -2986,6 +3076,7 @@ function WorldScene({
         skillMenuOpen: false,
         canCancelMove: movementPreviewActive,
         canFoundOutpost: canFoundOutpostAt(visual),
+        canUpgradeOutpost: false,
         ...overrides,
       });
     };
@@ -3066,6 +3157,7 @@ function WorldScene({
     };
     const clearSelection = (message = DEFAULT_TACTICAL_PANEL.message) => {
       selectedActorId = null;
+      selectedOutpostKey = null;
       commandPanelOpen = false;
       attackTargeting = false;
       selectedSkillId = null;
@@ -3091,6 +3183,7 @@ function WorldScene({
         return;
       }
       selectedActorId = visual.actor.id;
+      selectedOutpostKey = null;
       commandPanelOpen = false;
       selectedSkillId = null;
       pendingAttackTargetId = null;
@@ -3334,8 +3427,14 @@ function WorldScene({
         (object): object is THREE.Sprite =>
           object instanceof THREE.Sprite && object.visible,
       );
+      const interactiveObjects: THREE.Object3D[] = [
+        ...interactiveSprites,
+        ...[...outposts.values()].flatMap((outpost) =>
+          outpost.visual.selectableMeshes.filter((object) => object.visible),
+        ),
+      ];
       const objectHits = raycaster
-        .intersectObjects(interactiveSprites, false)
+        .intersectObjects(interactiveObjects, false)
         .filter((intersection) => intersection.object.visible);
       const objectHit =
         objectHits.find(
@@ -3344,6 +3443,11 @@ function WorldScene({
         ) ?? objectHits[0];
       if (objectHit) {
         const data = objectHit.object.userData;
+        if (data.type === "outpost") {
+          const outpost = outpostAt(data.row as number, data.column as number);
+          if (outpost) setPanelForOutpost(outpost);
+          return;
+        }
         if (data.type === "tactical-action") {
           const attacker = actorVisuals.get(data.actorId as string);
           const target = actorVisuals.get(data.targetId as string);
@@ -3568,6 +3672,20 @@ function WorldScene({
     renderer.domElement.addEventListener("contextmenu", handleContextMenu);
 
     tacticalCommandRef.current = (command) => {
+      const selectedOutpost = selectedOutpostKey
+        ? outposts.get(selectedOutpostKey)
+        : undefined;
+      if (command.type === "upgrade-outpost") {
+        if (selectedOutpost) upgradeOutpost(selectedOutpost);
+        return;
+      }
+      if (command.type === "info" && selectedOutpost) {
+        onHexSelected(
+          diagnosticForHex(selectedOutpost.row, selectedOutpost.column),
+          popupPositionForOutpost(selectedOutpost),
+        );
+        return;
+      }
       const visual = selectedActorId
         ? actorVisuals.get(selectedActorId)
         : undefined;
@@ -3754,15 +3872,17 @@ function WorldScene({
       const selectedVisual = selectedActorId
         ? actorVisuals.get(selectedActorId)
         : undefined;
+      const selectedOutpost = selectedOutpostKey
+        ? outposts.get(selectedOutpostKey)
+        : undefined;
       if (
         actionPanel &&
         commandPanelOpen &&
-        selectedVisual &&
-        selectedVisual.actor.hp > 0
+        ((selectedVisual && selectedVisual.actor.hp > 0) || selectedOutpost)
       ) {
-        // The full sprite position is anchored at the actor's feet. Projecting
-        // that point keeps the compact command panel directly below the hex.
-        const anchor = selectedVisual.full.position.clone();
+        const anchor = selectedVisual
+          ? selectedVisual.full.position.clone()
+          : selectedOutpost!.visual.group.position.clone();
         worldRoot.localToWorld(anchor);
         anchor.project(camera);
         const anchorX = (anchor.x * 0.5 + 0.5) * host.clientWidth;

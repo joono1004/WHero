@@ -296,3 +296,167 @@ export function createOutpostVisual({
   group.scale.setScalar(1);
   return { group, selectableMeshes };
 }
+
+/** Level 2 settlement: a compact timber town enclosed by palisades. */
+export function createSmallCityVisual({
+  hexSize,
+  factionColor = "#2f86df",
+  isCapital = false,
+}: OutpostVisualOptions): OutpostVisual {
+  const group = new THREE.Group();
+  group.name = isCapital ? "capital-small-city" : "small-city";
+  group.rotation.y = -0.08;
+
+  const selectableMeshes: THREE.Object3D[] = [];
+  const add = <T extends THREE.Object3D>(object: T) => {
+    group.add(object);
+    selectableMeshes.push(object);
+    return object;
+  };
+  const timber = new THREE.MeshStandardMaterial({ color: "#654126", roughness: 0.96 });
+  const timberLight = new THREE.MeshStandardMaterial({ color: "#a37341", roughness: 0.9 });
+  const plaster = new THREE.MeshStandardMaterial({ color: "#d5c39a", roughness: 1 });
+  const roof = new THREE.MeshStandardMaterial({ color: "#765038", roughness: 0.94 });
+  const faction = new THREE.MeshStandardMaterial({
+    color: factionColor,
+    roughness: 0.72,
+    side: THREE.DoubleSide,
+  });
+  const metal = new THREE.MeshStandardMaterial({
+    color: isCapital ? "#f0c65d" : "#bcae86",
+    metalness: 0.3,
+    roughness: 0.58,
+  });
+
+  const base = new THREE.Mesh(
+    new THREE.CircleGeometry(hexSize * 0.9, 6),
+    new THREE.MeshStandardMaterial({ color: "#80653d", roughness: 1 }),
+  );
+  base.rotation.x = -Math.PI / 2;
+  base.position.y = 0.018;
+  base.receiveShadow = true;
+  add(base);
+
+  const wallRadius = hexSize * 0.82;
+  const corners = Array.from({ length: 6 }, (_, index) => {
+    const angle = THREE.MathUtils.degToRad(30 + index * 60);
+    return new THREE.Vector3(
+      Math.cos(angle) * wallRadius,
+      0,
+      Math.sin(angle) * wallRadius,
+    );
+  });
+  const towerCorners = new Set([0, 2, 4]);
+  corners.forEach((start, side) => {
+    const end = corners[(side + 1) % corners.length];
+    for (let step = 0; step < 6; step += 1) {
+      if (side === 1 && (step === 2 || step === 3)) continue;
+      const position = start.clone().lerp(end, step / 6);
+      const height = hexSize * 0.46;
+      const post = shadowed(
+        new THREE.Mesh(
+          new THREE.CylinderGeometry(hexSize * 0.026, hexSize * 0.035, height, 6),
+          step % 2 === 0 ? timberLight : timber,
+        ),
+      );
+      post.position.set(position.x, height * 0.5, position.z);
+      add(post);
+      const tip = shadowed(
+        new THREE.Mesh(new THREE.ConeGeometry(hexSize * 0.037, hexSize * 0.1, 6), timberLight),
+      );
+      tip.position.set(position.x, height + hexSize * 0.045, position.z);
+      add(tip);
+    }
+  });
+
+  towerCorners.forEach((cornerIndex) => {
+    const point = corners[cornerIndex];
+    const towerBase = shadowed(
+      new THREE.Mesh(
+        new THREE.CylinderGeometry(hexSize * 0.13, hexSize * 0.15, hexSize * 0.58, 6),
+        timberLight,
+      ),
+    );
+    towerBase.position.set(point.x, hexSize * 0.29, point.z);
+    add(towerBase);
+    const platform = shadowed(
+      new THREE.Mesh(
+        new THREE.CylinderGeometry(hexSize * 0.18, hexSize * 0.18, hexSize * 0.08, 6),
+        timber,
+      ),
+    );
+    platform.position.set(point.x, hexSize * 0.61, point.z);
+    add(platform);
+    const towerRoof = shadowed(
+      new THREE.Mesh(new THREE.ConeGeometry(hexSize * 0.2, hexSize * 0.22, 6), roof),
+    );
+    towerRoof.position.set(point.x, hexSize * 0.76, point.z);
+    add(towerRoof);
+  });
+
+  const addHouse = (
+    x: number,
+    z: number,
+    width: number,
+    depth: number,
+    height: number,
+    command = false,
+  ) => {
+    const body = shadowed(
+      new THREE.Mesh(
+        new THREE.BoxGeometry(hexSize * width, hexSize * height, hexSize * depth),
+        command ? timberLight : plaster,
+      ),
+    );
+    body.position.set(hexSize * x, hexSize * height * 0.5 + 0.04, hexSize * z);
+    add(body);
+    const houseRoof = shadowed(
+      new THREE.Mesh(
+        new THREE.ConeGeometry(hexSize * Math.max(width, depth) * 0.72, hexSize * 0.24, 4),
+        command ? faction : roof,
+      ),
+    );
+    houseRoof.position.set(hexSize * x, hexSize * (height + 0.16), hexSize * z);
+    houseRoof.rotation.y = Math.PI / 4;
+    add(houseRoof);
+    return body;
+  };
+
+  addHouse(0, -0.09, 0.42, 0.34, 0.42, true);
+  addHouse(-0.43, -0.28, 0.25, 0.2, 0.28);
+  addHouse(0.43, -0.28, 0.25, 0.2, 0.28);
+  addHouse(-0.4, 0.28, 0.22, 0.2, 0.25);
+  addHouse(0.4, 0.28, 0.22, 0.2, 0.25);
+
+  const path = new THREE.Mesh(
+    new THREE.PlaneGeometry(hexSize * 0.22, hexSize * 0.7),
+    new THREE.MeshStandardMaterial({ color: "#b4935f", roughness: 1 }),
+  );
+  path.rotation.x = -Math.PI / 2;
+  path.position.set(0, 0.04, hexSize * 0.48);
+  add(path);
+
+  const addFlag = (x: number, z: number, height: number, scale = 1) => {
+    const pole = shadowed(
+      new THREE.Mesh(
+        new THREE.CylinderGeometry(hexSize * 0.012, hexSize * 0.017, height, 7),
+        metal,
+      ),
+    );
+    pole.position.set(x, height * 0.5, z);
+    add(pole);
+    const flag = new THREE.Mesh(
+      new THREE.PlaneGeometry(hexSize * 0.25 * scale, hexSize * 0.15 * scale),
+      faction,
+    );
+    flag.position.set(x + hexSize * 0.12 * scale, height * 0.8, z);
+    add(flag);
+  };
+  addFlag(-hexSize * 0.18, -hexSize * 0.08, hexSize * 1.1, 1.15);
+  corners.forEach((point, index) => {
+    if (index % 2 === 0) addFlag(point.x, point.z, hexSize * 0.84, 0.66);
+  });
+
+  group.scale.setScalar(1);
+  return { group, selectableMeshes };
+}

@@ -12,6 +12,7 @@ export type TacticalAttackChoice = {
 
 export type TacticalPanelState = {
   isOpen: boolean;
+  panelKind: "actor" | "structure" | null;
   actorName: string | null;
   actorKind: "hero" | "unit" | null;
   message: string;
@@ -22,6 +23,7 @@ export type TacticalPanelState = {
   attackTargeting: boolean;
   canCancelMove: boolean;
   canFoundOutpost: boolean;
+  canUpgradeOutpost: boolean;
 };
 
 export type TacticalPanelCommand =
@@ -30,6 +32,7 @@ export type TacticalPanelCommand =
   | { type: "cancel-attack" }
   | { type: "cancel-move" }
   | { type: "found-outpost" }
+  | { type: "upgrade-outpost" }
   | { type: "toggle-skills" }
   | { type: "use-skill"; skillId: string }
   | { type: "attack"; modeId: "melee" | "ranged" }
@@ -103,7 +106,26 @@ export function TacticalActionPanel({
       )}
 
       <div className="tactical-actions">
-        {state.attackTargeting || state.attackChoices.length > 1 ? (
+        {state.panelKind === "structure" ? (
+          <>
+            {state.canUpgradeOutpost && (
+              <button
+                type="button"
+                className="tactical-command tactical-upgrade-outpost"
+                onClick={() => onCommand({ type: "upgrade-outpost" })}
+              >
+                <span>증축 Lv.2</span>
+              </button>
+            )}
+            <button
+              type="button"
+              className="tactical-command tactical-info"
+              onClick={() => onCommand({ type: "info" })}
+            >
+              <span>정보</span>
+            </button>
+          </>
+        ) : state.attackTargeting || state.attackChoices.length > 1 ? (
           <button
             type="button"
             className="tactical-command tactical-attack-cancel"
