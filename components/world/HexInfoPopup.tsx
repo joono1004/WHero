@@ -27,6 +27,8 @@ export function HexInfoPopup({ popup }: HexInfoPopupProps) {
       )}
       <strong>{popup.diagnostic.terrain}</strong>
       <em>
+        이동 비용 {popup.diagnostic.movementCost ?? "이동 불가"}
+        <br />
         좌표 {popup.diagnostic.column}, {popup.diagnostic.row}
         <br />
         해안 판정 {popup.diagnostic.kind} · 높이{" "}

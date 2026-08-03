@@ -29,6 +29,7 @@ export type HexDiagnostic = HexCoordinate & {
   terrain: string;
   height: number;
   layer: string;
+  movementCost: number | null;
   actor?: {
     name: string;
     kind: "hero" | "unit";

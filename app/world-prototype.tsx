@@ -53,6 +53,7 @@ import { HERO_LOD_SAMPLES } from "@/lib/world/prototype/test-hero";
 import { UNIT_VISUAL_SAMPLES } from "@/lib/world/prototype/test-unit";
 import {
   availableAttackModes,
+  findMovementPath,
   hexDistance,
   reachableHexes,
   type AttackMode,
@@ -2429,12 +2430,19 @@ function WorldScene({
     const movementCostAt = (row: number, column: number) => {
       if (!isInsideMap(row, column)) return null;
       const kind = coastKindAt(seed, row, column);
-      if (kind === "deep" || kind === "shallow") return null;
+      if (kind === "deep") return null;
+      if (kind === "shallow") return 2;
       const terrainType = terrainCells.get(`${row}:${column}`)?.type;
       if (terrainType === "mountain") return null;
       if (terrainType === "wetland") return 3;
       if (terrainType === "forest" || terrainType === "hill") return 2;
       if (kind === "beach" || kind === "cliff") return 2;
+      const center = hexCenterAt(row, column);
+      const nearestRiver = nearestRiverSample(center.x, center.z, samples);
+      const isRiver =
+        riverCurves.length > 0 &&
+        nearestRiver.distance <= riverWidthAt(nearestRiver.t) * 0.5 + 0.12;
+      if (isRiver) return 2;
       return 1;
     };
     const livingActors = () =>
@@ -2662,6 +2670,7 @@ function WorldScene({
                   : kind === "deep"
                     ? "deep-sea"
                     : "terrain",
+        movementCost: movementCostAt(row, column),
         actor: actor
           ? {
               name: actor.name,
@@ -2723,6 +2732,31 @@ function WorldScene({
           return;
         }
         addHexOverlay(hex.row, hex.column, "#59ed3f", 0.52, true);
+      });
+    };
+    const showMovementRoute = (
+      visual: ActorVisual,
+      destination: { row: number; column: number; cost: number },
+    ) => {
+      if (!movementPlanOrigin) return;
+      const path = findMovementPath({
+        start: movementPlanOrigin,
+        destination,
+        movement: movementPlanBudget,
+        rows: HEX_ROWS,
+        columns: HEX_COLS,
+        occupied: occupiedActorKeys(visual.actor.id),
+        movementCostAt,
+      });
+      path.slice(1).forEach((hex, index) => {
+        const isDestination = index === path.length - 2;
+        addHexOverlay(
+          hex.row,
+          hex.column,
+          isDestination ? "#fff27a" : "#caff54",
+          isDestination ? 0.62 : 0.42,
+          true,
+        );
       });
     };
     const rebuildActionMarkers = (visual: ActorVisual) => {
@@ -2848,7 +2882,11 @@ function WorldScene({
         movementPlanBudget - destination.cost,
       );
       showMovementPlan(visual);
-      setPanelForActor(visual, "");
+      showMovementRoute(visual, destination);
+      setPanelForActor(
+        visual,
+        `이동 비용 ${destination.cost} · 남은 이동력 ${visual.actor.remainingMovement}`,
+      );
     };
     const finishCombatAction = (
       attacker: ActorVisual,
