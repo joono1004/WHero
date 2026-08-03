@@ -66,6 +66,10 @@ import {
   visibleHexKeys,
   type VisionSource,
 } from "@/lib/world/visibility/fog-of-war";
+import {
+  createOutpostVisual,
+  type OutpostVisual,
+} from "@/lib/world/prototype/outpost-visual";
 
 // Character art is independent from each generated world. Keep the decoded
 // textures between seed changes so regenerating terrain does not decode the
@@ -928,6 +932,7 @@ const DEFAULT_TACTICAL_PANEL: TacticalPanelState = {
   skillMenuOpen: false,
   attackTargeting: false,
   canCancelMove: false,
+  canFoundOutpost: false,
 };
 
 const MELEE_ATTACK: AttackMode = {
@@ -1614,9 +1619,18 @@ function WorldScene({
       badgeOutline?: THREE.Sprite;
       hexMarker: OccupantHexMarker;
     };
+    type OutpostState = {
+      row: number;
+      column: number;
+      name: string;
+      level: number;
+      isCapital: boolean;
+      visual: OutpostVisual;
+    };
     const heroLodPairs: HeroLodPair[] = [];
     const unitLodPairs: UnitLodPair[] = [];
     const actorVisuals = new Map<string, ActorVisual>();
+    const outposts = new Map<string, OutpostState>();
     const heroStartCells: { row: number; column: number; x: number; z: number }[] = [];
     // Put a unit's feet in the lower fifth of its occupied hex instead of
     // visually pinning every figure to the exact geometric centre.
@@ -2346,7 +2360,8 @@ function WorldScene({
     const fogTransform = new THREE.Object3D();
     const hiddenFogMatrix = new THREE.Matrix4().makeScale(0.0001, 0.0001, 0.0001);
     const playerVisionSources = (): VisionSource[] =>
-      [...actorVisuals.values()]
+      [
+        ...[...actorVisuals.values()]
         .filter((visual) => visual.actor.team === "player" && visual.actor.hp > 0)
         .map((visual) => ({
           row: visual.actor.row,
@@ -2357,7 +2372,13 @@ function WorldScene({
               `${visual.actor.row}:${visual.actor.column}`,
             )?.type,
           ),
-        }));
+        })),
+        ...[...outposts.values()].map((outpost) => ({
+          row: outpost.row,
+          column: outpost.column,
+          radius: 2,
+        })),
+      ];
     const updateFogMeshes = () => {
       fogCells.forEach((cell, index) => {
         fogTransform.position.set(cell.x, cell.y, cell.z);
@@ -2450,6 +2471,33 @@ function WorldScene({
     };
     const livingActors = () =>
       [...actorVisuals.values()].filter((visual) => visual.actor.hp > 0);
+    const outpostAt = (row: number, column: number) =>
+      outposts.get(`${row}:${column}`);
+    const canFoundOutpostAt = (visual: ActorVisual) => {
+      if (visual.actor.kind !== "hero" || visual.actor.acted) return false;
+      const { row, column } = visual.actor;
+      if (outpostAt(row, column)) return false;
+      if (coastKindAt(seed, row, column) !== "land") return false;
+      const terrainType = terrainCells.get(`${row}:${column}`)?.type;
+      if (
+        terrainType === "forest" ||
+        terrainType === "mountain" ||
+        terrainType === "wetland"
+      ) {
+        return false;
+      }
+      const center = hexCenterAt(row, column);
+      const nearestRiver = nearestRiverSample(center.x, center.z, samples);
+      if (
+        riverCurves.length > 0 &&
+        nearestRiver.distance <= riverWidthAt(nearestRiver.t) * 0.5 + 0.3
+      ) {
+        return false;
+      }
+      return [...outposts.values()].every(
+        (outpost) => hexDistance(visual.actor, outpost) >= 3,
+      );
+    };
     const occupiedActorKeys = (exceptActorId?: string) =>
       new Set(
         livingActors()
@@ -2623,6 +2671,53 @@ function WorldScene({
       if (visual.badgeOutline) visual.badgeOutline.position.y -= 0.004;
       updateOccupantHexMarker(visual.hexMarker, center, footGround);
     };
+    const foundOutpost = (visual: ActorVisual) => {
+      if (!canFoundOutpostAt(visual)) return;
+      const { row, column } = visual.actor;
+      const key = `${row}:${column}`;
+      const center = hexCenterAt(row, column);
+      const terrainType = terrainCells.get(key)?.type;
+      const ground = heightAt(seed, center.x, center.z, samples);
+      const isCapital = outposts.size === 0;
+      const outpostNumber = outposts.size + 1;
+      const outpostVisual = createOutpostVisual({
+        hexSize: HEX_SIZE,
+        factionColor: isCapital ? "#276b9a" : "#3f78a8",
+        isCapital,
+      });
+      outpostVisual.group.position.set(
+        center.x,
+        ground + (terrainType === "hill" ? 0.23 : 0.035),
+        center.z,
+      );
+      outpostVisual.group.rotation.y +=
+        (hash(seed + 8801, row, column) - 0.5) * 0.24;
+      outpostVisual.selectableMeshes.forEach((mesh) => {
+        mesh.userData = {
+          type: "outpost",
+          row,
+          column,
+        };
+      });
+      worldRoot.add(outpostVisual.group);
+      outposts.set(key, {
+        row,
+        column,
+        name: isCapital ? "첫 주둔지" : `주둔지 ${outpostNumber}`,
+        level: 1,
+        isCapital,
+        visual: outpostVisual,
+      });
+      visual.actor.acted = true;
+      visual.actor.remainingMovement = 0;
+      updateActorActionAppearance(visual);
+      refreshFogVisibility(true);
+      clearSelection(
+        isCapital
+          ? `${visual.actor.name}이(가) 첫 주둔지를 세웠습니다. 이곳이 수도가 됩니다.`
+          : `${visual.actor.name}이(가) 새로운 주둔지를 세웠습니다.`,
+      );
+    };
     const diagnosticForHex = (
       row: number,
       column: number,
@@ -2682,6 +2777,13 @@ function WorldScene({
               maxHp: actor.maxHp,
             }
           : undefined,
+        structure: outpostAt(row, column)
+          ? {
+              name: outpostAt(row, column)!.name,
+              level: outpostAt(row, column)!.level,
+              isCapital: outpostAt(row, column)!.isCapital,
+            }
+          : undefined,
       };
     };
     const popupPositionForActor = (visual: ActorVisual) => {
@@ -2722,6 +2824,7 @@ function WorldScene({
         attackChoices: [],
         skillMenuOpen: false,
         canCancelMove: movementPreviewActive,
+        canFoundOutpost: canFoundOutpostAt(visual),
         ...overrides,
       });
     };
@@ -3310,6 +3413,10 @@ function WorldScene({
       if (!visual) return;
       if (command.type === "wait") {
         performWait();
+        return;
+      }
+      if (command.type === "found-outpost") {
+        foundOutpost(visual);
         return;
       }
       if (command.type === "start-attack") {

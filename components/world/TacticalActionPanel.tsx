@@ -21,6 +21,7 @@ export type TacticalPanelState = {
   skillMenuOpen: boolean;
   attackTargeting: boolean;
   canCancelMove: boolean;
+  canFoundOutpost: boolean;
 };
 
 export type TacticalPanelCommand =
@@ -28,6 +29,7 @@ export type TacticalPanelCommand =
   | { type: "start-attack" }
   | { type: "cancel-attack" }
   | { type: "cancel-move" }
+  | { type: "found-outpost" }
   | { type: "toggle-skills" }
   | { type: "use-skill"; skillId: string }
   | { type: "attack"; modeId: "melee" | "ranged" }
@@ -128,6 +130,16 @@ export function TacticalActionPanel({
           <span>대기</span>
         </button>
         {state.actorKind === "hero" && (
+          <>
+            {state.canFoundOutpost && (
+              <button
+                type="button"
+                className="tactical-command tactical-found-outpost"
+                onClick={() => onCommand({ type: "found-outpost" })}
+              >
+                <span>주둔지 건설</span>
+              </button>
+            )}
             <button
               type="button"
               className="tactical-command tactical-skill"
@@ -137,6 +149,7 @@ export function TacticalActionPanel({
               <span>스킬</span>
               <small>x {String(skillUses).padStart(2, "0")}</small>
             </button>
+          </>
         )}
         <button
           type="button"

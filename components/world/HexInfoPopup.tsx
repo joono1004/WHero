@@ -15,7 +15,7 @@ export function HexInfoPopup({ popup }: HexInfoPopupProps) {
         top: popup.y,
       }}
     >
-      <span>{popup.diagnostic.actor ? "캐릭터 · 지형 정보" : "선택한 Hex 지형 정보"}</span>
+      <span>{popup.diagnostic.actor || popup.diagnostic.structure ? "대상 · 지형 정보" : "선택한 Hex 지형 정보"}</span>
       {popup.diagnostic.actor && (
         <em>
           <b>{popup.diagnostic.actor.name}</b>
@@ -23,6 +23,14 @@ export function HexInfoPopup({ popup }: HexInfoPopupProps) {
           {popup.diagnostic.actor.kind === "hero" ? "영웅" : "병사"}
           <br />
           체력 {popup.diagnostic.actor.hp}/{popup.diagnostic.actor.maxHp}
+        </em>
+      )}
+      {popup.diagnostic.structure && (
+        <em>
+          <b>{popup.diagnostic.structure.name}</b>
+          {popup.diagnostic.structure.isCapital ? " · 수도" : ""}
+          <br />
+          도시 단계 {popup.diagnostic.structure.level} · 시야 2칸
         </em>
       )}
       <strong>{popup.diagnostic.terrain}</strong>

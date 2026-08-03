@@ -197,6 +197,8 @@ canvas { display:block; width:100%; height:calc(100vh - 148px); min-height:620px
 .tactical-wait { border-color:#a99d6c; background:rgba(86,82,55,.86); color:#fff5c9; }
 .tactical-skill { border-color:#9886b7; background:rgba(77,68,99,.86); color:#f3eaff; }
 .tactical-info { border-color:#719ca2; background:rgba(52,82,88,.86); color:#e5f7f5; }
+.tactical-found-outpost { border-color:#d2a96c; background:rgba(102,75,44,.9); color:#fff0c8; }
+.tactical-found-outpost > span { padding-left:0; letter-spacing:.06em; }
 .tactical-move-cancel { border-color:#9d8b78; background:rgba(72,67,60,.86); color:#f0e5d8; }
 .tactical-move-cancel > span { padding-left:0; letter-spacing:.08em; }
 .tactical-choice {

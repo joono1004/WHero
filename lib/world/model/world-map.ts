@@ -36,6 +36,11 @@ export type HexDiagnostic = HexCoordinate & {
     hp: number;
     maxHp: number;
   };
+  structure?: {
+    name: string;
+    level: number;
+    isCapital: boolean;
+  };
 };
 
 export type SelectedHexPopup = {
