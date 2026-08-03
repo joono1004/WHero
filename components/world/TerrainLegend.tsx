@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { CoastKind } from "@/lib/world/model/world-map";
+import { FACTION_VISUALS } from "@/lib/world/prototype/faction-visual";
 
 type TerrainLegendProps = {
   coastStats: Record<CoastKind, number>;
@@ -46,6 +47,18 @@ export function TerrainLegend({ coastStats }: TerrainLegendProps) {
       <span><i className="legend-hill" />언덕</span>
       <span><i className="legend-mountain" />산악</span>
       <span><i className="legend-snow" />설산 정상</span>
+      <strong className="legend-section-title">세력 색상</strong>
+      {FACTION_VISUALS.map((faction) => (
+        <span key={faction.id}>
+          <i
+            className="legend-faction"
+            style={{
+              background: `linear-gradient(135deg, ${faction.color}, ${faction.darkColor})`,
+            }}
+          />
+          {faction.label}
+        </span>
+      ))}
       </div>
     </aside>
   );

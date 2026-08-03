@@ -66,12 +66,15 @@ export function createOutpostVisual({
     color: "#9a6a3b",
     roughness: 0.9,
   });
+  const factionBase = new THREE.Color(factionColor);
+  const factionCanvasLight = factionBase.clone().lerp(new THREE.Color("#dbeaff"), 0.24);
+  const factionCanvasDark = factionBase.clone().lerp(new THREE.Color("#13273d"), 0.42);
   const canvas = new THREE.MeshStandardMaterial({
-    color: "#d8bd7f",
+    color: factionCanvasLight,
     roughness: 0.92,
   });
   const canvasDark = new THREE.MeshStandardMaterial({
-    color: "#8c5b35",
+    color: factionCanvasDark,
     roughness: 0.94,
   });
   const metal = new THREE.MeshStandardMaterial({

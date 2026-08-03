@@ -1,4 +1,5 @@
 import { hexKey, neighborsOf } from "../hex/hex-grid";
+import type { FactionVisualId } from "./faction-visual";
 
 export type TacticalCoordinate = {
   row: number;
@@ -32,6 +33,7 @@ export type TacticalActor = TacticalCoordinate & {
   name: string;
   kind: "hero" | "unit";
   team: "player" | "enemy";
+  factionId: FactionVisualId;
   movement: number;
   remainingMovement: number;
   acted: boolean;

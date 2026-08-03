@@ -71,6 +71,10 @@ import {
   createOutpostVisual,
   type OutpostVisual,
 } from "@/lib/world/prototype/outpost-visual";
+import {
+  factionVisual,
+  type FactionVisualId,
+} from "@/lib/world/prototype/faction-visual";
 
 // Character art is independent from each generated world. Keep the decoded
 // textures between seed changes so regenerating terrain does not decode the
@@ -1330,6 +1334,56 @@ function WorldScene({
       CHARACTER_TEXTURE_CACHE.set(cacheKey, texture);
       return texture;
     };
+    const createFactionTokenTexture = (factionId: FactionVisualId) => {
+      const visual = factionVisual(factionId);
+      const cacheKey = `faction-token-v1:${factionId}`;
+      const cached = CHARACTER_TEXTURE_CACHE.get(cacheKey);
+      if (cached) return cached;
+      const canvas = document.createElement("canvas");
+      canvas.width = 192;
+      canvas.height = 192;
+      const context = canvas.getContext("2d")!;
+      context.clearRect(0, 0, 192, 192);
+      context.shadowColor = "rgba(0,0,0,.42)";
+      context.shadowBlur = 14;
+      context.fillStyle = visual.darkColor;
+      context.beginPath();
+      context.arc(96, 96, 80, 0, Math.PI * 2);
+      context.fill();
+      context.shadowBlur = 0;
+      const fill = context.createLinearGradient(45, 35, 150, 160);
+      fill.addColorStop(0, visual.color);
+      fill.addColorStop(1, visual.darkColor);
+      context.fillStyle = fill;
+      context.beginPath();
+      context.arc(96, 96, 68, 0, Math.PI * 2);
+      context.fill();
+      context.lineWidth = 9;
+      context.strokeStyle = "rgba(255,240,196,.9)";
+      context.beginPath();
+      context.arc(96, 96, 73, 0, Math.PI * 2);
+      context.stroke();
+      context.strokeStyle = "#fff8df";
+      context.fillStyle = "#fff8df";
+      context.lineWidth = 10;
+      context.lineCap = "round";
+      context.beginPath();
+      context.moveTo(70, 137);
+      context.lineTo(70, 52);
+      context.stroke();
+      context.beginPath();
+      context.moveTo(76, 56);
+      context.lineTo(139, 70);
+      context.lineTo(105, 104);
+      context.lineTo(76, 96);
+      context.closePath();
+      context.fill();
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+      CHARACTER_TEXTURE_CACHE.set(cacheKey, texture);
+      return texture;
+    };
     const primaryRivers =
       ACTIVE_MAP_TYPE === "inland"
         ? []
@@ -1601,16 +1655,61 @@ function WorldScene({
       updateOccupantHexMarker(marker, cell, groundHeight);
       return marker;
     };
+    const addFactionGroundRing = (
+      x: number,
+      z: number,
+      groundHeight: number,
+      factionId: FactionVisualId,
+    ) => {
+      const visual = factionVisual(factionId);
+      const ring = new THREE.Mesh(
+        new THREE.RingGeometry(HEX_SIZE * 0.19, HEX_SIZE * 0.29, 32),
+        new THREE.MeshBasicMaterial({
+          color: visual.color,
+          transparent: true,
+          opacity: 0.9,
+          side: THREE.DoubleSide,
+          depthTest: false,
+          depthWrite: false,
+        }),
+      );
+      ring.rotation.x = -Math.PI / 2;
+      ring.position.set(x, groundHeight + 0.112, z);
+      ring.renderOrder = 86;
+      worldRoot.add(ring);
+      return ring;
+    };
+    const addFactionToken = (
+      parent: THREE.Sprite,
+      factionId: FactionVisualId,
+    ) => {
+      const token = new THREE.Sprite(
+        new THREE.SpriteMaterial({
+          map: createFactionTokenTexture(factionId),
+          transparent: true,
+          alphaTest: 0.08,
+          depthTest: false,
+          depthWrite: false,
+        }),
+      );
+      token.position.set(0.34, -0.32, 0.01);
+      token.scale.set(0.27, 0.27, 1);
+      token.renderOrder = 98;
+      parent.add(token);
+      return token;
+    };
 
     type HeroLodPair = {
       full: THREE.Sprite;
       fullOutline: THREE.Sprite;
       badge: THREE.Sprite;
       badgeOutline: THREE.Sprite;
+      factionToken: THREE.Sprite;
     };
     type UnitLodPair = {
       full: THREE.Sprite;
       emblem: THREE.Sprite;
+      factionToken: THREE.Sprite;
     };
     type ActorVisual = {
       actor: TacticalActor;
@@ -1619,6 +1718,7 @@ function WorldScene({
       badge: THREE.Sprite;
       badgeOutline?: THREE.Sprite;
       hexMarker: OccupantHexMarker;
+      factionGroundRing: THREE.Mesh<THREE.RingGeometry, THREE.MeshBasicMaterial>;
     };
     type OutpostState = {
       row: number;
@@ -1693,11 +1793,13 @@ function WorldScene({
       );
       heroStartCells.push(heroStart);
       const profile = heroTacticalProfile(hero.id);
+      const factionId: FactionVisualId = "player";
       const actor: TacticalActor = {
         id: `hero:${hero.id}`,
         name: hero.name,
         kind: "hero",
         team: "player",
+        factionId,
         row: heroStart.row,
         column: heroStart.column,
         movement: profile.movement,
@@ -1764,6 +1866,12 @@ function WorldScene({
       fullOutline.renderOrder = 89;
       fullOutline.userData = fullMarker.userData;
       worldRoot.add(fullOutline);
+      const factionGroundRing = addFactionGroundRing(
+        heroFoot.x,
+        heroFoot.z,
+        heroGroundHeight,
+        factionId,
+      );
 
       const badgeTexture = loadCharacterTexture(hero.image.badge);
       const badgeMarker = new THREE.Sprite(
@@ -1802,11 +1910,13 @@ function WorldScene({
       badgeOutline.renderOrder = 94;
       badgeOutline.userData = fullMarker.userData;
       worldRoot.add(badgeOutline);
+      const factionToken = addFactionToken(badgeMarker, factionId);
       heroLodPairs.push({
         full: fullMarker,
         fullOutline,
         badge: badgeMarker,
         badgeOutline,
+        factionToken,
       });
       actorVisuals.set(actor.id, {
         actor,
@@ -1815,6 +1925,7 @@ function WorldScene({
         badge: badgeMarker,
         badgeOutline,
         hexMarker,
+        factionGroundRing,
       });
     });
 
@@ -1884,10 +1995,17 @@ function WorldScene({
         samples,
       );
       const team = unit.id === "archer" ? "player" : "enemy";
+      const factionId: FactionVisualId =
+        unit.id === "archer"
+          ? "player"
+          : unit.id === "infantry"
+            ? "enemy-1"
+            : "enemy-2";
+      const faction = factionVisual(factionId);
       const hexMarker = addOccupantHexMarker(
         unitStart,
         unitGroundHeight,
-        team === "player" ? "#69c8ff" : "#ef6767",
+        faction.color,
       );
       const profile = unitTacticalProfile(unit.id);
       const actor: TacticalActor = {
@@ -1895,6 +2013,7 @@ function WorldScene({
         name: unitNames[unit.id] ?? unit.name,
         kind: "unit",
         team,
+        factionId,
         row: unitStart.row,
         column: unitStart.column,
         movement: profile.movement,
@@ -1929,6 +2048,12 @@ function WorldScene({
         column: unitStart.column,
       };
       worldRoot.add(unitMarker);
+      const factionGroundRing = addFactionGroundRing(
+        unitFoot.x,
+        unitFoot.z,
+        unitGroundHeight,
+        factionId,
+      );
 
       const emblemMarker = new THREE.Sprite(
         new THREE.SpriteMaterial({
@@ -1945,12 +2070,14 @@ function WorldScene({
       emblemMarker.renderOrder = 96;
       emblemMarker.userData = unitMarker.userData;
       worldRoot.add(emblemMarker);
-      unitLodPairs.push({ full: unitMarker, emblem: emblemMarker });
+      const factionToken = addFactionToken(emblemMarker, factionId);
+      unitLodPairs.push({ full: unitMarker, emblem: emblemMarker, factionToken });
       actorVisuals.set(actor.id, {
         actor,
         full: unitMarker,
         badge: emblemMarker,
         hexMarker,
+        factionGroundRing,
       });
     });
     const updateActorActionAppearance = (visual: ActorVisual) => {
@@ -1968,6 +2095,7 @@ function WorldScene({
       }
       visual.hexMarker.fill.material.opacity = inactive ? 0.08 : 0.2;
       visual.hexMarker.outline.material.opacity = inactive ? 0.36 : 0.94;
+      visual.factionGroundRing.material.opacity = inactive ? 0.48 : 0.9;
     };
     const neighborCells = (cell: TerrainCell) => {
       const diagonal = cell.row % 2 === 0 ? -1 : 1;
@@ -2680,6 +2808,11 @@ function WorldScene({
       visual.badge.userData.column = column;
       visual.badgeOutline?.position.copy(visual.badge.position);
       if (visual.badgeOutline) visual.badgeOutline.position.y -= 0.004;
+      visual.factionGroundRing.position.set(
+        foot.x,
+        footGround + 0.112,
+        foot.z,
+      );
       updateOccupantHexMarker(visual.hexMarker, center, footGround);
     };
     const foundOutpost = (visual: ActorVisual) => {
@@ -2693,7 +2826,7 @@ function WorldScene({
       const outpostNumber = outposts.size + 1;
       const outpostVisual = createOutpostVisual({
         hexSize: HEX_SIZE,
-        factionColor: isCapital ? "#276b9a" : "#3f78a8",
+        factionColor: factionVisual("player").color,
         isCapital,
       });
       outpostVisual.group.position.set(
@@ -3604,6 +3737,7 @@ function WorldScene({
         const showActor = visual.actor.hp > 0 && revealed;
         visual.hexMarker.fill.visible = showActor;
         visual.hexMarker.outline.visible = showActor;
+        visual.factionGroundRing.visible = showActor;
         if (showActor) return;
         visual.full.visible = false;
         if (visual.fullOutline) visual.fullOutline.visible = false;
