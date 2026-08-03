@@ -12,9 +12,8 @@ export function visionRadiusFor(
   actorKind: VisionActorKind,
   terrainType?: string,
 ) {
-  const baseRadius = actorKind === "hero" ? 3 : 2;
-  const terrainModifier =
-    terrainType === "hill" ? 1 : terrainType === "forest" ? -1 : 0;
+  const baseRadius = actorKind === "hero" ? 5 : 4;
+  const terrainModifier = terrainType === "hill" ? 1 : 0;
   return Math.max(1, baseRadius + terrainModifier);
 }
 
