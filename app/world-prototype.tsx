@@ -78,6 +78,12 @@ import {
   factionVisual,
   type FactionVisualId,
 } from "@/lib/world/prototype/faction-visual";
+import {
+  createResourceSiteVisual,
+  RESOURCE_SITE_LABELS,
+  type ResourceSiteKind,
+  type ResourceSiteVisual,
+} from "@/lib/world/prototype/resource-site-visual";
 
 // Character art is independent from each generated world. Keep the decoded
 // textures between seed changes so regenerating terrain does not decode the
@@ -2098,6 +2104,87 @@ function WorldScene({
         hexMarker,
       });
     });
+
+    type ResourceSiteState = {
+      kind: ResourceSiteKind;
+      row: number;
+      column: number;
+      visual: ResourceSiteVisual;
+    };
+    const resourceSites: ResourceSiteState[] = [];
+    const resourceSiteKeys = new Set<string>();
+    const occupiedResourceHexes = new Set(occupiedUnitHexes);
+    const resourceDefinitions: Array<{
+      kind: ResourceSiteKind;
+      preferredTerrain: TerrainCell["type"] | "plain";
+      anchorIndex: number;
+      rowOffset: number;
+      columnOffset: number;
+    }> = [
+      { kind: "farm", preferredTerrain: "plain", anchorIndex: 0, rowOffset: 2, columnOffset: 1 },
+      { kind: "logging", preferredTerrain: "forest", anchorIndex: 1, rowOffset: 2, columnOffset: 1 },
+      { kind: "mine", preferredTerrain: "hill", anchorIndex: 2, rowOffset: -2, columnOffset: 1 },
+      { kind: "market", preferredTerrain: "plain", anchorIndex: 3, rowOffset: -2, columnOffset: -1 },
+    ];
+    resourceDefinitions.forEach((definition, definitionIndex) => {
+      const anchor = heroStartCells[definition.anchorIndex] ?? heroStartCells[0];
+      if (!anchor) return;
+      const preferred = hexCenterAt(
+        THREE.MathUtils.clamp(anchor.row + definition.rowOffset, 0, HEX_ROWS - 1),
+        THREE.MathUtils.clamp(anchor.column + definition.columnOffset, 0, HEX_COLS - 1),
+      );
+      let best:
+        | { row: number; column: number; x: number; z: number; score: number }
+        | undefined;
+      for (let row = 0; row < HEX_ROWS; row += 1) {
+        for (let column = 0; column < HEX_COLS; column += 1) {
+          const key = `${row}:${column}`;
+          if (occupiedResourceHexes.has(key)) continue;
+          const center = hexCenterAt(row, column);
+          if (coastKindAt(seed, row, column) !== "land") continue;
+          if (distanceToRiver(center.x, center.z, samples) < 1.15) continue;
+          const terrainType = terrainCells.get(key)?.type;
+          if (terrainType === "mountain" || terrainType === "wetland") continue;
+          const terrainMatches =
+            definition.preferredTerrain === "plain"
+              ? terrainType === undefined
+              : terrainType === definition.preferredTerrain;
+          const score =
+            Math.hypot(center.x - preferred.x, center.z - preferred.z) +
+            (terrainMatches ? 0 : 3);
+          if (!best || score < best.score) {
+            best = { row, column, ...center, score };
+          }
+        }
+      }
+      if (!best) return;
+      const key = `${best.row}:${best.column}`;
+      occupiedResourceHexes.add(key);
+      resourceSiteKeys.add(key);
+      const siteVisual = createResourceSiteVisual({
+        hexSize: HEX_SIZE,
+        kind: definition.kind,
+      });
+      const ground = heightAt(seed, best.x, best.z, samples);
+      siteVisual.group.position.set(best.x, ground + 0.04, best.z);
+      siteVisual.group.rotation.y =
+        (hash(seed + 9911, definitionIndex, best.row + best.column) - 0.5) * 0.24;
+      siteVisual.selectableMeshes.forEach((mesh) => {
+        mesh.userData = {
+          type: "resource-site",
+          resourceKind: definition.kind,
+          row: best!.row,
+          column: best!.column,
+        };
+      });
+      worldRoot.add(siteVisual.group);
+      resourceSites.push({
+        kind: definition.kind,
+        row: best.row,
+        column: best.column,
+        visual: siteVisual,
+      });
+    });
     const updateActorActionAppearance = (visual: ActorVisual) => {
       const inactive = visual.actor.acted;
       const tint = inactive ? "#a7aaa7" : "#ffffff";
@@ -2153,6 +2240,7 @@ function WorldScene({
         const smallTreeCount = Math.min(2, group.length);
         for (let treeIndex = 0; treeIndex < smallTreeCount; treeIndex += 1) {
           const cell = group[treeIndex];
+          if (resourceSiteKeys.has(`${cell.row}:${cell.column}`)) continue;
           const index = groupIndex * 100 + treeIndex;
           const x = cell.x + (hash(seed + 3291, index, 1) - 0.5) * HEX_SIZE * 0.42;
           const z = cell.z + (hash(seed + 3292, index, 2) - 0.5) * HEX_SIZE * 0.42;
@@ -2168,6 +2256,7 @@ function WorldScene({
       }
       const perHex = group.length >= 16 ? 7 : 5;
       group.forEach((cell, cellIndex) => {
+        if (resourceSiteKeys.has(`${cell.row}:${cell.column}`)) return;
         for (let treeIndex = 0; treeIndex < perHex; treeIndex += 1) {
           const index = groupIndex * 10000 + cellIndex * 100 + treeIndex;
           const angle = hash(seed + 3301, index, 1) * Math.PI * 2;
@@ -2185,10 +2274,12 @@ function WorldScene({
       });
       const groupKeys = new Set(group.map((cell) => `${cell.row}:${cell.column}`));
       group.forEach((cell, cellIndex) => {
+        if (resourceSiteKeys.has(`${cell.row}:${cell.column}`)) return;
         neighborCells(cell).forEach(([row, column], neighborIndex) => {
           const neighborKey = `${row}:${column}`;
           if (!groupKeys.has(neighborKey) || `${cell.row}:${cell.column}` > neighborKey) return;
           const neighbor = terrainCells.get(neighborKey)!;
+          if (resourceSiteKeys.has(neighborKey)) return;
           const x = (cell.x + neighbor.x) / 2;
           const z = (cell.z + neighbor.z) / 2;
           const index = groupIndex * 1000 + cellIndex * 10 + neighborIndex;
@@ -2241,6 +2332,7 @@ function WorldScene({
     const snowMaterial = new THREE.MeshStandardMaterial({ color: "#f2f0e8", roughness: 0.92, flatShading: true });
     componentsFor("mountain").forEach((group, groupIndex) => {
       group.forEach((cell, cellIndex) => {
+        if (resourceSiteKeys.has(`${cell.row}:${cell.column}`)) return;
         const peaks = group.length >= 4 ? 2 : 1;
         for (let peakIndex = 0; peakIndex < peaks; peakIndex += 1) {
           const index = groupIndex * 1000 + cellIndex * 10 + peakIndex;
@@ -2266,7 +2358,9 @@ function WorldScene({
       });
     });
 
-    const hillCells = componentsFor("hill").flat();
+    const hillCells = componentsFor("hill")
+      .flat()
+      .filter((cell) => !resourceSiteKeys.has(`${cell.row}:${cell.column}`));
     const hillMesh = new THREE.InstancedMesh(
       new THREE.SphereGeometry(0.72, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2),
       new THREE.MeshStandardMaterial({ color: "#9ca46c", roughness: 0.98, flatShading: true }),
@@ -2287,7 +2381,9 @@ function WorldScene({
     hillMesh.receiveShadow = true;
     worldRoot.add(hillMesh);
 
-    const wetlandCells = componentsFor("wetland").flat();
+    const wetlandCells = componentsFor("wetland")
+      .flat()
+      .filter((cell) => !resourceSiteKeys.has(`${cell.row}:${cell.column}`));
     const wetlandMaterial = new THREE.MeshStandardMaterial({
       color: "#72aa9b",
       roughness: 0.68,
@@ -2325,6 +2421,10 @@ function WorldScene({
       const x = (hash(seed + 501, i, 1) - 0.5) * (MAP_WIDTH - 2);
       const z = (hash(seed + 502, i, 2) - 0.5) * (MAP_DEPTH - 2);
       if (landValue(seed, x, z) < 0.12 || distanceToRiver(x, z, samples) < 1.05) continue;
+      if (resourceSites.some((site) => {
+        const center = hexCenterAt(site.row, site.column);
+        return Math.hypot(center.x - x, center.z - z) < HEX_SIZE * 0.9;
+      })) continue;
       const y = heightAt(seed, x, z, samples);
       const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(0.16 + hash(seed, i, 4) * 0.18, 0), rockMaterial);
       rock.position.set(x, y + 0.12, z);
@@ -3456,6 +3556,11 @@ function WorldScene({
       );
       const interactiveObjects: THREE.Object3D[] = [
         ...interactiveSprites,
+        ...resourceSites
+          .filter((site) => site.visual.group.visible)
+          .flatMap((site) =>
+            site.visual.selectableMeshes.filter((object) => object.visible),
+          ),
         ...[...outposts.values()].flatMap((outpost) =>
           outpost.visual.selectableMeshes.filter((object) => object.visible),
         ),
@@ -3470,6 +3575,31 @@ function WorldScene({
         ) ?? objectHits[0];
       if (objectHit) {
         const data = objectHit.object.userData;
+        if (data.type === "resource-site") {
+          const row = data.row as number;
+          const column = data.column as number;
+          const kind = data.resourceKind as ResourceSiteKind;
+          const diagnostic = diagnosticForHex(row, column);
+          onHexSelected(
+            {
+              ...diagnostic,
+              terrain: `${diagnostic.terrain} · ${RESOURCE_SITE_LABELS[kind]}`,
+            },
+            {
+              x: THREE.MathUtils.clamp(
+                event.clientX - host.getBoundingClientRect().left,
+                8,
+                Math.max(8, host.clientWidth - 240),
+              ),
+              y: THREE.MathUtils.clamp(
+                event.clientY - host.getBoundingClientRect().top,
+                8,
+                Math.max(8, host.clientHeight - 145),
+              ),
+            },
+          );
+          return;
+        }
         if (data.type === "outpost") {
           const outpost = outpostAt(data.row as number, data.column as number);
           if (outpost) setPanelForOutpost(outpost);
@@ -3894,6 +4024,10 @@ function WorldScene({
         if (visual.fullOutline) visual.fullOutline.visible = false;
         visual.badge.visible = false;
         if (visual.badgeOutline) visual.badgeOutline.visible = false;
+      });
+      resourceSites.forEach((site) => {
+        site.visual.group.visible =
+          !showFog || exploredHexKeys.has(`${site.row}:${site.column}`);
       });
       const actionPanel = tacticalPanelRef.current;
       const selectedVisual = selectedActorId
