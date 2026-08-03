@@ -465,3 +465,269 @@ export function createSmallCityVisual({
   group.scale.setScalar(1);
   return { group, selectableMeshes };
 }
+
+/** Level 3 settlement: an elevated stone-walled town with a tiled command hall. */
+export function createMediumCityVisual({
+  hexSize,
+  factionColor = "#2f86df",
+  isCapital = false,
+}: OutpostVisualOptions): OutpostVisual {
+  const group = new THREE.Group();
+  group.name = isCapital ? "capital-medium-city" : "medium-city";
+  group.rotation.y = -0.08;
+
+  const selectableMeshes: THREE.Object3D[] = [];
+  const add = <T extends THREE.Object3D>(object: T) => {
+    group.add(object);
+    selectableMeshes.push(object);
+    return object;
+  };
+  const stone = new THREE.MeshStandardMaterial({ color: "#77756c", roughness: 0.96 });
+  const stoneLight = new THREE.MeshStandardMaterial({ color: "#a5a196", roughness: 0.94 });
+  const stoneDark = new THREE.MeshStandardMaterial({ color: "#555851", roughness: 0.98 });
+  const timber = new THREE.MeshStandardMaterial({ color: "#684027", roughness: 0.94 });
+  const timberLight = new THREE.MeshStandardMaterial({ color: "#a36c3c", roughness: 0.91 });
+  const plaster = new THREE.MeshStandardMaterial({ color: "#d4c39b", roughness: 1 });
+  const roofTile = new THREE.MeshStandardMaterial({ color: "#283d45", roughness: 0.88 });
+  const roofEdge = new THREE.MeshStandardMaterial({ color: "#8d3f2d", roughness: 0.82 });
+  const faction = new THREE.MeshStandardMaterial({
+    color: factionColor,
+    roughness: 0.7,
+    side: THREE.DoubleSide,
+  });
+  const metal = new THREE.MeshStandardMaterial({
+    color: isCapital ? "#f0c65d" : "#c1b48d",
+    metalness: 0.32,
+    roughness: 0.55,
+  });
+  const elevatedY = hexSize * 0.16;
+
+  const lowerFoundation = shadowed(
+    new THREE.Mesh(
+      new THREE.CylinderGeometry(hexSize * 0.91, hexSize * 0.96, elevatedY, 6),
+      stoneDark,
+    ),
+  );
+  lowerFoundation.position.y = elevatedY * 0.5;
+  lowerFoundation.receiveShadow = true;
+  add(lowerFoundation);
+  const pavedCourt = new THREE.Mesh(
+    new THREE.CircleGeometry(hexSize * 0.87, 6),
+    stoneLight,
+  );
+  pavedCourt.rotation.x = -Math.PI / 2;
+  pavedCourt.position.y = elevatedY + 0.012;
+  pavedCourt.receiveShadow = true;
+  add(pavedCourt);
+
+  // Stone walls follow the six sides of the occupied hex, with a front gate.
+  const wallRadius = hexSize * 0.82;
+  const corners = Array.from({ length: 6 }, (_, index) => {
+    const angle = THREE.MathUtils.degToRad(30 + index * 60);
+    return new THREE.Vector3(
+      Math.cos(angle) * wallRadius,
+      elevatedY,
+      Math.sin(angle) * wallRadius,
+    );
+  });
+  corners.forEach((start, side) => {
+    const end = corners[(side + 1) % corners.length];
+    const midpoint = start.clone().lerp(end, 0.5);
+    const length = start.distanceTo(end);
+    if (side === 1) {
+      for (const offset of [-0.34, 0.34]) {
+        const segment = shadowed(
+          new THREE.Mesh(
+            new THREE.BoxGeometry(length * 0.33, hexSize * 0.36, hexSize * 0.13),
+            stone,
+          ),
+        );
+        segment.position.copy(midpoint.clone().lerp(offset < 0 ? start : end, 0.48));
+        segment.position.y = elevatedY + hexSize * 0.18;
+        segment.rotation.y = -Math.atan2(end.z - start.z, end.x - start.x);
+        add(segment);
+      }
+    } else {
+      const wall = shadowed(
+        new THREE.Mesh(
+          new THREE.BoxGeometry(length, hexSize * 0.36, hexSize * 0.13),
+          stone,
+        ),
+      );
+      wall.position.copy(midpoint);
+      wall.position.y = elevatedY + hexSize * 0.18;
+      wall.rotation.y = -Math.atan2(end.z - start.z, end.x - start.x);
+      add(wall);
+    }
+  });
+
+  // Six stone towers provide a regular rhythm around the wall.
+  corners.forEach((point, index) => {
+    const tower = shadowed(
+      new THREE.Mesh(
+        new THREE.CylinderGeometry(hexSize * 0.15, hexSize * 0.17, hexSize * 0.62, 8),
+        index % 2 === 0 ? stoneLight : stone,
+      ),
+    );
+    tower.position.set(point.x, elevatedY + hexSize * 0.31, point.z);
+    add(tower);
+    const battlement = shadowed(
+      new THREE.Mesh(
+        new THREE.CylinderGeometry(hexSize * 0.19, hexSize * 0.19, hexSize * 0.1, 8),
+        stoneDark,
+      ),
+    );
+    battlement.position.set(point.x, elevatedY + hexSize * 0.65, point.z);
+    add(battlement);
+    for (let merlon = 0; merlon < 4; merlon += 1) {
+      const angle = (merlon / 4) * Math.PI * 2;
+      const block = shadowed(
+        new THREE.Mesh(
+          new THREE.BoxGeometry(hexSize * 0.075, hexSize * 0.12, hexSize * 0.075),
+          stoneLight,
+        ),
+      );
+      block.position.set(
+        point.x + Math.cos(angle) * hexSize * 0.13,
+        elevatedY + hexSize * 0.75,
+        point.z + Math.sin(angle) * hexSize * 0.13,
+      );
+      add(block);
+    }
+  });
+
+  const gateLeft = shadowed(
+    new THREE.Mesh(
+      new THREE.BoxGeometry(hexSize * 0.17, hexSize * 0.5, hexSize * 0.2),
+      stoneDark,
+    ),
+  );
+  gateLeft.position.set(-hexSize * 0.18, elevatedY + hexSize * 0.25, hexSize * 0.72);
+  add(gateLeft);
+  const gateRight = gateLeft.clone();
+  gateRight.position.x = hexSize * 0.18;
+  add(gateRight);
+  const gateBeam = shadowed(
+    new THREE.Mesh(
+      new THREE.BoxGeometry(hexSize * 0.48, hexSize * 0.14, hexSize * 0.2),
+      stoneLight,
+    ),
+  );
+  gateBeam.position.set(0, elevatedY + hexSize * 0.52, hexSize * 0.72);
+  add(gateBeam);
+
+  const addWoodHouse = (x: number, z: number, rotation = 0) => {
+    const body = shadowed(
+      new THREE.Mesh(
+        new THREE.BoxGeometry(hexSize * 0.23, hexSize * 0.25, hexSize * 0.18),
+        plaster,
+      ),
+    );
+    body.position.set(hexSize * x, elevatedY + hexSize * 0.135, hexSize * z);
+    body.rotation.y = rotation;
+    add(body);
+    const beams = shadowed(
+      new THREE.Mesh(
+        new THREE.BoxGeometry(hexSize * 0.25, hexSize * 0.055, hexSize * 0.2),
+        timberLight,
+      ),
+    );
+    beams.position.set(hexSize * x, elevatedY + hexSize * 0.26, hexSize * z);
+    beams.rotation.y = rotation;
+    add(beams);
+    const houseRoof = shadowed(
+      new THREE.Mesh(new THREE.ConeGeometry(hexSize * 0.18, hexSize * 0.19, 4), timber),
+    );
+    houseRoof.position.set(hexSize * x, elevatedY + hexSize * 0.38, hexSize * z);
+    houseRoof.rotation.y = Math.PI / 4 + rotation;
+    add(houseRoof);
+  };
+  addWoodHouse(-0.47, -0.22, 0.15);
+  addWoodHouse(0.47, -0.22, -0.15);
+  addWoodHouse(-0.45, 0.28, -0.12);
+  addWoodHouse(0.45, 0.28, 0.12);
+
+  // Central command hall with layered dark tile roofs and red eaves.
+  const hallBase = shadowed(
+    new THREE.Mesh(
+      new THREE.BoxGeometry(hexSize * 0.52, hexSize * 0.42, hexSize * 0.38),
+      timberLight,
+    ),
+  );
+  hallBase.position.set(0, elevatedY + hexSize * 0.22, -hexSize * 0.04);
+  add(hallBase);
+  const hallUpper = shadowed(
+    new THREE.Mesh(
+      new THREE.BoxGeometry(hexSize * 0.38, hexSize * 0.2, hexSize * 0.3),
+      plaster,
+    ),
+  );
+  hallUpper.position.set(0, elevatedY + hexSize * 0.51, -hexSize * 0.04);
+  add(hallUpper);
+  const lowerRoof = shadowed(
+    new THREE.Mesh(new THREE.ConeGeometry(hexSize * 0.42, hexSize * 0.25, 4), roofTile),
+  );
+  lowerRoof.position.set(0, elevatedY + hexSize * 0.54, -hexSize * 0.04);
+  lowerRoof.rotation.y = Math.PI / 4;
+  add(lowerRoof);
+  const lowerEave = shadowed(
+    new THREE.Mesh(
+      new THREE.BoxGeometry(hexSize * 0.66, hexSize * 0.045, hexSize * 0.5),
+      roofEdge,
+    ),
+  );
+  lowerEave.position.set(0, elevatedY + hexSize * 0.44, -hexSize * 0.04);
+  add(lowerEave);
+  const upperRoof = shadowed(
+    new THREE.Mesh(new THREE.ConeGeometry(hexSize * 0.28, hexSize * 0.21, 4), roofTile),
+  );
+  upperRoof.position.set(0, elevatedY + hexSize * 0.75, -hexSize * 0.04);
+  upperRoof.rotation.y = Math.PI / 4;
+  add(upperRoof);
+  const ridge = shadowed(
+    new THREE.Mesh(
+      new THREE.CylinderGeometry(hexSize * 0.025, hexSize * 0.025, hexSize * 0.42, 8),
+      metal,
+    ),
+  );
+  ridge.rotation.z = Math.PI / 2;
+  ridge.position.set(0, elevatedY + hexSize * 0.86, -hexSize * 0.04);
+  add(ridge);
+
+  const road = new THREE.Mesh(
+    new THREE.PlaneGeometry(hexSize * 0.2, hexSize * 0.72),
+    new THREE.MeshStandardMaterial({ color: "#b9b1a0", roughness: 1 }),
+  );
+  road.rotation.x = -Math.PI / 2;
+  road.position.set(0, elevatedY + 0.024, hexSize * 0.48);
+  add(road);
+
+  const addFlag = (x: number, z: number, height: number, scale = 1) => {
+    const pole = shadowed(
+      new THREE.Mesh(
+        new THREE.CylinderGeometry(hexSize * 0.012, hexSize * 0.017, height, 7),
+        metal,
+      ),
+    );
+    pole.position.set(x, elevatedY + height * 0.5, z);
+    add(pole);
+    const flagHeight = hexSize * 0.15 * scale;
+    const flag = new THREE.Mesh(
+      new THREE.PlaneGeometry(hexSize * 0.25 * scale, flagHeight),
+      faction,
+    );
+    flag.position.set(
+      x + hexSize * 0.12 * scale,
+      elevatedY + height - flagHeight * 0.5,
+      z,
+    );
+    add(flag);
+  };
+  addFlag(-hexSize * 0.19, -hexSize * 0.04, hexSize * 1.16, 1.12);
+  corners.forEach((point, index) => {
+    if (index % 2 === 0) addFlag(point.x, point.z, hexSize * 1.16, 0.64);
+  });
+
+  group.scale.setScalar(1);
+  return { group, selectableMeshes };
+}

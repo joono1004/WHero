@@ -68,6 +68,7 @@ import {
   type VisionSource,
 } from "@/lib/world/visibility/fog-of-war";
 import {
+  createMediumCityVisual,
   createOutpostVisual,
   createSmallCityVisual,
   type OutpostVisual,
@@ -940,7 +941,7 @@ const DEFAULT_TACTICAL_PANEL: TacticalPanelState = {
   attackTargeting: false,
   canCancelMove: false,
   canFoundOutpost: false,
-  canUpgradeOutpost: false,
+  upgradeTargetLevel: null,
 };
 
 const MELEE_ATTACK: AttackMode = {
@@ -2911,19 +2912,25 @@ function WorldScene({
         panelKind: "structure",
         actorName: outpost.name,
         message,
-        canUpgradeOutpost: outpost.level === 1,
+        upgradeTargetLevel:
+          outpost.level === 1 ? 2 : outpost.level === 2 ? 3 : null,
       });
     };
     const upgradeOutpost = (outpost: OutpostState) => {
-      if (outpost.level !== 1) return;
+      const nextLevel = outpost.level + 1;
+      if (nextLevel !== 2 && nextLevel !== 3) return;
       const center = hexCenterAt(outpost.row, outpost.column);
       const terrainType = terrainCells.get(`${outpost.row}:${outpost.column}`)?.type;
       const ground = heightAt(seed, center.x, center.z, samples);
-      const upgradedVisual = createSmallCityVisual({
+      const visualOptions = {
         hexSize: HEX_SIZE,
         factionColor: factionVisual("player").color,
         isCapital: outpost.isCapital,
-      });
+      };
+      const upgradedVisual =
+        nextLevel === 2
+          ? createSmallCityVisual(visualOptions)
+          : createMediumCityVisual(visualOptions);
       upgradedVisual.group.position.set(
         center.x,
         ground + (terrainType === "hill" ? 0.23 : 0.035),
@@ -2934,8 +2941,15 @@ function WorldScene({
       worldRoot.remove(outpost.visual.group);
       disposeOutpostVisual(outpost.visual);
       worldRoot.add(upgradedVisual.group);
-      outpost.level = 2;
-      outpost.name = outpost.isCapital ? "수도 소도시" : "소도시";
+      outpost.level = nextLevel;
+      outpost.name =
+        nextLevel === 2
+          ? outpost.isCapital
+            ? "수도 소도시"
+            : "소도시"
+          : outpost.isCapital
+            ? "수도 중도시"
+            : "중도시";
       outpost.visual = upgradedVisual;
       refreshFogVisibility(false);
       clearSelection();
@@ -3076,7 +3090,7 @@ function WorldScene({
         skillMenuOpen: false,
         canCancelMove: movementPreviewActive,
         canFoundOutpost: canFoundOutpostAt(visual),
-        canUpgradeOutpost: false,
+        upgradeTargetLevel: null,
         ...overrides,
       });
     };

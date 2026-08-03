@@ -23,7 +23,7 @@ export type TacticalPanelState = {
   attackTargeting: boolean;
   canCancelMove: boolean;
   canFoundOutpost: boolean;
-  canUpgradeOutpost: boolean;
+  upgradeTargetLevel: 2 | 3 | null;
 };
 
 export type TacticalPanelCommand =
@@ -108,13 +108,13 @@ export function TacticalActionPanel({
       <div className="tactical-actions">
         {state.panelKind === "structure" ? (
           <>
-            {state.canUpgradeOutpost && (
+            {state.upgradeTargetLevel && (
               <button
                 type="button"
                 className="tactical-command tactical-upgrade-outpost"
                 onClick={() => onCommand({ type: "upgrade-outpost" })}
               >
-                <span>증축 Lv.2</span>
+                <span>증축 Lv.{state.upgradeTargetLevel}</span>
               </button>
             )}
             <button
