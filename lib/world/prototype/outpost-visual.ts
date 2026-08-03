@@ -449,7 +449,12 @@ export function createSmallCityVisual({
       new THREE.PlaneGeometry(hexSize * 0.25 * scale, hexSize * 0.15 * scale),
       faction,
     );
-    flag.position.set(x + hexSize * 0.12 * scale, height * 0.8, z);
+    // Align the flag's top edge with the very top of its pole.
+    flag.position.set(
+      x + hexSize * 0.12 * scale,
+      height - hexSize * 0.075 * scale,
+      z,
+    );
     add(flag);
   };
   addFlag(-hexSize * 0.18, -hexSize * 0.08, hexSize * 1.1, 1.15);
