@@ -926,22 +926,23 @@ export function createLargeCityVisual(
   add(crownFinial);
 
   const flagHeight = hexSize * 0.17;
-  const poleHeight = hexSize * 1.58;
+  const spireTipY = elevatedY + hexSize * 1.84;
+  const poleHeight = hexSize * 0.34;
   const pole = shadowed(
     new THREE.Mesh(
       new THREE.CylinderGeometry(hexSize * 0.013, hexSize * 0.018, poleHeight, 8),
       metal,
     ),
   );
-  pole.position.set(-hexSize * 0.12, elevatedY + poleHeight * 0.5, -hexSize * 0.03);
+  pole.position.set(0, spireTipY + poleHeight * 0.5, -hexSize * 0.03);
   add(pole);
   const commandFlag = new THREE.Mesh(
     new THREE.PlaneGeometry(hexSize * 0.3, flagHeight),
     faction,
   );
   commandFlag.position.set(
-    hexSize * 0.03,
-    elevatedY + poleHeight - flagHeight * 0.5,
+    hexSize * 0.15,
+    spireTipY + poleHeight - flagHeight * 0.5,
     -hexSize * 0.03,
   );
   add(commandFlag);
