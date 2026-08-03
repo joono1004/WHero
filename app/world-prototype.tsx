@@ -2938,7 +2938,7 @@ function WorldScene({
       outpost.name = outpost.isCapital ? "수도 소도시" : "소도시";
       outpost.visual = upgradedVisual;
       refreshFogVisibility(false);
-      setPanelForOutpost(outpost, "목조 성채를 갖춘 소도시로 증축했습니다.");
+      clearSelection();
     };
     const diagnosticForHex = (
       row: number,

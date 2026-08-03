@@ -454,7 +454,7 @@ export function createSmallCityVisual({
   };
   addFlag(-hexSize * 0.18, -hexSize * 0.08, hexSize * 1.1, 1.15);
   corners.forEach((point, index) => {
-    if (index % 2 === 0) addFlag(point.x, point.z, hexSize * 0.84, 0.66);
+    if (index % 2 === 0) addFlag(point.x, point.z, hexSize * 1.18, 0.66);
   });
 
   group.scale.setScalar(1);
