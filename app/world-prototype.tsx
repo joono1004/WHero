@@ -62,6 +62,7 @@ import {
 } from "@/lib/world/prototype/tactical-interaction";
 import {
   fogStateAt,
+  visionRadiusFor,
   visibleHexKeys,
   type VisionSource,
 } from "@/lib/world/visibility/fog-of-war";
@@ -2344,13 +2345,18 @@ function WorldScene({
     let currentVisibleHexKeys = new Set<string>();
     const fogTransform = new THREE.Object3D();
     const hiddenFogMatrix = new THREE.Matrix4().makeScale(0.0001, 0.0001, 0.0001);
-    const playerVisionSources = (radiusBonus = 0): VisionSource[] =>
+    const playerVisionSources = (): VisionSource[] =>
       [...actorVisuals.values()]
         .filter((visual) => visual.actor.team === "player" && visual.actor.hp > 0)
         .map((visual) => ({
           row: visual.actor.row,
           column: visual.actor.column,
-          radius: (visual.actor.kind === "hero" ? 3 : 2) + radiusBonus,
+          radius: visionRadiusFor(
+            visual.actor.kind,
+            terrainCells.get(
+              `${visual.actor.row}:${visual.actor.column}`,
+            )?.type,
+          ),
         }));
     const updateFogMeshes = () => {
       fogCells.forEach((cell, index) => {
@@ -2386,10 +2392,7 @@ function WorldScene({
       }
       updateFogMeshes();
     };
-    visibleHexKeys(playerVisionSources(1), HEX_ROWS, HEX_COLS).forEach((key) =>
-      exploredHexKeys.add(key),
-    );
-    refreshFogVisibility(false);
+    refreshFogVisibility(true);
 
     const selectionGeometry = new THREE.BufferGeometry();
     const selection = new THREE.LineLoop(
@@ -2881,6 +2884,7 @@ function WorldScene({
         0,
         movementPlanBudget - destination.cost,
       );
+      refreshFogVisibility(false);
       showMovementPlan(visual);
       showMovementRoute(visual, destination);
       setPanelForActor(visual, "");
@@ -3330,6 +3334,7 @@ function WorldScene({
           movementPlanOrigin.column,
         );
         visual.actor.remainingMovement = movementPlanBudget;
+        refreshFogVisibility(false);
         clearSelection();
         return;
       }

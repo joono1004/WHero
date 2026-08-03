@@ -81,7 +81,7 @@ export function TestHeroPanel() {
               <span>훈련 <b>{WEI_YAN_TEST_HERO.domesticSpecialty.grade}</b></span>
             </div>
             <div className="hero-test-rule">
-              탐험 준비 · 이동력 <b>4</b> · 시야 <b>2</b>
+              탐험 준비 · 이동력 <b>4</b> · 기본 시야 <b>3</b>
             </div>
           </>
         )}
