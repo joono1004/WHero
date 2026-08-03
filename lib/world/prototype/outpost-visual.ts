@@ -763,12 +763,12 @@ export function createLargeCityVisual(
 
   const { hexSize, factionColor = "#2f86df", isCapital = false } = options;
   const elevatedY = hexSize * 0.16;
-  const stone = new THREE.MeshStandardMaterial({ color: "#6f716c", roughness: 0.94 });
-  const stoneLight = new THREE.MeshStandardMaterial({ color: "#aaa79d", roughness: 0.92 });
-  const plaster = new THREE.MeshStandardMaterial({ color: "#ded0a9", roughness: 0.98 });
+  const stone = new THREE.MeshStandardMaterial({ color: "#827f78", roughness: 0.94 });
+  const stoneLight = new THREE.MeshStandardMaterial({ color: "#c3bcac", roughness: 0.9 });
+  const plaster = new THREE.MeshStandardMaterial({ color: "#eadfbe", roughness: 0.96 });
   const darkTimber = new THREE.MeshStandardMaterial({ color: "#603923", roughness: 0.9 });
-  const roofTile = new THREE.MeshStandardMaterial({ color: "#223a45", roughness: 0.84 });
-  const redEave = new THREE.MeshStandardMaterial({ color: "#963c2d", roughness: 0.8 });
+  const roofTile = new THREE.MeshStandardMaterial({ color: "#315f91", roughness: 0.8 });
+  const redEave = new THREE.MeshStandardMaterial({ color: "#b88a3c", roughness: 0.72 });
   const faction = new THREE.MeshStandardMaterial({
     color: factionColor,
     roughness: 0.68,
@@ -779,8 +779,16 @@ export function createLargeCityVisual(
     metalness: 0.34,
     roughness: 0.5,
   });
+  const innerCity = new THREE.Group();
+  innerCity.name = "large-city-inner-keeps";
+  // Scale around the stone courtyard level so every keep becomes nearly twice as tall
+  // without lifting its base away from the ground.
+  const innerHeightScale = 2;
+  innerCity.scale.set(1, innerHeightScale, 1);
+  innerCity.position.y = elevatedY * (1 - innerHeightScale);
+  group.add(innerCity);
   const add = <T extends THREE.Object3D>(object: T) => {
-    group.add(object);
+    innerCity.add(object);
     selectableMeshes.push(object);
     return object;
   };
@@ -794,7 +802,12 @@ export function createLargeCityVisual(
   ) => {
     const eave = shadowed(
       new THREE.Mesh(
-        new THREE.BoxGeometry(hexSize * radius * 1.62, hexSize * 0.045, hexSize * radius * 1.62),
+        new THREE.CylinderGeometry(
+          hexSize * radius * 0.86,
+          hexSize * radius * 0.86,
+          hexSize * 0.045,
+          8,
+        ),
         redEave,
       ),
     );
@@ -802,12 +815,12 @@ export function createLargeCityVisual(
     add(eave);
     const tiledRoof = shadowed(
       new THREE.Mesh(
-        new THREE.ConeGeometry(hexSize * radius, hexSize * height, 4),
+        new THREE.ConeGeometry(hexSize * radius, hexSize * height, 8),
         roofTile,
       ),
     );
     tiledRoof.position.set(hexSize * x, elevatedY + hexSize * y, hexSize * z);
-    tiledRoof.rotation.y = Math.PI / 4;
+    tiledRoof.rotation.y = Math.PI / 8;
     add(tiledRoof);
   };
 
@@ -829,7 +842,7 @@ export function createLargeCityVisual(
     add(plinth);
     const towerBody = shadowed(
       new THREE.Mesh(
-        new THREE.BoxGeometry(hexSize * 0.25, hexSize * 0.48, hexSize * 0.22),
+        new THREE.CylinderGeometry(hexSize * 0.13, hexSize * 0.15, hexSize * 0.48, 8),
         index % 2 === 0 ? stoneLight : plaster,
       ),
     );
@@ -844,6 +857,18 @@ export function createLargeCityVisual(
     timberBand.position.set(hexSize * x, elevatedY + hexSize * 0.55, hexSize * z);
     add(timberBand);
     addTierRoof(x, 0.7, z, 0.22, 0.22);
+    const turretFinial = shadowed(
+      new THREE.Mesh(
+        new THREE.ConeGeometry(hexSize * 0.027, hexSize * 0.15, 8),
+        metal,
+      ),
+    );
+    turretFinial.position.set(
+      hexSize * x,
+      elevatedY + hexSize * 0.885,
+      hexSize * z,
+    );
+    add(turretFinial);
   });
 
   // The central three-tier keep is the tallest object in the city.
@@ -858,7 +883,7 @@ export function createLargeCityVisual(
 
   const lowerBody = shadowed(
     new THREE.Mesh(
-      new THREE.BoxGeometry(hexSize * 0.4, hexSize * 0.42, hexSize * 0.34),
+      new THREE.CylinderGeometry(hexSize * 0.22, hexSize * 0.26, hexSize * 0.42, 8),
       stoneLight,
     ),
   );
@@ -868,7 +893,7 @@ export function createLargeCityVisual(
 
   const middleBody = shadowed(
     new THREE.Mesh(
-      new THREE.BoxGeometry(hexSize * 0.31, hexSize * 0.3, hexSize * 0.27),
+      new THREE.CylinderGeometry(hexSize * 0.17, hexSize * 0.2, hexSize * 0.3, 8),
       plaster,
     ),
   );
@@ -878,7 +903,7 @@ export function createLargeCityVisual(
 
   const upperBody = shadowed(
     new THREE.Mesh(
-      new THREE.BoxGeometry(hexSize * 0.22, hexSize * 0.25, hexSize * 0.2),
+      new THREE.CylinderGeometry(hexSize * 0.12, hexSize * 0.14, hexSize * 0.25, 8),
       darkTimber,
     ),
   );
@@ -886,15 +911,19 @@ export function createLargeCityVisual(
   add(upperBody);
   addTierRoof(0, 1.23, -0.03, 0.22, 0.2);
 
-  const ridge = shadowed(
+  const crownSpire = shadowed(
     new THREE.Mesh(
-      new THREE.CylinderGeometry(hexSize * 0.022, hexSize * 0.022, hexSize * 0.32, 8),
-      metal,
+      new THREE.ConeGeometry(hexSize * 0.09, hexSize * 0.34, 10),
+      roofTile,
     ),
   );
-  ridge.rotation.z = Math.PI / 2;
-  ridge.position.set(0, elevatedY + hexSize * 1.34, -hexSize * 0.03);
-  add(ridge);
+  crownSpire.position.set(0, elevatedY + hexSize * 1.5, -hexSize * 0.03);
+  add(crownSpire);
+  const crownFinial = shadowed(
+    new THREE.Mesh(new THREE.ConeGeometry(hexSize * 0.028, hexSize * 0.18, 8), metal),
+  );
+  crownFinial.position.set(0, elevatedY + hexSize * 1.75, -hexSize * 0.03);
+  add(crownFinial);
 
   const flagHeight = hexSize * 0.17;
   const poleHeight = hexSize * 1.58;
