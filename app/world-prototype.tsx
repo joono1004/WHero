@@ -1679,7 +1679,7 @@ function WorldScene({
         new THREE.MeshBasicMaterial({
           color,
           transparent: true,
-          opacity: 0.2,
+          opacity: 0.32,
           side: THREE.DoubleSide,
           depthTest: false,
           depthWrite: false,
@@ -1703,30 +1703,6 @@ function WorldScene({
       const marker = { fill, outline };
       updateOccupantHexMarker(marker, cell, groundHeight);
       return marker;
-    };
-    const addFactionGroundRing = (
-      x: number,
-      z: number,
-      groundHeight: number,
-      factionId: FactionVisualId,
-    ) => {
-      const visual = factionVisual(factionId);
-      const ring = new THREE.Mesh(
-        new THREE.RingGeometry(HEX_SIZE * 0.19, HEX_SIZE * 0.29, 32),
-        new THREE.MeshBasicMaterial({
-          color: visual.color,
-          transparent: true,
-          opacity: 0.9,
-          side: THREE.DoubleSide,
-          depthTest: false,
-          depthWrite: false,
-        }),
-      );
-      ring.rotation.x = -Math.PI / 2;
-      ring.position.set(x, groundHeight + 0.112, z);
-      ring.renderOrder = 86;
-      worldRoot.add(ring);
-      return ring;
     };
     const addFactionToken = (
       parent: THREE.Sprite,
@@ -1767,7 +1743,6 @@ function WorldScene({
       badge: THREE.Sprite;
       badgeOutline?: THREE.Sprite;
       hexMarker: OccupantHexMarker;
-      factionGroundRing: THREE.Mesh<THREE.RingGeometry, THREE.MeshBasicMaterial>;
     };
     type OutpostState = {
       row: number;
@@ -1915,12 +1890,6 @@ function WorldScene({
       fullOutline.renderOrder = 89;
       fullOutline.userData = fullMarker.userData;
       worldRoot.add(fullOutline);
-      const factionGroundRing = addFactionGroundRing(
-        heroFoot.x,
-        heroFoot.z,
-        heroGroundHeight,
-        factionId,
-      );
 
       const badgeTexture = loadCharacterTexture(hero.image.badge);
       const badgeMarker = new THREE.Sprite(
@@ -1974,7 +1943,6 @@ function WorldScene({
         badge: badgeMarker,
         badgeOutline,
         hexMarker,
-        factionGroundRing,
       });
     });
 
@@ -2100,12 +2068,6 @@ function WorldScene({
         column: unitStart.column,
       };
       worldRoot.add(unitMarker);
-      const factionGroundRing = addFactionGroundRing(
-        unitFoot.x,
-        unitFoot.z,
-        unitGroundHeight,
-        factionId,
-      );
 
       const emblemMarker = new THREE.Sprite(
         new THREE.SpriteMaterial({
@@ -2129,7 +2091,6 @@ function WorldScene({
         full: unitMarker,
         badge: emblemMarker,
         hexMarker,
-        factionGroundRing,
       });
     });
     const updateActorActionAppearance = (visual: ActorVisual) => {
@@ -2145,9 +2106,8 @@ function WorldScene({
       if (visual.badgeOutline) {
         visual.badgeOutline.material.opacity = inactive ? 0.72 : 0.95;
       }
-      visual.hexMarker.fill.material.opacity = inactive ? 0.08 : 0.2;
+      visual.hexMarker.fill.material.opacity = inactive ? 0.13 : 0.32;
       visual.hexMarker.outline.material.opacity = inactive ? 0.36 : 0.94;
-      visual.factionGroundRing.material.opacity = inactive ? 0.48 : 0.9;
     };
     const neighborCells = (cell: TerrainCell) => {
       const diagonal = cell.row % 2 === 0 ? -1 : 1;
@@ -2860,11 +2820,6 @@ function WorldScene({
       visual.badge.userData.column = column;
       visual.badgeOutline?.position.copy(visual.badge.position);
       if (visual.badgeOutline) visual.badgeOutline.position.y -= 0.004;
-      visual.factionGroundRing.position.set(
-        foot.x,
-        footGround + 0.112,
-        foot.z,
-      );
       updateOccupantHexMarker(visual.hexMarker, center, footGround);
     };
     const foundOutpost = (visual: ActorVisual) => {
@@ -3789,7 +3744,6 @@ function WorldScene({
         const showActor = visual.actor.hp > 0 && revealed;
         visual.hexMarker.fill.visible = showActor;
         visual.hexMarker.outline.visible = showActor;
-        visual.factionGroundRing.visible = showActor;
         if (showActor) return;
         visual.full.visible = false;
         if (visual.fullOutline) visual.fullOutline.visible = false;
