@@ -1,4 +1,9 @@
-# vinext-starter
+# World in Hero
+
+현재 기획과 구현 상태는 [개발 기록](docs/PROJECT_PROGRESS.md), 실제 조작법은
+[사용자 매뉴얼 초안](docs/PLAYER_MANUAL_DRAFT.md)을 기준으로 관리합니다.
+
+## Development base
 
 A clean full-stack starter running on
 [vinext](https://github.com/cloudflare/vinext), with optional Cloudflare D1 and
