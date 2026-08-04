@@ -22,7 +22,7 @@ export function resourceProductionMultiplier({
   terrain,
   adjacentFreshWater,
   adjacentResourceKinds,
-}: ResourceBonusContext) {
+}: ResourceBonusContext): 1 | 2 {
   if (kind === "farm" && adjacentFreshWater) return 2;
   if (kind === "logging" && terrain === "forest") return 2;
   if (kind === "mine" && terrain === "hill") return 2;

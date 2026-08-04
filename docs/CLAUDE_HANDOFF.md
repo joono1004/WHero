@@ -1,5 +1,9 @@
 # Claude branch handoff rules
 
+> 2026-08-04 배포 구조가 표준 Next.js + Vercel로 변경되었습니다. 작업 전
+> `DEPLOYMENT_MIGRATION.md`를 반드시 확인하고 Cloudflare/Vinext 구성을 다시 추가하지
+> 마세요.
+
 Claude should reorganize only its game-rule and game-screen code after this
 document and `WORLD_ENGINE_ARCHITECTURE.md` are available on its branch.
 

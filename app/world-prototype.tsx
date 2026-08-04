@@ -39,6 +39,7 @@ import {
 import type {
   HexDiagnostic,
   SelectedHexPopup,
+  WaterBody,
 } from "@/lib/world/model/world-map";
 import { HexInfoPopup } from "@/components/world/HexInfoPopup";
 import { TerrainLegend } from "@/components/world/TerrainLegend";
@@ -1271,7 +1272,9 @@ function WorldScene({
           pixels.data[index + 2] = Math.min(255, target.b * shade * 255);
         }
         context.putImageData(pixels, 0, 0);
-        loadedTexture.image = canvas;
+        // TextureLoader starts with an image-backed texture, then this callback
+        // replaces its source with the processed canvas used by the map art.
+        (loadedTexture as unknown as THREE.Texture<HTMLCanvasElement>).image = canvas;
         loadedTexture.needsUpdate = true;
       });
       texture.colorSpace = THREE.SRGBColorSpace;
@@ -2341,8 +2344,9 @@ function WorldScene({
       });
       hillCells.forEach((cell, index) => {
         if (cell.row !== row || cell.column !== column) return;
+        const y = heightAt(seed, cell.x, cell.z, samples);
         matrix.compose(
-          new THREE.Vector3(cell.x, cell.y, cell.z),
+          new THREE.Vector3(cell.x, y - 0.02, cell.z),
           quaternion.identity(),
           zeroScale,
         );
@@ -2744,7 +2748,10 @@ function WorldScene({
       interactionOverlays.splice(0).forEach((overlay) => {
         worldRoot.remove(overlay);
         overlay.geometry.dispose();
-        overlay.material.dispose();
+        const materials = Array.isArray(overlay.material)
+          ? overlay.material
+          : [overlay.material];
+        materials.forEach((material) => material.dispose());
       });
     };
     const clearActionMarkers = () => {
@@ -3440,6 +3447,7 @@ function WorldScene({
         skills: visual.actor.skills.map((skill) => ({ ...skill })),
         attackChoices: [],
         skillMenuOpen: false,
+        attackTargeting: false,
         canCancelMove: movementPreviewActive,
         canFoundOutpost: canFoundOutpostAt(visual),
         upgradeTargetLevel: null,
