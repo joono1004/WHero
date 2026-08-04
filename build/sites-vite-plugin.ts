@@ -1,4 +1,4 @@
-import { access, cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { access, cp, mkdir, rm } from "node:fs/promises";
 import { resolve } from "node:path";
 import type { Plugin } from "vite";
 
@@ -42,16 +42,12 @@ export function sites(): Plugin {
         });
       }
 
-      // Sites resolves current Workers defaults during deployment. Omitting
-      // this generated key avoids sending a redundant nodejs_compat flag on
-      // dates where the runtime already enables it by default.
+      // Sites owns the production Worker configuration. The Cloudflare Vite
+      // plugin also emits a local wrangler.json, but forwarding that generated
+      // file makes Sites apply runtime defaults twice. Keep only the compiled
+      // worker and Sites metadata in the deployment artifact.
       if (await exists(workerConfig)) {
-        const parsed = JSON.parse(await readFile(workerConfig, "utf8")) as Record<
-          string,
-          unknown
-        >;
-        delete parsed.compatibility_flags;
-        await writeFile(workerConfig, JSON.stringify(parsed));
+        await rm(workerConfig, { force: true });
       }
     },
   };
