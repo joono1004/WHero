@@ -1,4 +1,4 @@
-import { access, cp, mkdir, rm } from "node:fs/promises";
+import { access, cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import type { Plugin } from "vite";
 
@@ -26,6 +26,7 @@ export function sites(): Plugin {
     },
     async closeBundle() {
       const outputDirectory = resolve(root, "dist", ".openai");
+      const workerConfig = resolve(root, "dist", "server", "wrangler.json");
       const hostingConfig = resolve(root, ".openai", "hosting.json");
       const drizzleSource = resolve(root, "drizzle");
 
@@ -39,6 +40,18 @@ export function sites(): Plugin {
         await cp(drizzleSource, resolve(outputDirectory, "drizzle"), {
           recursive: true,
         });
+      }
+
+      // Sites resolves current Workers defaults during deployment. Omitting
+      // this generated key avoids sending a redundant nodejs_compat flag on
+      // dates where the runtime already enables it by default.
+      if (await exists(workerConfig)) {
+        const parsed = JSON.parse(await readFile(workerConfig, "utf8")) as Record<
+          string,
+          unknown
+        >;
+        delete parsed.compatibility_flags;
+        await writeFile(workerConfig, JSON.stringify(parsed));
       }
     },
   };
