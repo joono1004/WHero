@@ -47,3 +47,190 @@ document and `WORLD_ENGINE_ARCHITECTURE.md` are available on its branch.
 No Claude branch merge should occur until the shared terrain IDs,
 `WorldMapSnapshot`, movement-cost contract, and generator version policy are
 finalized.
+
+---
+
+# Claude → Codex 인수인계 (2026-07-30, `claude/chatgpt-codex-analysis-8kgydd` 브랜치)
+
+앞으로 World in Hero의 주 작업이 Codex로 이관됨에 따라 작성. 아래는 이
+브랜치(`claude/chatgpt-codex-analysis-8kgydd`)의 현재 상태 기록이며,
+**`main`에는 병합하지 않았음** (위 "No Claude branch merge..." 규칙이 아직
+유효하다고 판단 - 아래 "가장 중요한 알려진 이슈" 참고).
+
+## 완료한 기능
+
+- **데이터 모델**: 영웅(`hero.ts`/`hero-definition.ts`)·부대(`unit.ts`)·
+  도시(`city.ts`)·세력(`faction.ts`)·세이브(`save.ts`) 전체 타입, 로컬
+  저장/불러오기 + 참조 무결성 검사(`storage.ts`).
+- **화면 흐름**: 시작 → 메인메뉴 → 세력명/영웅선택 → 로비(영웅 목록 + 맵
+  후보 + 클리어맵 레일) → 실제 게임 화면(턴 종료). 모바일 가로
+  (844×390, 780×360) 기준 검증 완료.
+- **턴/이동/전투**: `turn.ts`(턴 카운터, 이동력 회복, 배속 보너스, 회복
+  틱), `movement.ts`(hex 기반 Dijkstra 경로탐색, 지형 비용은 콜백으로
+  위임), `combat.ts`(공격-방어-반격 규칙, 사거리 비교).
+- **도시/생산**: 4단계 성장, 시설 4종, 연구 기반 병사 생산
+  (`unit-production.ts`), 영웅 출전 예약(최대 5명)·도시 수에 따른 순차
+  소환.
+- **영웅 배속**: 단독 이동, 도시 배속(특기 6종: 훈련/상업/농업/채굴/회복/
+  방어), 패배 시 회복(주둔지 복귀) 메커니즘.
+- **세계 진행**: 정복 조건(수도 점령/항복 → 세력 패배, 전멸 시 클리어),
+  계승(영웅/자원/연구 유지, 도시/유닛 초기화), 최소 스캐폴딩 AI 세력 생성.
+- **연구 시스템**: 내정(금/식량) + 병과(보병/궁병/기병/공성) 6개 카테고리.
+- **(이번 세션) 영웅-부대 동행 기능 제거 + 고정 병과 도입**: 사용자가
+  Codex와 맵 생성·캐릭터 배치를 논의하며 "영웅과 부대는 완전히 독립적으로
+  이동"으로 방향을 정정. `HeroAssignment`의 `"unit"` 모드와 관련 버프/
+  병과 시너지를 전부 제거하고, 영웅도 병사처럼 고정 병과(`unitType`) 하나를
+  갖도록 변경(이동력/사거리를 `UNIT_TYPE_CATALOG`에서 병사와 공유). 노출된
+  영웅 6명 병과 확정: 감녕 보병·위연 보병·서서 궁병·관우 기병·조운 기병
+  (제갈량은 "책사" - 아래 미완성 항목 참고).
+- **`lib/integration/` 어댑터 경계 신설**: `WORLD_ENGINE_ARCHITECTURE.md`/
+  이 문서의 요구사항에 맞춰 `movement.ts`의 `MovementCost` 타입을
+  `lib/integration/movement-cost.ts`로 이동, 아직 연동 안 된 지형 계약
+  항목들을 `lib/integration/README.md`에 인덱스로 정리.
+
+## 변경한 파일 (이 브랜치가 `main` 대비 갖고 있는 Claude 쪽 변경)
+
+- `lib/game/**` 전체 (신규 다수 + 오늘 수정한 `hero.ts`, `hero-definition.ts`,
+  `hero-assignment.ts`, `combat.ts`, `unit.ts`, `save.ts`, `movement.ts`,
+  `starting-heroes.ts`, `legendary-heroes.ts`, `turn.ts`, `new-game.ts`,
+  `unit-production.ts` 등)
+- `app/game/**` 전체 (화면 컴포넌트), `app/game/heroLabels.ts`
+- `lib/integration/movement-cost.ts`, `lib/integration/README.md` (신규)
+- `docs/SYSTEM_LAYER.md` (작업 로그, 결정 사항 전부 기록됨 - 가장 상세한
+  참고 자료), `docs/GAME_VISION.md`(오늘 정정 반영), `docs/MVP_SCOPE.md`
+  (Codex 작성, 미변경)
+- `.github/workflows/deploy.yml` — **주의: 아래 "가장 중요한 알려진
+  이슈" 참고, 현재 시점 기준 이미 낡은 배포 방식임**
+
+## 핵심 설계 결정과 이유
+
+1. **`lib/game`은 React/Three.js/`app/world-prototype.tsx`를 import하지
+   않음** - `WORLD_ENGINE_ARCHITECTURE.md`의 경계 원칙을 그대로 따름.
+   화면(`app/game/screens/*`)은 `lib/game` 함수만 호출하고 로직을
+   재구현하지 않음.
+2. **hex 좌표계는 렌더러와 동일한 odd-r offset 컨벤션으로 독립 재구현**
+   (`lib/game/hex.ts`) - `lib/world/hex/hex-grid.ts`를 직접 import하지
+   않는 이유는 그 파일이 `three`를 import하기 때문. 두 구현의 이웃/거리
+   공식은 동일하므로 병합 시 값 충돌은 없을 것으로 예상 - 병합 시점에
+   `lib/game/hex.ts`를 `lib/world/hex`로 교체할지는 열린 판단.
+3. **영웅의 `unitType`이 병사와 같은 `UNIT_TYPE_CATALOG`(이동력/사거리)를
+   공유** - 영웅과 병사를 완전히 분리된 두 시스템으로 만들지 않기 위한
+   선택. 전투 스탯(공격/방어/체력)은 여전히 영웅 고유 등급 공식에서 나옴 -
+   `UNIT_TYPE_CATALOG`는 이동력/사거리만 공유.
+4. **지형 관련 계약(이동 비용, 스폰 위치, 자원 타일)은 전부 콜백/미구현
+   상태로 남김** - 실제 지형 데이터 없이 임의로 만들면 나중에 또 뜯어고쳐야
+   하므로, `lib/integration/README.md`에 열린 질문으로만 기록.
+5. **AI 세력은 이름+수도만 있는 최소 스캐폴딩** - AI 능력치/행동/항복
+   판단 기준이 전부 "추후 논의"로 미뤄진 상태라, 정복 흐름 자체는 테스트
+   버튼으로 시연 가능하게만 해둠.
+
+## 가장 중요한 알려진 이슈 - 배포 스택 충돌
+
+**`main`이 2026-08-04 커밋(`0a5efb2`, "Migrate deployment from Cloudflare
+to Next.js")에서 Cloudflare/Vinext/Wrangler를 전부 제거하고 표준 Next.js +
+Vercel로 이전했습니다** (`docs/DEPLOYMENT_MIGRATION.md` 참고). 이 브랜치
+(`claude/chatgpt-codex-analysis-8kgydd`)는 그 이전 시점에서 갈라져 나온
+채로 **아직 예전 Cloudflare/Vinext 스택을 그대로 갖고 있고**, 여기에 더해
+Claude가 이번 세션 중 **Cloudflare Workers용 GitHub Actions 자동배포
+워크플로(`.github/workflows/deploy.yml`)까지 새로 추가**했습니다(사용자
+요청으로, 당시엔 화면을 확인할 방법이 이것뿐이었음).
+
+- 이 브랜치에는 여전히 있음: `vite.config.ts`, `worker/index.ts`,
+  `build/sites-vite-plugin.ts`, `db/index.ts`, `drizzle.config.ts`,
+  `.openai/hosting.json`, `app/chatgpt-auth.ts`, `examples/d1/**`,
+  `package.json`의 `vinext`/`vite`/`wrangler`/`@cloudflare/vite-plugin`
+  의존성과 `dev`/`build`/`start` 스크립트, `.github/workflows/deploy.yml`.
+- `main`에는 이미 없음(전부 제거됨) - 대신 표준 `next dev`/`build`/`start`.
+- **Claude는 이 충돌을 임의로 해결하지 않았습니다** - 배포 관련 변경은
+  `DEPLOYMENT_MIGRATION.md`에 명시된 대로 "Codex가 최종 통합하고 검증"하는
+  영역이라고 판단해서, 위 파일들을 지우거나 `main`의 새 구조를 이 브랜치로
+  가져오지 않고 그대로 뒀습니다. **병합 시 Codex가 이 브랜치 쪽의
+  Cloudflare 관련 파일·설정·워크플로를 `main`의 Next.js/Vercel 구조로
+  교체(폐기)해야 합니다.**
+- `.github/workflows/deploy.yml`이 살아있는 한 이 브랜치에 push할 때마다
+  Cloudflare Workers(`world-in-hero.ljhs1004.workers.dev`)에 계속
+  배포됩니다 - **Vercel production과는 별개 대상**이라 서로 덮어쓰지는
+  않지만, 더 이상 필요 없는 배포 경로이니 병합 시 함께 정리 권장.
+
+## 아직 미완성인 부분
+
+- **"책사" 병과 미설계**: 제갈량의 실제 병과로 사용자가 "책사"(판타지
+  마법사 계열 - 근접 공격 없음, 마법형 공격/회복)를 지정했으나 상세
+  수치(이동력/사거리/발동 조건)가 없음. `UNIT_TYPE_CATALOG`에 대응 항목이
+  없어서 지금 반영하면 `heroCombatStats`/`heroBaseMovement`가 런타임
+  에러를 냄 - `legendary-heroes.ts`에 TODO 주석과 함께 임시로 `archer`
+  값을 남겨둠. **실제 값 아님, 설계 후 교체 필요.**
+- **레벨업/경험치**: 방향은 확정(레벨당 능력치 4칸 배분, 클리어 시
+  평가등급→기여도 분배)했으나 코드 미반영.
+- **영주 자원 생산**: 자원 종류("유산")는 확정, 배율 공식과 매턴 생산
+  로직 미구현 (task 13).
+- **반란 토벌**: task 14 통째로 미착수.
+- **아이템 카탈로그**: 슬롯 UI만 있고 실제 아이템 없음.
+- **영웅 초상화**: `HeroDefinition`에 이미지 필드 자체가 없음.
+- **지형 연동 전체**: 이동 비용, 스폰 위치, 도시 밖 자원 타일, 지형 특화
+  병과 승급 - 전부 `lib/integration/README.md`에 열린 질문으로 정리됨,
+  `lib/world`가 준비되면 그때 채울 예정.
+- **`main`과의 병합 자체**: 위 "가장 중요한 알려진 이슈" 참고. 지형
+  ID/`WorldMapSnapshot`/이동비용 계약/생성기 버전 정책 + 배포 스택 정리가
+  선행돼야 함.
+
+## 알려진 오류·주의사항
+
+- `npx tsc --noEmit` 실행 시 아래는 **Claude 소유 범위 밖의 기존 에러**이며
+  이번 세션에서 건드리지 않음(Codex 파일이거나 Cloudflare 전용 타입 문제):
+  `app/world-prototype.tsx`(1643번 줄 근처, `terrain` 변수 사용 순서
+  문제), `db/index.ts`(`cloudflare:workers` 모듈 못 찾음),
+  `worker/index.ts`(`Fetcher`/`D1Database` 타입 못 찾음) - 이 셋은
+  Cloudflare 스택 자체가 `main`에서 이미 제거됐으므로 병합 후에는 자동
+  해소될 가능성이 높음.
+- `eslint`도 `app/world-prototype.tsx`에 미사용 변수 경고 2개 - Claude
+  범위 밖, 미조치.
+- `lib/game`/`app/game`/`lib/integration` 범위 안에서는 tsc/eslint 전부
+  클린.
+
+## Codex가 다음으로 할 추천 작업
+
+1. **배포 스택 정리**: 이 브랜치의 Cloudflare/Vinext 관련 파일과
+   `.github/workflows/deploy.yml`을 `main`의 Next.js/Vercel 구조로
+   교체(위 "가장 중요한 알려진 이슈" 참고).
+2. **지형 계약 확정 후 병합**: `lib/integration/README.md`의 열린 질문
+   (지형 카테고리, 스폰 위치, `WorldMapSnapshot`)을 채우고 나서 `main`
+   병합 진행.
+3. **"책사" 병과 설계**: 제갈량 전용 - 이동력 유무, 사거리, 마법 공격/
+   회복 수치, 발동 조건.
+4. 그 외 우선순위는 사용자와 직접 논의해서 결정 (레벨업 구현 / 영주 자원
+   생산 / 아이템 카탈로그 등 - 전부 방향은 어느 정도 있음, `SYSTEM_LAYER.md`
+   참고).
+
+## 실행·빌드·테스트 방법 (이 브랜치 기준, 위 배포 이슈로 인해 한시적)
+
+이 브랜치는 아직 예전 vinext 스크립트를 씁니다 (병합 후에는 `main`의
+`next dev`/`build`/`start`로 교체될 예정):
+
+```
+pnpm install
+pnpm run build          # vinext build - 이번 세션에서 매번 통과 확인
+pnpm run test:game      # lib/game/**/*.test.ts, 311개 전부 통과
+node --test tests/rendered-html.test.mjs   # 렌더링 스모크 테스트, 통과
+npx tsc --noEmit        # 위 "알려진 오류" 3건 제외 클린
+pnpm run lint           # world-prototype.tsx 경고 2건 제외 클린
+```
+
+## 마지막 커밋 해시
+
+이 문서를 추가하기 직전 코드 상태 기준: `2244d8a76a7c2e887538494ca0ad1f382213dd4c`
+("Apply user-specified unitType per hero; flag 제갈량's \"책사\" as undesigned")
+
+이 문서(및 `docs/GAME_VISION.md` 정정)를 추가하는 커밋이 이 브랜치의
+최종 커밋입니다 - 정확한 해시는 커밋 로그(`git log -1`) 참고.
+
+### 병합 후속 메모 (2026-07-30)
+
+Codex의 토큰이 소진돼 최종 통합을 직접 진행할 수 없는 상황이라, 사용자
+확인 후 Claude가 위 브랜치를 `main`에 직접 병합했습니다 (원래 "Claude
+must not... Merge directly into main" 규칙의 예외 - 담당자 부재로 인한
+사용자의 명시적 승인). 배포 스택 충돌은 `main`(Next.js + Vercel) 기준으로
+정리 - 이 브랜치에 남아있던 Cloudflare/Vinext 관련 파일과
+`.github/workflows/deploy.yml`은 병합 과정에서 제거됐습니다. 지형 연동
+계약(위 "아직 미완성인 부분" 참고)은 여전히 미해결 상태로 남아있으니,
+Codex가 복귀하면 그 부분부터 이어가면 됩니다.
