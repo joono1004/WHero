@@ -14,8 +14,15 @@ import type { SaveGame } from "../../lib/game/save.ts";
 export async function ensureGuestSession(): Promise<void> {
   if (!supabase) return;
   try {
-    const { data } = await supabase.auth.getSession();
-    if (data.session) return;
+    // getSession() only reads the locally stored JWT, with no server
+    // round-trip - it happily returns a "session" for a user that was since
+    // deleted (e.g. from the Supabase dashboard), which then makes every
+    // later auth call fail with "User from sub claim in JWT does not
+    // exist". getUser() actually asks the server, so a stale/orphaned
+    // session is caught here instead of at some unrelated call site.
+    const { data, error: getUserError } = await supabase.auth.getUser();
+    if (data.user && !getUserError) return;
+    if (getUserError) await supabase.auth.signOut();
     const { error } = await supabase.auth.signInAnonymously();
     if (error) reportClientError(error, { screen: "account", action: "signInAnonymously" });
   } catch (error) {
