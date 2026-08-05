@@ -90,7 +90,7 @@ function HeroCard({
           content area is overflow-y-auto) rather than getting clipped. */}
       <div
         className="mx-auto flex items-center justify-center overflow-hidden rounded"
-        style={{ width: 192, height: 192, border: "1px solid #43606a", backgroundColor: "#0b2028" }}
+        style={{ width: 144, height: 144, border: "1px solid #43606a", backgroundColor: "#0b2028" }}
       >
         {HERO_PORTRAIT[hero.id] ? (
           // eslint-disable-next-line @next/next/no-img-element -- local /public asset, same convention as components/world/TestHeroPanel.tsx
