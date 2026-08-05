@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import { heroArchetype, heroOverallGrade } from "../../../lib/game/hero-definition.ts";
-import type { DomesticSpecialtyKind, HeroDefinition, TraitKind } from "../../../lib/game/hero-definition.ts";
+import type { HeroDefinition } from "../../../lib/game/hero-definition.ts";
 import type { CoreGrade } from "../../../lib/game/grade.ts";
+import { HERO_TRAIT_CATALOG } from "../../../lib/game/hero-trait.ts";
 import type { HeroId } from "../../../lib/game/ids.ts";
 import { STARTING_HEROES } from "../../../lib/game/starting-heroes.ts";
 import { Button } from "../Button.tsx";
-import { ARCHETYPE_LABEL, DOMESTIC_LABEL, TRAIT_LABEL, UNIT_TYPE_LABEL } from "../heroLabels.ts";
+import { ARCHETYPE_LABEL, UNIT_TYPE_LABEL } from "../heroLabels.ts";
 import { ScreenShell } from "../ScreenShell.tsx";
 
 // Filled in as Codex delivers each hero's art (public/art/heroes/) - a
@@ -77,12 +78,7 @@ function HeroCard({
 }) {
   const grade = heroOverallGrade(hero.attributes);
   const archetype = heroArchetype(hero.attributes);
-  const domesticEntries = (Object.entries(hero.domesticSpecialties) as [DomesticSpecialtyKind, string][]).filter(
-    ([, value]) => value !== "없음",
-  );
-  const traitEntries = (Object.entries(hero.traits) as [TraitKind, string][]).filter(
-    ([, value]) => value !== "없음",
-  );
+  const traitNames = hero.traits.map((traitId) => HERO_TRAIT_CATALOG[traitId].name);
 
   return (
     <button
@@ -141,29 +137,20 @@ function HeroCard({
             <GradeStat label="체력" grade={hero.attributes.vitality} />
             <GradeStat label="매력" grade={hero.attributes.charisma} />
             <TextStat className="col-start-1" label="병과" value={UNIT_TYPE_LABEL[hero.unitType]} />
-            {domesticEntries.length > 0 && (
-              <TextStat
-                className="col-start-1"
-                label="내정"
-                value={domesticEntries.map(([key, value]) => `${DOMESTIC_LABEL[key]} ${value}`).join(" · ")}
-              />
+            {traitNames.length > 0 && (
+              <TextStat className="col-start-1" label="특기" value={traitNames.join(" · ")} />
             )}
           </dl>
         </div>
       </div>
 
       <p className="mt-2 line-clamp-3 text-xs leading-relaxed text-[#c0cbc7]">{hero.description}</p>
-      {traitEntries.length > 0 && (
-        <p className="mt-1.5 truncate text-xs text-[#8fa6a8]">
-          특기: {traitEntries.map(([key, value]) => `${TRAIT_LABEL[key]} ${value}`).join(" · ")}
-        </p>
-      )}
     </button>
   );
 }
 
 // Mirrors GradeStat's own label/value layout exactly (not a 2-column grid
-// of its own) so 병과/내정's value lands at the same x as the grade
+// of its own) so 병과/특기's value lands at the same x as the grade
 // letters above - both are just "label, then justify-between value" inside
 // a single grid cell of the same width.
 function TextStat({ label, value, className }: { label: string; value: string; className?: string }) {

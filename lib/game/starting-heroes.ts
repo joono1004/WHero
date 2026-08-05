@@ -13,6 +13,12 @@ import type { HeroDefinition } from "./hero-definition.ts";
 // 병과를 직접 지정함 - 감녕 보병, 위연 보병, 서서 궁병 (관우/조운/제갈량은
 // legendary-heroes.ts 참고). 전투에 실제로 쓰이는 건 이동력/사거리뿐
 // (레벨 초안, 조정 가능).
+//
+// traits (2026-08-xx, 내정+구 TraitKind 통합): domesticSpecialties의
+// troops/gold/food 등급을 새 특기 카탈로그(hero-trait.ts)로 느슨하게 옮김 -
+// troops -> talent(인재), gold -> trade(상인), food -> farming(농사).
+// domesticSpecialties 필드 자체는 hero-assignment.ts가 아직 그대로 쓰고
+// 있어서 지우지 않음(legendary-heroes.ts 상단 주석 참고).
 export const STARTING_HEROES: HeroDefinition[] = [
   {
     id: "gan-ning",
@@ -21,7 +27,7 @@ export const STARTING_HEROES: HeroDefinition[] = [
     attributes: { leadership: "B", force: "S", intelligence: "C", charisma: "C", vitality: "A" },
     unitType: "infantry",
     domesticSpecialties: { troops: "B", gold: "없음", food: "없음", iron: "없음", recovery: "없음", defense: "없음" },
-    traits: { charge: "없음", magic: "없음" },
+    traits: ["talent"],
   },
   {
     id: "wei-yan",
@@ -30,7 +36,7 @@ export const STARTING_HEROES: HeroDefinition[] = [
     attributes: { leadership: "S", force: "B", intelligence: "C", charisma: "C", vitality: "B" },
     unitType: "infantry",
     domesticSpecialties: { troops: "A", gold: "없음", food: "없음", iron: "없음", recovery: "없음", defense: "없음" },
-    traits: { charge: "없음", magic: "없음" },
+    traits: ["talent"],
   },
   {
     id: "xu-shu",
@@ -39,6 +45,6 @@ export const STARTING_HEROES: HeroDefinition[] = [
     attributes: { leadership: "C", force: "C", intelligence: "S", charisma: "B", vitality: "C" },
     unitType: "archer",
     domesticSpecialties: { gold: "B", food: "B", troops: "없음", iron: "없음", recovery: "없음", defense: "없음" },
-    traits: { charge: "없음", magic: "없음" },
+    traits: ["trade", "farming"],
   },
 ];

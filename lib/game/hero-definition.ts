@@ -1,6 +1,7 @@
 import { averageGrade, gradeToScore } from "./grade.ts";
 import type { CoreGrade, SpecialtyGrade } from "./grade.ts";
 import type { HeroId } from "./ids.ts";
+import type { HeroTraitId } from "./hero-trait.ts";
 import type { TroopResearchKind } from "./research.ts";
 import { UNIT_TYPE_CATALOG } from "./unit-production.ts";
 
@@ -73,12 +74,6 @@ export type DomesticSpecialtyKind = "gold" | "food" | "troops" | "iron" | "recov
 // UNIT_TYPE_CATALOG[unitType].baseMovement를 그대로 쓰면 된다.
 export type HeroUnitTypeKind = TroopResearchKind;
 
-// 특기 (2026-07-28, 이전엔 "ranged"도 여기 있었으나 원거리 여부가 이제
-// 병과로 정해지므로 제거함 - 궁병/공성 병과는 UNIT_TYPE_CATALOG상 이미
-// range가 있고, 나머지 병과는 근접): 돌격/요술처럼 병과와 무관한 전투
-// 특기 자리만 마련해둔 상태 - 전부 "없음"이고 아직 아무 효과가 없다.
-export type TraitKind = "charge" | "magic";
-
 // Draft combat stats derived from a hero's grade attributes (task 9 -
 // combat rules). No playtesting has happened yet, so every constant here is
 // an adjustable placeholder. Force drives attack, leadership drives
@@ -126,6 +121,17 @@ export type HeroDefinition = {
   description: string;
   attributes: HeroAttributes;
   unitType: HeroUnitTypeKind;
+  // Kept for hero-assignment.ts's already-working, tested city-yield/
+  // production/defense/recovery bonuses (2026-08-xx direction: no longer
+  // shown to the player as "내정" - that display name and its SS~D grading
+  // are replaced by traits below - but the underlying mechanic isn't
+  // rebuilt on top of traits yet, so this field and its consumers stay
+  // as-is internally until that follow-up happens).
   domesticSpecialties: Record<DomesticSpecialtyKind, SpecialtyGrade>;
-  traits: Record<TraitKind, SpecialtyGrade>;
+  // 특기 (2026-08-xx direction, replaces the old empty TraitKind
+  // placeholder): up to MAX_HERO_TRAITS named passive abilities, each a
+  // fixed effect with no grade - see hero-trait.ts's HERO_TRAIT_CATALOG for
+  // what each id means. Not wired into combat.ts/movement.ts yet (data/
+  // display only for now).
+  traits: HeroTraitId[];
 };

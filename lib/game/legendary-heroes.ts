@@ -48,7 +48,13 @@ export const LEGENDARY_HEROES: HeroDefinition[] = [
     attributes: { leadership: "S", force: "A", intelligence: "B", charisma: "A", vitality: "S" },
     unitType: "cavalry",
     domesticSpecialties: { troops: "A", food: "B", gold: "없음", iron: "없음", recovery: "없음", defense: "B" },
-    traits: { charge: "없음", magic: "없음" },
+    // 특기 매핑은 위 domesticSpecialties와 느슨한 대응(2026-08-xx 방향):
+    // troops A -> talent(인재), food B -> farming(농사), defense B ->
+    // ironwall(철벽, "형주를 오래 지킨" 이미지에 맞춰 고른 것 - 원래
+    // defense는 도시 성벽 보너스였고 철벽은 전투 방어 배수라 완전히 같은
+    // 수치는 아님). recovery/iron엔 아직 대응하는 특기가 카탈로그에
+    // 없어서(hero-trait.ts) 뺌 - 나중에 추가되면 다시 볼 것.
+    traits: ["talent", "farming", "ironwall"],
   },
   {
     id: "zhao-yun",
@@ -57,7 +63,7 @@ export const LEGENDARY_HEROES: HeroDefinition[] = [
     attributes: { leadership: "B", force: "S", intelligence: "B", charisma: "A", vitality: "A" },
     unitType: "cavalry",
     domesticSpecialties: { troops: "B", food: "C", gold: "없음", iron: "없음", recovery: "B", defense: "없음" },
-    traits: { charge: "없음", magic: "없음" },
+    traits: ["talent", "farming"],
   },
   {
     id: "zhuge-liang",
@@ -71,6 +77,6 @@ export const LEGENDARY_HEROES: HeroDefinition[] = [
     attributes: { leadership: "B", force: "C", intelligence: "SS", charisma: "A", vitality: "B" },
     unitType: "archer",
     domesticSpecialties: { food: "S", gold: "A", troops: "B", iron: "B", recovery: "없음", defense: "없음" },
-    traits: { charge: "없음", magic: "없음" },
+    traits: ["farming", "trade", "talent"],
   },
 ];

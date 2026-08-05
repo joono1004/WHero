@@ -27,7 +27,7 @@ function makeHeroDefinition(overrides: Partial<HeroDefinition> = {}): HeroDefini
     attributes: { leadership: "B", force: "B", intelligence: "B", charisma: "B", vitality: "B" },
     unitType: "infantry",
     domesticSpecialties: NO_SPECIALTIES,
-    traits: { charge: "없음", magic: "없음" },
+    traits: [],
     ...overrides,
   };
 }

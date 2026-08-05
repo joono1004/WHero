@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { heroArchetype, heroOverallGrade } from "./hero-definition.ts";
+import { HERO_TRAIT_CATALOG, MAX_HERO_TRAITS } from "./hero-trait.ts";
 import { STARTING_HEROES } from "./starting-heroes.ts";
 
 test("there are exactly 3 starting heroes with unique ids", () => {
@@ -47,10 +48,12 @@ test("서서 is the strategist-type", () => {
   assert.equal(heroArchetype(xuShu.attributes), "strategist");
 });
 
-test("no starting hero has a charge or magic trait (placeholders only, none assigned yet)", () => {
+test("every starting hero's traits are known catalog ids within MAX_HERO_TRAITS, none combat-focused yet", () => {
   for (const hero of STARTING_HEROES) {
-    assert.equal(hero.traits.charge, "없음");
-    assert.equal(hero.traits.magic, "없음");
+    assert.ok(hero.traits.length <= MAX_HERO_TRAITS);
+    for (const traitId of hero.traits) {
+      assert.ok(traitId in HERO_TRAIT_CATALOG);
+    }
   }
 });
 

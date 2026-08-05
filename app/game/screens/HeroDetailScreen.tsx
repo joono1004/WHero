@@ -1,14 +1,11 @@
 import { heroArchetype, heroOverallGrade } from "../../../lib/game/hero-definition.ts";
-import type {
-  DomesticSpecialtyKind,
-  HeroDefinition,
-  TraitKind,
-} from "../../../lib/game/hero-definition.ts";
+import type { HeroDefinition } from "../../../lib/game/hero-definition.ts";
 import { pipsRequiredForNextGrade } from "../../../lib/game/grade.ts";
+import { HERO_TRAIT_CATALOG } from "../../../lib/game/hero-trait.ts";
 import type { AttributeKey, HeroState } from "../../../lib/game/hero.ts";
 import { MAX_ITEMS_PER_HERO } from "../../../lib/game/hero.ts";
 import { Button } from "../Button.tsx";
-import { ARCHETYPE_LABEL, DOMESTIC_LABEL, TRAIT_LABEL, UNIT_TYPE_LABEL } from "../heroLabels.ts";
+import { ARCHETYPE_LABEL, UNIT_TYPE_LABEL } from "../heroLabels.ts";
 import { ScreenShell } from "../ScreenShell.tsx";
 
 const ATTRIBUTE_LABEL: Record<AttributeKey, string> = {
@@ -41,12 +38,6 @@ export function HeroDetailScreen({
 }) {
   const grade = heroOverallGrade(definition.attributes);
   const archetype = heroArchetype(definition.attributes);
-  const domesticEntries = (Object.entries(definition.domesticSpecialties) as [DomesticSpecialtyKind, string][]).filter(
-    ([, value]) => value !== "없음",
-  );
-  const traitEntries = (Object.entries(definition.traits) as [TraitKind, string][]).filter(
-    ([, value]) => value !== "없음",
-  );
 
   return (
     <ScreenShell
@@ -109,20 +100,22 @@ export function HeroDetailScreen({
 
         <div className="flex flex-col gap-2">
           <section className="rounded-md border border-[#43606a] bg-[#17343e] p-2">
-            <h3 className="mb-1 text-[10px] font-bold text-[#8fa6a8]">특기</h3>
-            <p className="text-[#c0cbc7]">
-              내정: {domesticEntries.length > 0
-                ? domesticEntries.map(([key, value]) => `${DOMESTIC_LABEL[key]} ${value}`).join(" · ")
-                : "없음"}
-            </p>
-            <p className="mt-1 text-[#c0cbc7]">
-              병과: {UNIT_TYPE_LABEL[definition.unitType]}
-            </p>
-            <p className="mt-1 text-[#c0cbc7]">
-              특기: {traitEntries.length > 0
-                ? traitEntries.map(([key, value]) => `${TRAIT_LABEL[key]} ${value}`).join(" · ")
-                : "없음"}
-            </p>
+            <h3 className="mb-1 text-[10px] font-bold text-[#8fa6a8]">병과 · 특기</h3>
+            <p className="text-[#c0cbc7]">병과: {UNIT_TYPE_LABEL[definition.unitType]}</p>
+            {definition.traits.length > 0 ? (
+              <ul className="mt-1 flex flex-col gap-0.5">
+                {definition.traits.map((traitId) => {
+                  const trait = HERO_TRAIT_CATALOG[traitId];
+                  return (
+                    <li key={traitId} className="text-[#c0cbc7]">
+                      <span className="font-bold text-[#e3ce94]">{trait.name}</span> · {trait.effect}
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <p className="mt-1 text-[#c0cbc7]">특기: 없음</p>
+            )}
           </section>
 
           <section className="rounded-md border border-[#43606a] bg-[#17343e] p-2">
