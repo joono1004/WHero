@@ -85,8 +85,7 @@ function RegisterAccountModal({
           <>
             <h3 className="mb-3 text-sm font-bold text-[#f3dfaa]">계정 등록 완료</h3>
             <p className="mb-3 text-xs text-[#c0cbc7]">
-              계정 등록이 완료되었습니다. 등록하신 이메일에서 이메일 인증(Confirm email)을 하셔야 로그인이
-              가능합니다.
+              계정 등록이 완료되었습니다. 다른 기기에서는 등록하신 이메일과 비밀번호로 로그인하시면 됩니다.
             </p>
             <Button className="w-full" size="sm" onClick={onClose}>
               확인
