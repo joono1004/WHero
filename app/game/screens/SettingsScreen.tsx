@@ -170,17 +170,8 @@ export function SettingsScreen({
   }
 
   return (
-    <ScreenShell
-      header={<h2 className="text-lg font-bold text-[#f3dfaa]">설정</h2>}
-      footer={
-        <div className="flex justify-center">
-          <Button variant="link" onClick={onBack}>
-            메인 메뉴로
-          </Button>
-        </div>
-      }
-    >
-      <div className="mx-auto flex w-full max-w-md flex-col gap-4">
+    <ScreenShell header={<h2 className="text-lg font-bold text-[#f3dfaa]">설정</h2>}>
+      <div className="mx-auto flex w-full max-w-md flex-col gap-4 pb-3">
         <section className="rounded-md border border-[#43606a] bg-[#17343e] p-3">
           <h3 className="mb-2 text-sm font-bold text-[#f3dfaa]">계정</h3>
           {linked ? (
@@ -233,7 +224,7 @@ export function SettingsScreen({
               disabled={!linked}
               onChange={(event) => onToggleAutoBackup(event.target.checked)}
             />
-            저장 데이터 백업 (스테이지 클리어시 자동백업)
+            자동 데이터 저장 (스테이지 클리어 시 자동 저장 후 클라우드에 백업)
           </label>
           {!linked && <p className="mt-1 text-[10px] text-[#8fa6a8]">계정을 등록하면 사용할 수 있습니다.</p>}
         </section>
@@ -280,6 +271,10 @@ export function SettingsScreen({
         </section>
 
         {message && <p className="text-center text-xs text-[#d7b765]">{message}</p>}
+
+        <Button variant="secondary" onClick={onBack}>
+          메인 메뉴로
+        </Button>
       </div>
 
       {showRegisterModal && (

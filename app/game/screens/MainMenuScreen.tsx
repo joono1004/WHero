@@ -5,12 +5,12 @@ export function MainMenuScreen({
   onNewGame,
   onContinue,
   onSettings,
-  onExit,
+  onGoToTitle,
 }: {
   onNewGame: () => void;
   onContinue: () => void;
   onSettings: () => void;
-  onExit: () => void;
+  onGoToTitle: () => void;
 }) {
   return (
     <ScreenShell>
@@ -25,8 +25,8 @@ export function MainMenuScreen({
         <Button className="w-52" size="sm" variant="secondary" onClick={onSettings}>
           설정
         </Button>
-        <Button className="w-52" size="sm" variant="secondary" onClick={onExit}>
-          종료
+        <Button className="w-52" size="sm" variant="secondary" onClick={onGoToTitle}>
+          첫 화면
         </Button>
       </div>
     </ScreenShell>

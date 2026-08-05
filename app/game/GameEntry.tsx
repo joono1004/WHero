@@ -93,6 +93,14 @@ export function GameEntry() {
     });
   }
 
+  // Registering or signing in defaults auto-backup to on - the player just
+  // proved they want their data in the cloud, so make that useful right
+  // away rather than requiring a second trip to flip the checkbox.
+  function enableAutoBackup() {
+    setAutoBackupEnabled(true);
+    storage?.setItem(AUTO_BACKUP_KEY, "true");
+  }
+
   useEffect(() => {
     if (screen.name !== "generating" || !storage) return;
     const { factionName, heroId } = screen;
@@ -149,7 +157,7 @@ export function GameEntry() {
             onNewGame={() => setScreen({ name: "faction-name" })}
             onContinue={() => setScreen({ name: "load-list", slots: storage ? listSaveSlots(storage) : [] })}
             onSettings={() => setScreen({ name: "settings" })}
-            onExit={() => window.alert("이 창을 닫아 게임을 종료할 수 있습니다.")}
+            onGoToTitle={() => setScreen({ name: "title" })}
           />
         );
 
@@ -187,12 +195,18 @@ export function GameEntry() {
             accountStatus={accountStatus}
             onLinkAccount={async (email, password) => {
               const result = await linkAccountWithEmail(email, password);
-              if (result.ok) setAccountStatus(await getAccountStatus());
+              if (result.ok) {
+                setAccountStatus(await getAccountStatus());
+                enableAutoBackup();
+              }
               return result;
             }}
             onSignIn={async (email, password) => {
               const result = await signInWithEmail(email, password);
-              if (result.ok) setAccountStatus(await getAccountStatus());
+              if (result.ok) {
+                setAccountStatus(await getAccountStatus());
+                enableAutoBackup();
+              }
               return result;
             }}
             onSignOut={async () => {
