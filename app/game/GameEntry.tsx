@@ -18,7 +18,7 @@ import {
 import type { AccountStatus } from "./account.ts";
 import { createNewSaveGame } from "../../lib/game/new-game.ts";
 import type { SaveGame } from "../../lib/game/save.ts";
-import { listSaveSlots, readSaveGame, writeSaveGame } from "../../lib/game/storage.ts";
+import { deleteSaveGame, listSaveSlots, readSaveGame, writeSaveGame } from "../../lib/game/storage.ts";
 import type { KeyValueStorage } from "../../lib/game/storage.ts";
 import { foundCity } from "../../lib/game/city-actions.ts";
 import { PLAYER_FACTION_ID } from "../../lib/game/faction.ts";
@@ -222,7 +222,18 @@ export function GameEntry() {
               if (result.ok && storage) writeSaveGame(storage, result.slotId, result.save);
               return result;
             }}
-            onDeleteAccountData={() => deleteAllCloudBackups()}
+            onDeleteAccountData={async () => {
+              const result = await deleteAllCloudBackups();
+              if (result.ok && storage) {
+                // "계정 데이터 삭제" resets everything, not just the cloud
+                // copies - otherwise the player's local save survives and
+                // the confirmation dialog's "초기화 됩니다" is a lie.
+                for (const slot of listSaveSlots(storage)) {
+                  deleteSaveGame(storage, slot.slotId);
+                }
+              }
+              return result;
+            }}
           />
         );
 
