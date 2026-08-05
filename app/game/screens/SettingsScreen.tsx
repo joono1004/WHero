@@ -145,6 +145,14 @@ export function SettingsScreen({
     const result = await onSignOut();
     setPending(false);
     setMessage(result.ok ? null : result.error);
+    if (result.ok) {
+      // Signing out swaps the account section back to the sign-in form -
+      // clear its leftover "로그인되었습니다." so it doesn't look like the
+      // logout button somehow logged the player back in.
+      setSigninMessage(null);
+      setSigninEmail("");
+      setSigninPassword("");
+    }
   }
 
   async function handleBackup(slotId: string) {
