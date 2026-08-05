@@ -125,6 +125,7 @@ export function SettingsScreen({
   const [showRegisterModal, setShowRegisterModal] = useState(false);
   const [signinEmail, setSigninEmail] = useState("");
   const [signinPassword, setSigninPassword] = useState("");
+  const [signinMessage, setSigninMessage] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -132,10 +133,10 @@ export function SettingsScreen({
 
   async function handleSignIn() {
     setPending(true);
-    setMessage(null);
+    setSigninMessage(null);
     const result = await onSignIn(signinEmail, signinPassword);
     setPending(false);
-    setMessage(result.ok ? "로그인되었습니다." : result.error);
+    setSigninMessage(result.ok ? "로그인되었습니다." : result.error);
   }
 
   async function handleSignOut() {
@@ -207,6 +208,7 @@ export function SettingsScreen({
                   onChange={(event) => setSigninPassword(event.target.value)}
                   className="rounded border border-[#43606a] bg-[#0b2028] px-2 py-1.5 text-xs text-[#d6ded9]"
                 />
+                {signinMessage && <p className="text-center text-xs text-[#d7b765]">{signinMessage}</p>}
                 <Button size="sm" disabled={!signinEmail || !signinPassword || pending} onClick={handleSignIn}>
                   로그인
                 </Button>
