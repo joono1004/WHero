@@ -79,19 +79,19 @@ function HeroCard({
         border: `1px solid ${selected ? "#d7b765" : "#43606a"}`,
         backgroundColor: selected ? "#1c3b44" : "#17343e",
         backgroundImage: "none",
-        padding: "0.5rem 0.6rem",
+        padding: "0.6rem 0.7rem 0.8rem",
         fontWeight: 400,
         color: "inherit",
       }}
     >
       <div className="flex items-center justify-between gap-1">
-        <h3 className="text-sm font-bold text-[#f3dfaa]">{hero.name}</h3>
-        <span className="whitespace-nowrap rounded border border-[#d7b765] px-1 py-0.5 text-[10px] font-bold text-[#d7b765]">
+        <h3 className="text-base font-bold text-[#f3dfaa]">{hero.name}</h3>
+        <span className="whitespace-nowrap rounded border border-[#d7b765] px-1.5 py-0.5 text-xs font-bold text-[#d7b765]">
           {grade}급·{ARCHETYPE_LABEL[archetype]}
         </span>
       </div>
 
-      <div className="mt-1 flex items-stretch gap-2">
+      <div className="mt-2 flex items-stretch gap-2">
         {/* Reserved for Codex's hero portrait art (see HERO_PORTRAIT) - a
             hero without an entry yet falls back to a plain placeholder.
             Stretches to match the stat block's height via items-stretch. */}
@@ -111,8 +111,8 @@ function HeroCard({
           )}
         </div>
 
-        <div className="flex min-w-0 flex-1 flex-col justify-between">
-          <dl className="grid grid-cols-2 gap-x-2 gap-y-0.5 text-xs">
+        <div className="flex min-w-0 flex-1 flex-col justify-between py-0.5">
+          <dl className="grid grid-cols-2 gap-x-2 gap-y-1.5 text-sm">
             <Stat label="통솔" value={hero.attributes.leadership} />
             <Stat label="무력" value={hero.attributes.force} />
             <Stat label="지력" value={hero.attributes.intelligence} />
@@ -120,7 +120,7 @@ function HeroCard({
             <Stat label="매력" value={hero.attributes.charisma} />
           </dl>
 
-          <dl className="grid grid-cols-2 gap-x-2 gap-y-0.5 text-xs">
+          <dl className="grid grid-cols-2 gap-x-2 gap-y-1.5 text-xs">
             <Stat label="병과" value={UNIT_TYPE_LABEL[hero.unitType]} />
             {domesticEntries.length > 0 && (
               <Stat
@@ -132,9 +132,9 @@ function HeroCard({
         </div>
       </div>
 
-      <p className="mt-1 line-clamp-2 text-[10px] leading-snug text-[#c0cbc7]">{hero.description}</p>
+      <p className="mt-2 line-clamp-3 text-xs leading-relaxed text-[#c0cbc7]">{hero.description}</p>
       {traitEntries.length > 0 && (
-        <p className="mt-1 truncate text-xs text-[#8fa6a8]">
+        <p className="mt-1.5 truncate text-xs text-[#8fa6a8]">
           특기: {traitEntries.map(([key, value]) => `${TRAIT_LABEL[key]} ${value}`).join(" · ")}
         </p>
       )}
