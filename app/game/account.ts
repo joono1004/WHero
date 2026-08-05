@@ -55,6 +55,18 @@ export async function signInWithEmail(email: string, password: string): Promise<
   return { ok: true };
 }
 
+// Ends the linked session and immediately starts a fresh anonymous one, so
+// the app always has *some* session to attach local saves' identity to
+// (see ensureGuestSession) - the player just loses cloud backup/restore
+// until they register or sign in again.
+export async function signOutAccount(): Promise<AccountActionResult> {
+  if (!supabase) return { ok: false, error: "클라우드 백업을 사용할 수 없습니다." };
+  const { error } = await supabase.auth.signOut();
+  if (error) return { ok: false, error: error.message };
+  await ensureGuestSession();
+  return { ok: true };
+}
+
 type SaveRow = { slot_id: string; save_data: SaveGame; updated_at: string };
 
 export async function backupSaveSlot(slotId: string, save: SaveGame): Promise<AccountActionResult> {

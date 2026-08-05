@@ -105,6 +105,7 @@ export function SettingsScreen({
   accountStatus,
   onLinkAccount,
   onSignIn,
+  onSignOut,
   slots,
   onBackupSlot,
   cloudBackups,
@@ -116,13 +117,13 @@ export function SettingsScreen({
   accountStatus: AccountStatus | null;
   onLinkAccount: (email: string, password: string) => Promise<AccountActionResult>;
   onSignIn: (email: string, password: string) => Promise<AccountActionResult>;
+  onSignOut: () => Promise<AccountActionResult>;
   slots: SaveSlotSummary[];
   onBackupSlot: (slotId: string) => Promise<AccountActionResult>;
   cloudBackups: CloudBackupSummary[] | null;
   onRestoreBackup: (slotId: string) => Promise<RestoreCloudBackupResult>;
 }) {
   const [showRegisterModal, setShowRegisterModal] = useState(false);
-  const [showSigninForm, setShowSigninForm] = useState(false);
   const [signinEmail, setSigninEmail] = useState("");
   const [signinPassword, setSigninPassword] = useState("");
   const [message, setMessage] = useState<string | null>(null);
@@ -131,15 +132,19 @@ export function SettingsScreen({
   const linked = accountStatus?.linked === true;
 
   async function handleSignIn() {
-    if (!signinEmail || !signinPassword) {
-      setMessage("이메일과 비밀번호를 입력해 주세요.");
-      return;
-    }
     setPending(true);
     setMessage(null);
     const result = await onSignIn(signinEmail, signinPassword);
     setPending(false);
     setMessage(result.ok ? "로그인되었습니다." : result.error);
+  }
+
+  async function handleSignOut() {
+    setPending(true);
+    setMessage(null);
+    const result = await onSignOut();
+    setPending(false);
+    setMessage(result.ok ? null : result.error);
   }
 
   async function handleBackup(slotId: string) {
@@ -171,45 +176,42 @@ export function SettingsScreen({
         <section className="rounded-md border border-[#43606a] bg-[#17343e] p-3">
           <h3 className="mb-2 text-sm font-bold text-[#f3dfaa]">계정</h3>
           {linked ? (
-            <p className="text-xs text-[#c0cbc7]">연결된 계정: {accountStatus.email}</p>
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-[#c0cbc7]">연결된 계정: {accountStatus.email}</p>
+              <Button size="sm" variant="secondary" disabled={pending} onClick={handleSignOut}>
+                로그아웃
+              </Button>
+            </div>
           ) : (
             <>
               <p className="mb-2 text-xs text-[#8fa6a8]">
                 계정을 등록하면 저장 데이터를 클라우드에 백업하고 다른 기기에서 복원할 수 있습니다.
               </p>
-              <div className="mb-2 flex gap-2">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-xs text-[#c0cbc7]">계정 로그인</span>
                 <Button size="sm" onClick={() => setShowRegisterModal(true)}>
                   계정 등록
                 </Button>
-                <Button
-                  size="sm"
-                  variant={showSigninForm ? "primary" : "secondary"}
-                  onClick={() => setShowSigninForm((value) => !value)}
-                >
-                  기존 계정 로그인
+              </div>
+              <div className="flex flex-col gap-2">
+                <input
+                  type="email"
+                  placeholder="이메일"
+                  value={signinEmail}
+                  onChange={(event) => setSigninEmail(event.target.value)}
+                  className="rounded border border-[#43606a] bg-[#0b2028] px-2 py-1.5 text-xs text-[#d6ded9]"
+                />
+                <input
+                  type="password"
+                  placeholder="비밀번호"
+                  value={signinPassword}
+                  onChange={(event) => setSigninPassword(event.target.value)}
+                  className="rounded border border-[#43606a] bg-[#0b2028] px-2 py-1.5 text-xs text-[#d6ded9]"
+                />
+                <Button size="sm" disabled={!signinEmail || !signinPassword || pending} onClick={handleSignIn}>
+                  로그인
                 </Button>
               </div>
-              {showSigninForm && (
-                <div className="flex flex-col gap-2">
-                  <input
-                    type="email"
-                    placeholder="이메일"
-                    value={signinEmail}
-                    onChange={(event) => setSigninEmail(event.target.value)}
-                    className="rounded border border-[#43606a] bg-[#0b2028] px-2 py-1.5 text-xs text-[#d6ded9]"
-                  />
-                  <input
-                    type="password"
-                    placeholder="비밀번호"
-                    value={signinPassword}
-                    onChange={(event) => setSigninPassword(event.target.value)}
-                    className="rounded border border-[#43606a] bg-[#0b2028] px-2 py-1.5 text-xs text-[#d6ded9]"
-                  />
-                  <Button size="sm" disabled={pending} onClick={handleSignIn}>
-                    로그인
-                  </Button>
-                </div>
-              )}
             </>
           )}
         </section>

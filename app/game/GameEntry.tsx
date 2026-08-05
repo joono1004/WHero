@@ -11,6 +11,7 @@ import {
   listCloudBackups,
   restoreCloudBackup,
   signInWithEmail,
+  signOutAccount,
 } from "./account.ts";
 import type { AccountStatus, CloudBackupSummary } from "./account.ts";
 import { createNewSaveGame } from "../../lib/game/new-game.ts";
@@ -192,6 +193,11 @@ export function GameEntry() {
             onSignIn={async (email, password) => {
               const result = await signInWithEmail(email, password);
               if (result.ok) setAccountStatus(await getAccountStatus());
+              return result;
+            }}
+            onSignOut={async () => {
+              const result = await signOutAccount();
+              setAccountStatus(await getAccountStatus());
               return result;
             }}
             slots={storage ? listSaveSlots(storage) : []}
