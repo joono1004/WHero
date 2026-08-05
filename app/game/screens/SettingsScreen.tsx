@@ -382,6 +382,52 @@ export function SettingsScreen({
           <p className="mt-1 text-[10px] text-[#d9b6b6]">※ 주의 복원을 하면 진행중인 게임이 이전으로 복원 됩니다.</p>
         </section>
 
+        <section className="rounded-md border border-[#43606a] bg-[#17343e] p-3">
+          <h3 className="mb-2 text-sm font-bold text-[#f3dfaa]">게임 진행</h3>
+          <p className="mb-2 text-[10px] text-[#8fa6a8]">추후 지원 예정입니다.</p>
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between text-xs text-[#c0cbc7]">
+              <span>그래픽 성능 조절</span>
+              <select disabled className="rounded border border-[#43606a] bg-[#0b2028] px-2 py-1 text-xs text-[#8fa6a8]">
+                <option>보통</option>
+              </select>
+            </div>
+            <label className="flex items-center gap-2 text-xs text-[#c0cbc7]">
+              <input type="checkbox" disabled />
+              전투 애니메이션 생략
+            </label>
+            <label className="flex items-center gap-2 text-xs text-[#c0cbc7]">
+              <input type="checkbox" disabled />
+              유닛 빠른이동
+            </label>
+          </div>
+        </section>
+
+        <section className="rounded-md border border-[#43606a] bg-[#17343e] p-3">
+          <h3 className="mb-2 text-sm font-bold text-[#f3dfaa]">사운드</h3>
+          <p className="mb-2 text-[10px] text-[#8fa6a8]">추후 지원 예정입니다.</p>
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between text-xs text-[#c0cbc7]">
+              <span>BGM 음량조절</span>
+              <input type="range" disabled className="w-28" />
+            </div>
+            <div className="flex items-center justify-between text-xs text-[#c0cbc7]">
+              <span>효과음 음량조절</span>
+              <input type="range" disabled className="w-28" />
+            </div>
+          </div>
+        </section>
+
+        <section className="rounded-md border border-[#43606a] bg-[#17343e] p-3">
+          <h3 className="mb-2 text-sm font-bold text-[#f3dfaa]">앱 버전 정보</h3>
+          <div className="flex items-center justify-between text-xs text-[#c0cbc7]">
+            <span>v0.01</span>
+            <Button size="sm" variant="secondary" disabled>
+              문의하기
+            </Button>
+          </div>
+        </section>
+
         {message && <p className="text-center text-xs text-[#d7b765]">{message}</p>}
 
         <Button variant="secondary" onClick={onBack}>
