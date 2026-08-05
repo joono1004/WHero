@@ -13,7 +13,7 @@ import {
   signInWithEmail,
   signOutAccount,
 } from "./account.ts";
-import type { AccountStatus, CloudBackupSummary } from "./account.ts";
+import type { AccountStatus } from "./account.ts";
 import { createNewSaveGame } from "../../lib/game/new-game.ts";
 import type { SaveGame } from "../../lib/game/save.ts";
 import {
@@ -68,8 +68,6 @@ export function GameEntry() {
   const [autoBackupEnabled, setAutoBackupEnabled] = useState(() =>
     typeof window === "undefined" ? false : window.localStorage.getItem(AUTO_BACKUP_KEY) === "true",
   );
-  const [cloudBackups, setCloudBackups] = useState<CloudBackupSummary[] | null>(null);
-
   // Every player gets an invisible anonymous session so a save has a stable
   // cloud identity from the start; nothing is uploaded until the player
   // explicitly links a real account in Settings (see account.ts).
@@ -78,17 +76,16 @@ export function GameEntry() {
     void ensureGuestSession().then(() => getAccountStatus()).then(setAccountStatus);
   }, [storage]);
 
-  // Refreshes account/cloud-backup state whenever Settings is opened, so it
-  // reflects a link/sign-in that may have happened moments ago.
+  // Refreshes account state whenever Settings is opened, so it reflects a
+  // link/sign-in that may have happened moments ago.
   useEffect(() => {
     if (screen.name !== "settings") return;
     void getAccountStatus().then(setAccountStatus);
-    void listCloudBackups().then(setCloudBackups);
   }, [screen.name]);
 
   function maybeAutoBackup(slotId: string, save: SaveGame) {
     if (!autoBackupEnabled || accountStatus?.linked !== true) return;
-    void backupSaveSlot(slotId, save).then((result) => {
+    void backupSaveSlot(slotId, save, "auto").then((result) => {
       if (!result.ok) reportClientError(result.error, { screen: "main", action: "autoBackup" });
     });
   }
@@ -214,17 +211,22 @@ export function GameEntry() {
               setAccountStatus(await getAccountStatus());
               return result;
             }}
-            slots={storage ? listSaveSlots(storage) : []}
-            onBackupSlot={async (slotId) => {
+            hasLocalSave={storage ? listSaveSlots(storage).length > 0 : false}
+            onBackupNow={async () => {
               if (!storage) return { ok: false, error: "저장 데이터를 찾을 수 없습니다." };
-              const result = readSaveGame(storage, slotId);
+              // "지금 백업" backs up whichever local save was played most
+              // recently - the player thinks of this as "my save", not a
+              // particular slot (see account.ts's backup-type comment).
+              const [latest] = listSaveSlots(storage);
+              if (!latest) return { ok: false, error: "저장된 게임이 없습니다." };
+              const result = readSaveGame(storage, latest.slotId);
               if (!result.ok) return { ok: false, error: "저장 데이터를 찾을 수 없습니다." };
-              return backupSaveSlot(slotId, result.save);
+              return backupSaveSlot(latest.slotId, result.save, "manual");
             }}
-            cloudBackups={cloudBackups}
-            onRestoreBackup={async (slotId) => {
-              const result = await restoreCloudBackup(slotId);
-              if (result.ok && storage) writeSaveGame(storage, slotId, result.save);
+            onFetchCloudBackups={() => listCloudBackups()}
+            onRestoreBackup={async (backupType) => {
+              const result = await restoreCloudBackup(backupType);
+              if (result.ok && storage) writeSaveGame(storage, result.slotId, result.save);
               return result;
             }}
           />

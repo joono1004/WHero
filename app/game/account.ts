@@ -97,53 +97,68 @@ export async function signOutAccount(): Promise<AccountActionResult> {
   return { ok: true };
 }
 
-type SaveRow = { slot_id: string; save_data: SaveGame; updated_at: string };
+// Each account has at most two cloud backups, not one per local save slot:
+// the latest auto-backup (from clearing a world) and the latest manual one
+// ("지금 백업"), each overwriting its own prior copy. slot_id is stored
+// alongside so restoring a backup writes back to the local slot it came
+// from, but it's not part of the key - the player thinks of this as "my
+// save", not "slot 3's save".
+export type CloudBackupType = "auto" | "manual";
 
-export async function backupSaveSlot(slotId: string, save: SaveGame): Promise<AccountActionResult> {
+type SaveRow = { backup_type: CloudBackupType; slot_id: string; save_data: SaveGame; updated_at: string };
+
+export async function backupSaveSlot(
+  slotId: string,
+  save: SaveGame,
+  backupType: CloudBackupType,
+): Promise<AccountActionResult> {
   if (!supabase) return { ok: false, error: "클라우드 백업을 사용할 수 없습니다." };
   const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) return { ok: false, error: "로그인 상태가 아닙니다." };
-  const { error } = await supabase
-    .from("saves")
-    .upsert({ user_id: userData.user.id, slot_id: slotId, save_data: save, updated_at: new Date().toISOString() });
+  const { error } = await supabase.from("saves").upsert({
+    user_id: userData.user.id,
+    backup_type: backupType,
+    slot_id: slotId,
+    save_data: save,
+    updated_at: new Date().toISOString(),
+  });
   if (error) return { ok: false, error: translateAuthError(error.message) };
   return { ok: true };
 }
 
-export type CloudBackupSummary = { slotId: string; factionName: string; updatedAt: string };
+export type CloudBackupSummary = { backupType: CloudBackupType; updatedAt: string };
+
+const BACKUP_TYPE_ORDER: CloudBackupType[] = ["auto", "manual"];
 
 export async function listCloudBackups(): Promise<CloudBackupSummary[]> {
   if (!supabase) return [];
-  const { data, error } = await supabase.from("saves").select("slot_id, save_data, updated_at");
+  const { data, error } = await supabase.from("saves").select("backup_type, updated_at");
   if (error || !data) {
     if (error) reportClientError(error, { screen: "account", action: "listCloudBackups" });
     return [];
   }
-  return (data as SaveRow[])
-    .map((row) => ({
-      slotId: row.slot_id,
-      factionName: row.save_data.factionName,
-      updatedAt: row.updated_at,
-    }))
-    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  return (data as Pick<SaveRow, "backup_type" | "updated_at">[])
+    .map((row) => ({ backupType: row.backup_type, updatedAt: row.updated_at }))
+    .sort((a, b) => BACKUP_TYPE_ORDER.indexOf(a.backupType) - BACKUP_TYPE_ORDER.indexOf(b.backupType));
 }
 
 export type RestoreCloudBackupResult =
-  | { ok: true; save: SaveGame }
+  | { ok: true; save: SaveGame; slotId: string }
   | { ok: false; error: string };
 
 // Cloud data is untrusted the same way hand-edited localStorage is - it's
 // round-tripped through parseSaveGame's JSON + shape + integrity checks
 // before anything in the app is allowed to touch it (see save.ts).
-export async function restoreCloudBackup(slotId: string): Promise<RestoreCloudBackupResult> {
+export async function restoreCloudBackup(backupType: CloudBackupType): Promise<RestoreCloudBackupResult> {
   if (!supabase) return { ok: false, error: "클라우드 백업을 사용할 수 없습니다." };
   const { data, error } = await supabase
     .from("saves")
-    .select("save_data")
-    .eq("slot_id", slotId)
+    .select("slot_id, save_data")
+    .eq("backup_type", backupType)
     .single();
   if (error || !data) return { ok: false, error: error ? translateAuthError(error.message) : "백업을 찾을 수 없습니다." };
-  const result = parseSaveGame(JSON.stringify((data as SaveRow).save_data));
+  const row = data as Pick<SaveRow, "slot_id" | "save_data">;
+  const result = parseSaveGame(JSON.stringify(row.save_data));
   if (!result.ok) return { ok: false, error: "백업 데이터가 손상되었습니다." };
-  return { ok: true, save: result.save };
+  return { ok: true, save: result.save, slotId: row.slot_id };
 }
