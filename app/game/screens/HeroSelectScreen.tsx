@@ -3,10 +3,17 @@
 import { useState } from "react";
 import { heroArchetype, heroOverallGrade } from "../../../lib/game/hero-definition.ts";
 import type { DomesticSpecialtyKind, HeroDefinition, TraitKind } from "../../../lib/game/hero-definition.ts";
+import type { HeroId } from "../../../lib/game/ids.ts";
 import { STARTING_HEROES } from "../../../lib/game/starting-heroes.ts";
 import { Button } from "../Button.tsx";
 import { ARCHETYPE_LABEL, DOMESTIC_LABEL, TRAIT_LABEL, UNIT_TYPE_LABEL } from "../heroLabels.ts";
 import { ScreenShell } from "../ScreenShell.tsx";
+
+// Filled in as Codex delivers each hero's art (public/art/heroes/) - a
+// hero with no entry here still gets the plain placeholder box below.
+const HERO_PORTRAIT: Partial<Record<HeroId, string>> = {
+  "wei-yan": "/art/heroes/wei-yan-classic-portrait-v3.webp",
+};
 
 export function HeroSelectScreen({
   onConfirm,
@@ -78,13 +85,22 @@ function HeroCard({
       }}
     >
       <div className="flex gap-2">
-        {/* Reserved for Codex's hero portrait art - a plain placeholder
-            until that's wired up, so the layout already has room for it. */}
+        {/* Reserved for Codex's hero portrait art (see HERO_PORTRAIT) - a
+            hero without an entry yet falls back to a plain placeholder. */}
         <div
-          className="flex shrink-0 items-center justify-center rounded"
+          className="flex shrink-0 items-center justify-center overflow-hidden rounded"
           style={{ width: 48, height: 48, border: "1px solid #43606a", backgroundColor: "#0b2028" }}
         >
-          <span className="text-lg text-[#43606a]">🧑</span>
+          {HERO_PORTRAIT[hero.id] ? (
+            // eslint-disable-next-line @next/next/no-img-element -- local /public asset, same convention as components/world/TestHeroPanel.tsx
+            <img
+              src={HERO_PORTRAIT[hero.id]}
+              alt={`${hero.name} 초상`}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <span className="text-lg text-[#43606a]">🧑</span>
+          )}
         </div>
 
         <div className="min-w-0 flex-1">
