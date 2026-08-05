@@ -157,7 +157,7 @@ function RestoreDataModal({
           <>
             <h3 className="mb-3 text-sm font-bold text-[#f3dfaa]">저장 데이터 복원</h3>
             <p className="mb-3 text-xs text-[#d9b6b6]">
-              ※ 주의 진행 중인 게임이 이전으로 복원됩니다. 그래도 진행하시겠습니까?
+              ※ (주의) 진행 중인 게임이 이전으로 복원됩니다. 그래도 진행하시겠습니까?
             </p>
             {error && <p className="mb-2 text-xs text-[#d9b6b6]">{error}</p>}
             <div className="flex gap-2">
@@ -232,6 +232,63 @@ function RestoreDataModal({
   );
 }
 
+function DeleteAccountDataModal({
+  onDeleteAccountData,
+  onClose,
+}: {
+  onDeleteAccountData: () => Promise<AccountActionResult>;
+  onClose: () => void;
+}) {
+  const [step, setStep] = useState<"confirm" | "done">("confirm");
+  const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+
+  async function handleConfirm() {
+    setPending(true);
+    setError(null);
+    const result = await onDeleteAccountData();
+    setPending(false);
+    if (result.ok) {
+      setStep("done");
+    } else {
+      setError(result.error);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+      <div className="w-full max-w-sm rounded-md border border-[#43606a] bg-[#17343e] p-4">
+        {step === "confirm" ? (
+          <>
+            <h3 className="mb-3 text-sm font-bold text-[#f3dfaa]">계정 데이터 삭제</h3>
+            <p className="mb-3 text-xs text-[#d9b6b6]">
+              ※ (주의) 계정에 있는 모든 데이터(백업 데이터 포함)가 삭제되고 초기화 됩니다. 그래도
+              진행하시겠습니까?
+            </p>
+            {error && <p className="mb-2 text-xs text-[#d9b6b6]">{error}</p>}
+            <div className="flex gap-2">
+              <Button className="flex-1" size="sm" variant="danger" disabled={pending} onClick={handleConfirm}>
+                예
+              </Button>
+              <Button className="flex-1" size="sm" variant="secondary" disabled={pending} onClick={onClose}>
+                아니오
+              </Button>
+            </div>
+          </>
+        ) : (
+          <>
+            <h3 className="mb-3 text-sm font-bold text-[#f3dfaa]">삭제 완료</h3>
+            <p className="mb-3 text-xs text-[#c0cbc7]">계정 데이터가 삭제되었습니다.</p>
+            <Button className="w-full" size="sm" onClick={onClose}>
+              확인
+            </Button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function SettingsScreen({
   onBack,
   backLabel,
@@ -245,6 +302,7 @@ export function SettingsScreen({
   onBackupNow,
   onFetchCloudBackups,
   onRestoreBackup,
+  onDeleteAccountData,
 }: {
   onBack: () => void;
   backLabel: string;
@@ -258,9 +316,11 @@ export function SettingsScreen({
   onBackupNow: () => Promise<AccountActionResult>;
   onFetchCloudBackups: () => Promise<CloudBackupSummary[]>;
   onRestoreBackup: (backupType: CloudBackupType) => Promise<RestoreCloudBackupResult>;
+  onDeleteAccountData: () => Promise<AccountActionResult>;
 }) {
   const [showRegisterModal, setShowRegisterModal] = useState(false);
   const [showRestoreModal, setShowRestoreModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [signinEmail, setSigninEmail] = useState("");
   const [signinPassword, setSigninPassword] = useState("");
   const [signinMessage, setSigninMessage] = useState<string | null>(null);
@@ -412,23 +472,46 @@ export function SettingsScreen({
 
             <div className="my-3 border-t border-[#2c4048]" />
 
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-[#c0cbc7]">저장 데이터 백업</span>
-              <Button size="sm" variant="secondary" disabled={!linked || !hasLocalSave || pending} onClick={handleBackupNow}>
-                지금 백업
-              </Button>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-[#c0cbc7]">저장 데이터 백업</span>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    disabled={!linked || !hasLocalSave || pending}
+                    onClick={handleBackupNow}
+                  >
+                    지금 백업
+                  </Button>
+                </div>
+                {backupMessage && <p className="mt-1 text-xs text-[#d7b765]">{backupMessage}</p>}
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-[#c0cbc7]">저장 데이터 복원</span>
+                  <Button size="sm" variant="secondary" disabled={!linked || pending} onClick={() => setShowRestoreModal(true)}>
+                    복원
+                  </Button>
+                </div>
+                <p className="mt-1 text-[10px] text-[#d9b6b6]">
+                  ※ (주의) 복원을 하면 진행중인 게임이 이전으로 복원 됩니다.
+                </p>
+              </div>
             </div>
-            {backupMessage && <p className="mt-1 text-xs text-[#d7b765]">{backupMessage}</p>}
 
             <div className="my-3 border-t border-[#2c4048]" />
 
             <div className="flex items-center justify-between">
-              <span className="text-xs text-[#c0cbc7]">저장 데이터 복원</span>
-              <Button size="sm" variant="secondary" disabled={!linked || pending} onClick={() => setShowRestoreModal(true)}>
-                복원
+              <span className="text-xs text-[#c0cbc7]">계정 데이터 삭제</span>
+              <Button size="sm" variant="danger" disabled={!linked || pending} onClick={() => setShowDeleteModal(true)}>
+                계정 데이터 삭제
               </Button>
             </div>
-            <p className="mt-1 text-[10px] text-[#d9b6b6]">※ 주의 복원을 하면 진행중인 게임이 이전으로 복원 됩니다.</p>
+            <p className="mt-1 text-[10px] text-[#d9b6b6]">
+              ※ (주의) 계정에 있는 모든 데이터(백업 데이터 포함)가 삭제되고 초기화 됩니다.
+            </p>
           </section>
         </div>
 
@@ -449,6 +532,10 @@ export function SettingsScreen({
           onRestoreBackup={onRestoreBackup}
           onClose={() => setShowRestoreModal(false)}
         />
+      )}
+
+      {showDeleteModal && (
+        <DeleteAccountDataModal onDeleteAccountData={onDeleteAccountData} onClose={() => setShowDeleteModal(false)} />
       )}
     </ScreenShell>
   );

@@ -6,6 +6,7 @@ import { GameErrorBoundary } from "./GameErrorBoundary.tsx";
 import { reportClientError } from "./reportError.ts";
 import {
   backupSaveSlot,
+  deleteAllCloudBackups,
   ensureGuestSession,
   getAccountStatus,
   linkAccountWithEmail,
@@ -221,6 +222,7 @@ export function GameEntry() {
               if (result.ok && storage) writeSaveGame(storage, result.slotId, result.save);
               return result;
             }}
+            onDeleteAccountData={() => deleteAllCloudBackups()}
           />
         );
 

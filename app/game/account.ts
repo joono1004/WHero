@@ -162,3 +162,17 @@ export async function restoreCloudBackup(backupType: CloudBackupType): Promise<R
   if (!result.ok) return { ok: false, error: "백업 데이터가 손상되었습니다." };
   return { ok: true, save: result.save, slotId: row.slot_id };
 }
+
+// Wipes every cloud backup (auto and manual) for the current account.
+// Doesn't touch the account's email/password or the player's local save -
+// "계정 데이터 삭제" means the cloud copies, not the login itself (deleting
+// the actual auth user needs the service-role key, which the client never
+// has - RLS is what lets a player delete only their own rows here).
+export async function deleteAllCloudBackups(): Promise<AccountActionResult> {
+  if (!supabase) return { ok: false, error: "클라우드 백업을 사용할 수 없습니다." };
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user) return { ok: false, error: "로그인 상태가 아닙니다." };
+  const { error } = await supabase.from("saves").delete().eq("user_id", userData.user.id);
+  if (error) return { ok: false, error: translateAuthError(error.message) };
+  return { ok: true };
+}
