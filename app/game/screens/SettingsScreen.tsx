@@ -304,131 +304,133 @@ export function SettingsScreen({
 
   return (
     <ScreenShell header={<h2 className="text-lg font-bold text-[#f3dfaa]">설정</h2>}>
-      <div className="mx-auto flex w-full max-w-md flex-col gap-4 pb-3">
-        <section className="rounded-md border border-[#43606a] bg-[#17343e] p-3">
-          <h3 className="mb-2 text-sm font-bold text-[#f3dfaa]">계정</h3>
-          {linked ? (
-            <div className="flex items-center justify-between">
-              <p className="text-xs text-[#c0cbc7]">연결된 계정: {accountStatus.email}</p>
-              <Button size="sm" variant="secondary" disabled={pending} onClick={handleSignOut}>
-                로그아웃
+      <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 pb-3">
+        <div className="grid grid-cols-2 gap-4">
+          <section className="rounded-md border border-[#43606a] bg-[#17343e] p-3">
+            <h3 className="mb-2 text-sm font-bold text-[#f3dfaa]">계정</h3>
+            {linked ? (
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-[#c0cbc7]">연결된 계정: {accountStatus.email}</p>
+                <Button size="sm" variant="secondary" disabled={pending} onClick={handleSignOut}>
+                  로그아웃
+                </Button>
+              </div>
+            ) : (
+              <>
+                <p className="mb-2 text-xs text-[#8fa6a8]">
+                  계정을 등록하면 저장 데이터를 클라우드에 백업하고 다른 기기에서 복원할 수 있습니다.
+                </p>
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="text-xs text-[#c0cbc7]">계정 로그인</span>
+                  <Button size="sm" onClick={() => setShowRegisterModal(true)}>
+                    계정 등록
+                  </Button>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <input
+                    type="email"
+                    placeholder="이메일"
+                    value={signinEmail}
+                    onChange={(event) => setSigninEmail(event.target.value)}
+                    className="rounded border border-[#43606a] bg-[#0b2028] px-2 py-1.5 text-xs text-[#d6ded9]"
+                  />
+                  <input
+                    type="password"
+                    placeholder="비밀번호"
+                    value={signinPassword}
+                    onChange={(event) => setSigninPassword(event.target.value)}
+                    className="rounded border border-[#43606a] bg-[#0b2028] px-2 py-1.5 text-xs text-[#d6ded9]"
+                  />
+                  {signinMessage && <p className="text-center text-xs text-[#d7b765]">{signinMessage}</p>}
+                  <Button size="sm" disabled={!signinEmail || !signinPassword || pending} onClick={handleSignIn}>
+                    로그인
+                  </Button>
+                </div>
+              </>
+            )}
+          </section>
+
+          <section className="rounded-md border border-[#43606a] bg-[#17343e] p-3">
+            <h3 className="mb-2 text-sm font-bold text-[#f3dfaa]">앱 버전 정보</h3>
+            <div className="flex items-center justify-between text-xs text-[#c0cbc7]">
+              <span>v0.01</span>
+              <Button size="sm" variant="secondary" disabled>
+                문의하기
               </Button>
             </div>
-          ) : (
-            <>
-              <p className="mb-2 text-xs text-[#8fa6a8]">
-                계정을 등록하면 저장 데이터를 클라우드에 백업하고 다른 기기에서 복원할 수 있습니다.
-              </p>
-              <div className="mb-2 flex items-center justify-between">
-                <span className="text-xs text-[#c0cbc7]">계정 로그인</span>
-                <Button size="sm" onClick={() => setShowRegisterModal(true)}>
-                  계정 등록
-                </Button>
+          </section>
+
+          <section className="rounded-md border border-[#43606a] bg-[#17343e] p-3">
+            <h3 className="mb-2 text-sm font-bold text-[#f3dfaa]">게임 진행</h3>
+            <p className="mb-2 text-[10px] text-[#8fa6a8]">추후 지원 예정입니다.</p>
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between text-xs text-[#c0cbc7]">
+                <span>그래픽 성능 조절</span>
+                <select disabled className="rounded border border-[#43606a] bg-[#0b2028] px-2 py-1 text-xs text-[#8fa6a8]">
+                  <option>보통</option>
+                </select>
               </div>
-              <div className="flex flex-col gap-2">
-                <input
-                  type="email"
-                  placeholder="이메일"
-                  value={signinEmail}
-                  onChange={(event) => setSigninEmail(event.target.value)}
-                  className="rounded border border-[#43606a] bg-[#0b2028] px-2 py-1.5 text-xs text-[#d6ded9]"
-                />
-                <input
-                  type="password"
-                  placeholder="비밀번호"
-                  value={signinPassword}
-                  onChange={(event) => setSigninPassword(event.target.value)}
-                  className="rounded border border-[#43606a] bg-[#0b2028] px-2 py-1.5 text-xs text-[#d6ded9]"
-                />
-                {signinMessage && <p className="text-center text-xs text-[#d7b765]">{signinMessage}</p>}
-                <Button size="sm" disabled={!signinEmail || !signinPassword || pending} onClick={handleSignIn}>
-                  로그인
-                </Button>
+              <label className="flex items-center gap-2 text-xs text-[#c0cbc7]">
+                <input type="checkbox" disabled />
+                전투 애니메이션 생략
+              </label>
+              <label className="flex items-center gap-2 text-xs text-[#c0cbc7]">
+                <input type="checkbox" disabled />
+                유닛 빠른이동
+              </label>
+            </div>
+          </section>
+
+          <section className="rounded-md border border-[#43606a] bg-[#17343e] p-3">
+            <h3 className="mb-2 text-sm font-bold text-[#f3dfaa]">사운드</h3>
+            <p className="mb-2 text-[10px] text-[#8fa6a8]">추후 지원 예정입니다.</p>
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between text-xs text-[#c0cbc7]">
+                <span>BGM 음량조절</span>
+                <input type="range" disabled className="w-28" />
               </div>
-            </>
-          )}
-        </section>
-
-        <section className="rounded-md border border-[#43606a] bg-[#17343e] p-3">
-          <h3 className="mb-2 text-sm font-bold text-[#f3dfaa]">데이터 관리</h3>
-          {!linked && <p className="mb-2 text-[10px] text-[#8fa6a8]">계정을 등록하면 사용할 수 있습니다.</p>}
-
-          <label className="flex items-center gap-2 text-xs text-[#c0cbc7]">
-            <input
-              type="checkbox"
-              checked={autoBackupEnabled}
-              disabled={!linked}
-              onChange={(event) => onToggleAutoBackup(event.target.checked)}
-            />
-            자동 데이터 저장 (스테이지 클리어 시 자동 저장 후 클라우드에 백업)
-          </label>
-
-          <div className="my-3 border-t border-[#2c4048]" />
-
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-[#c0cbc7]">저장 데이터 백업</span>
-            <Button size="sm" variant="secondary" disabled={!linked || !hasLocalSave || pending} onClick={handleBackupNow}>
-              지금 백업
-            </Button>
-          </div>
-          {backupMessage && <p className="mt-1 text-xs text-[#d7b765]">{backupMessage}</p>}
-
-          <div className="my-3 border-t border-[#2c4048]" />
-
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-[#c0cbc7]">저장 데이터 복원</span>
-            <Button size="sm" variant="secondary" disabled={!linked || pending} onClick={() => setShowRestoreModal(true)}>
-              복원
-            </Button>
-          </div>
-          <p className="mt-1 text-[10px] text-[#d9b6b6]">※ 주의 복원을 하면 진행중인 게임이 이전으로 복원 됩니다.</p>
-        </section>
-
-        <section className="rounded-md border border-[#43606a] bg-[#17343e] p-3">
-          <h3 className="mb-2 text-sm font-bold text-[#f3dfaa]">게임 진행</h3>
-          <p className="mb-2 text-[10px] text-[#8fa6a8]">추후 지원 예정입니다.</p>
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center justify-between text-xs text-[#c0cbc7]">
-              <span>그래픽 성능 조절</span>
-              <select disabled className="rounded border border-[#43606a] bg-[#0b2028] px-2 py-1 text-xs text-[#8fa6a8]">
-                <option>보통</option>
-              </select>
+              <div className="flex items-center justify-between text-xs text-[#c0cbc7]">
+                <span>효과음 음량조절</span>
+                <input type="range" disabled className="w-28" />
+              </div>
             </div>
+          </section>
+
+          <section className="col-span-2 rounded-md border border-[#43606a] bg-[#17343e] p-3">
+            <h3 className="mb-2 text-sm font-bold text-[#f3dfaa]">데이터 관리</h3>
+            {!linked && <p className="mb-2 text-[10px] text-[#8fa6a8]">계정을 등록하면 사용할 수 있습니다.</p>}
+
             <label className="flex items-center gap-2 text-xs text-[#c0cbc7]">
-              <input type="checkbox" disabled />
-              전투 애니메이션 생략
+              <input
+                type="checkbox"
+                checked={autoBackupEnabled}
+                disabled={!linked}
+                onChange={(event) => onToggleAutoBackup(event.target.checked)}
+              />
+              자동 데이터 저장 (스테이지 클리어 시 자동 저장 후 클라우드에 백업)
             </label>
-            <label className="flex items-center gap-2 text-xs text-[#c0cbc7]">
-              <input type="checkbox" disabled />
-              유닛 빠른이동
-            </label>
-          </div>
-        </section>
 
-        <section className="rounded-md border border-[#43606a] bg-[#17343e] p-3">
-          <h3 className="mb-2 text-sm font-bold text-[#f3dfaa]">사운드</h3>
-          <p className="mb-2 text-[10px] text-[#8fa6a8]">추후 지원 예정입니다.</p>
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center justify-between text-xs text-[#c0cbc7]">
-              <span>BGM 음량조절</span>
-              <input type="range" disabled className="w-28" />
-            </div>
-            <div className="flex items-center justify-between text-xs text-[#c0cbc7]">
-              <span>효과음 음량조절</span>
-              <input type="range" disabled className="w-28" />
-            </div>
-          </div>
-        </section>
+            <div className="my-3 border-t border-[#2c4048]" />
 
-        <section className="rounded-md border border-[#43606a] bg-[#17343e] p-3">
-          <h3 className="mb-2 text-sm font-bold text-[#f3dfaa]">앱 버전 정보</h3>
-          <div className="flex items-center justify-between text-xs text-[#c0cbc7]">
-            <span>v0.01</span>
-            <Button size="sm" variant="secondary" disabled>
-              문의하기
-            </Button>
-          </div>
-        </section>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-[#c0cbc7]">저장 데이터 백업</span>
+              <Button size="sm" variant="secondary" disabled={!linked || !hasLocalSave || pending} onClick={handleBackupNow}>
+                지금 백업
+              </Button>
+            </div>
+            {backupMessage && <p className="mt-1 text-xs text-[#d7b765]">{backupMessage}</p>}
+
+            <div className="my-3 border-t border-[#2c4048]" />
+
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-[#c0cbc7]">저장 데이터 복원</span>
+              <Button size="sm" variant="secondary" disabled={!linked || pending} onClick={() => setShowRestoreModal(true)}>
+                복원
+              </Button>
+            </div>
+            <p className="mt-1 text-[10px] text-[#d9b6b6]">※ 주의 복원을 하면 진행중인 게임이 이전으로 복원 됩니다.</p>
+          </section>
+        </div>
 
         {message && <p className="text-center text-xs text-[#d7b765]">{message}</p>}
 
