@@ -66,8 +66,14 @@ export function FactionNameScreen({
               setName(randomFactionName());
               setDiceSpin((degrees) => degrees + 360);
             }}
-            className="absolute top-1/2 right-2 text-lg leading-none"
+            className="absolute top-1/2 right-0 flex items-center justify-center text-lg leading-none"
             style={{
+              // The glyph itself stays small, but the whole reserved icon
+              // strip (matches the input's pr-10) is clickable - a near
+              // miss next to the dice still rolls it instead of focusing
+              // the input underneath.
+              width: 40,
+              height: 40,
               border: "none",
               borderRadius: 0,
               padding: 0,
