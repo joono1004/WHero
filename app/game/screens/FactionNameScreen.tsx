@@ -26,6 +26,10 @@ export function FactionNameScreen({
   onBack: () => void;
 }) {
   const [name, setName] = useState("");
+  // Each roll adds a full turn so the dice always spins forward from
+  // wherever it last stopped - a CSS transition on the accumulating angle
+  // gives the spin effect without any @keyframes/animation setup.
+  const [diceSpin, setDiceSpin] = useState(0);
   const trimmed = name.trim();
   const isValid = trimmed.length >= MIN_LENGTH && trimmed.length <= MAX_LENGTH;
 
@@ -44,7 +48,7 @@ export function FactionNameScreen({
     >
       <div className="flex h-full flex-col items-center justify-center gap-3">
         <h2 className="text-lg font-bold text-[#f3dfaa]">세력명을 입력하세요</h2>
-        <div className="flex items-center gap-2">
+        <div className="relative w-64">
           <input
             value={name}
             onChange={(event) => setName(event.target.value)}
@@ -53,16 +57,31 @@ export function FactionNameScreen({
             }}
             maxLength={MAX_LENGTH}
             placeholder={`${MIN_LENGTH}~${MAX_LENGTH}자`}
-            className="w-64 rounded-md border border-[#43606a] bg-[#0b2028] px-4 py-2 text-center text-lg text-[#f3ead4] outline-none focus:border-[#d7b765]"
+            className="w-full rounded-md border border-[#43606a] bg-[#0b2028] py-2 pr-10 pl-4 text-center text-lg text-[#f3ead4] outline-none focus:border-[#d7b765]"
           />
-          <Button
+          <button
             type="button"
-            variant="secondary"
             aria-label="세력명 무작위 생성"
-            onClick={() => setName(randomFactionName())}
+            onClick={() => {
+              setName(randomFactionName());
+              setDiceSpin((degrees) => degrees + 360);
+            }}
+            className="absolute top-1/2 right-2 text-lg leading-none"
+            style={{
+              border: "none",
+              borderRadius: 0,
+              padding: 0,
+              background: "none",
+              backgroundImage: "none",
+              color: "inherit",
+              fontWeight: "normal",
+              cursor: "pointer",
+              transform: `translateY(-50%) rotate(${diceSpin}deg)`,
+              transition: "transform 500ms ease-out",
+            }}
           >
             🎲
-          </Button>
+          </button>
         </div>
         <p className="h-4 text-xs text-[#c98f8f]">
           {name.length > 0 && !isValid ? `${MIN_LENGTH}~${MAX_LENGTH}자로 입력해주세요` : ""}
