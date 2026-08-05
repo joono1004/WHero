@@ -30,6 +30,29 @@ export async function ensureGuestSession(): Promise<void> {
   }
 }
 
+// Supabase's auth/postgrest errors come back in English - this maps the
+// handful players will actually hit to Korean, falling back to the raw
+// message (still useful in Vercel logs/screenshots for us) for anything
+// unrecognized rather than hiding it.
+const KNOWN_ERROR_PATTERNS: [RegExp, string][] = [
+  [/already been registered|already exists/i, "이미 등록된 이메일입니다."],
+  [/invalid login credentials/i, "이메일 또는 비밀번호가 올바르지 않습니다."],
+  [/email rate limit exceeded/i, "이메일 발송 한도를 초과했습니다. 잠시 후 다시 시도해주세요."],
+  [/password should be at least/i, "비밀번호가 너무 짧습니다. 6자 이상 입력해주세요."],
+  [/unable to validate email address/i, "올바른 이메일 주소를 입력해주세요."],
+  [/email not confirmed/i, "이메일 인증이 필요합니다."],
+  [/auth session missing/i, "로그인 세션을 찾을 수 없습니다. 페이지를 새로고침한 뒤 다시 시도해주세요."],
+  [/user from sub claim in jwt does not exist/i, "로그인 세션이 만료되었습니다. 페이지를 새로고침한 뒤 다시 시도해주세요."],
+  [/new password should be different/i, "이전과 다른 비밀번호를 입력해주세요."],
+];
+
+function translateAuthError(message: string): string {
+  for (const [pattern, translated] of KNOWN_ERROR_PATTERNS) {
+    if (pattern.test(message)) return translated;
+  }
+  return message;
+}
+
 export type AccountStatus = { linked: false } | { linked: true; email: string };
 
 // Whether the current session belongs to a guest (anonymous) user or one
@@ -49,7 +72,7 @@ export type AccountActionResult = { ok: true } | { ok: false; error: string };
 export async function linkAccountWithEmail(email: string, password: string): Promise<AccountActionResult> {
   if (!supabase) return { ok: false, error: "클라우드 백업을 사용할 수 없습니다." };
   const { error } = await supabase.auth.updateUser({ email, password });
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: translateAuthError(error.message) };
   return { ok: true };
 }
 
@@ -58,7 +81,7 @@ export async function linkAccountWithEmail(email: string, password: string): Pro
 export async function signInWithEmail(email: string, password: string): Promise<AccountActionResult> {
   if (!supabase) return { ok: false, error: "클라우드 백업을 사용할 수 없습니다." };
   const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: translateAuthError(error.message) };
   return { ok: true };
 }
 
@@ -69,7 +92,7 @@ export async function signInWithEmail(email: string, password: string): Promise<
 export async function signOutAccount(): Promise<AccountActionResult> {
   if (!supabase) return { ok: false, error: "클라우드 백업을 사용할 수 없습니다." };
   const { error } = await supabase.auth.signOut();
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: translateAuthError(error.message) };
   await ensureGuestSession();
   return { ok: true };
 }
@@ -83,7 +106,7 @@ export async function backupSaveSlot(slotId: string, save: SaveGame): Promise<Ac
   const { error } = await supabase
     .from("saves")
     .upsert({ user_id: userData.user.id, slot_id: slotId, save_data: save, updated_at: new Date().toISOString() });
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: translateAuthError(error.message) };
   return { ok: true };
 }
 
@@ -119,7 +142,7 @@ export async function restoreCloudBackup(slotId: string): Promise<RestoreCloudBa
     .select("save_data")
     .eq("slot_id", slotId)
     .single();
-  if (error || !data) return { ok: false, error: error?.message ?? "백업을 찾을 수 없습니다." };
+  if (error || !data) return { ok: false, error: error ? translateAuthError(error.message) : "백업을 찾을 수 없습니다." };
   const result = parseSaveGame(JSON.stringify((data as SaveRow).save_data));
   if (!result.ok) return { ok: false, error: "백업 데이터가 손상되었습니다." };
   return { ok: true, save: result.save };
