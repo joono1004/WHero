@@ -3,6 +3,16 @@
 import { useEffect, useState } from "react";
 import { GameErrorBoundary } from "./GameErrorBoundary.tsx";
 import { reportClientError } from "./reportError.ts";
+import {
+  backupSaveSlot,
+  ensureGuestSession,
+  getAccountStatus,
+  linkAccountWithEmail,
+  listCloudBackups,
+  restoreCloudBackup,
+  signInWithEmail,
+} from "./account.ts";
+import type { AccountStatus, CloudBackupSummary } from "./account.ts";
 import { createNewSaveGame } from "../../lib/game/new-game.ts";
 import type { SaveGame } from "../../lib/game/save.ts";
 import {
@@ -24,6 +34,7 @@ import { HeroSelectScreen } from "./screens/HeroSelectScreen.tsx";
 import { MainMenuScreen } from "./screens/MainMenuScreen.tsx";
 import { MapPlayScreen } from "./screens/MapPlayScreen.tsx";
 import { SaveSlotListScreen } from "./screens/SaveSlotListScreen.tsx";
+import { SettingsScreen } from "./screens/SettingsScreen.tsx";
 import { TitleScreen } from "./screens/TitleScreen.tsx";
 import { WorldGeneratingScreen } from "./screens/WorldGeneratingScreen.tsx";
 
@@ -31,10 +42,13 @@ type Screen =
   | { name: "title" }
   | { name: "menu" }
   | { name: "load-list"; slots: SaveSlotSummary[] }
+  | { name: "settings" }
   | { name: "faction-name" }
   | { name: "hero-select"; factionName: string }
   | { name: "generating"; factionName: string; heroId: string }
   | { name: "main"; slotId: string; save: SaveGame };
+
+const AUTO_BACKUP_KEY = "whero:auto-backup";
 
 const GENERATING_DELAY_MS = 600;
 
@@ -47,6 +61,36 @@ export function GameEntry() {
   const [storage] = useState<KeyValueStorage | null>(() =>
     typeof window === "undefined" ? null : window.localStorage,
   );
+  const [accountStatus, setAccountStatus] = useState<AccountStatus | null>(null);
+  // Same lazy-initializer trick as `storage` above: reads localStorage once,
+  // on the client, without needing an effect just to seed this from it.
+  const [autoBackupEnabled, setAutoBackupEnabled] = useState(() =>
+    typeof window === "undefined" ? false : window.localStorage.getItem(AUTO_BACKUP_KEY) === "true",
+  );
+  const [cloudBackups, setCloudBackups] = useState<CloudBackupSummary[] | null>(null);
+
+  // Every player gets an invisible anonymous session so a save has a stable
+  // cloud identity from the start; nothing is uploaded until the player
+  // explicitly links a real account in Settings (see account.ts).
+  useEffect(() => {
+    if (!storage) return;
+    void ensureGuestSession().then(() => getAccountStatus()).then(setAccountStatus);
+  }, [storage]);
+
+  // Refreshes account/cloud-backup state whenever Settings is opened, so it
+  // reflects a link/sign-in that may have happened moments ago.
+  useEffect(() => {
+    if (screen.name !== "settings") return;
+    void getAccountStatus().then(setAccountStatus);
+    void listCloudBackups().then(setCloudBackups);
+  }, [screen.name]);
+
+  function maybeAutoBackup(slotId: string, save: SaveGame) {
+    if (!autoBackupEnabled || accountStatus?.linked !== true) return;
+    void backupSaveSlot(slotId, save).then((result) => {
+      if (!result.ok) reportClientError(result.error, { screen: "main", action: "autoBackup" });
+    });
+  }
 
   useEffect(() => {
     if (screen.name !== "generating" || !storage) return;
@@ -103,7 +147,7 @@ export function GameEntry() {
           <MainMenuScreen
             onNewGame={() => setScreen({ name: "faction-name" })}
             onContinue={() => setScreen({ name: "load-list", slots: storage ? listSaveSlots(storage) : [] })}
-            onSettings={() => window.alert("설정 화면은 아직 만들어지지 않았습니다.")}
+            onSettings={() => setScreen({ name: "settings" })}
             onExit={() => window.alert("이 창을 닫아 게임을 종료할 수 있습니다.")}
           />
         );
@@ -126,6 +170,42 @@ export function GameEntry() {
               if (!storage) return;
               deleteSaveGame(storage, slotId);
               setScreen({ name: "load-list", slots: listSaveSlots(storage) });
+            }}
+          />
+        );
+
+      case "settings":
+        return (
+          <SettingsScreen
+            onBack={() => setScreen({ name: "menu" })}
+            autoBackupEnabled={autoBackupEnabled}
+            onToggleAutoBackup={(enabled) => {
+              setAutoBackupEnabled(enabled);
+              storage?.setItem(AUTO_BACKUP_KEY, enabled ? "true" : "false");
+            }}
+            accountStatus={accountStatus}
+            onLinkAccount={async (email, password) => {
+              const result = await linkAccountWithEmail(email, password);
+              if (result.ok) setAccountStatus(await getAccountStatus());
+              return result;
+            }}
+            onSignIn={async (email, password) => {
+              const result = await signInWithEmail(email, password);
+              if (result.ok) setAccountStatus(await getAccountStatus());
+              return result;
+            }}
+            slots={storage ? listSaveSlots(storage) : []}
+            onBackupSlot={async (slotId) => {
+              if (!storage) return { ok: false, error: "저장 데이터를 찾을 수 없습니다." };
+              const result = readSaveGame(storage, slotId);
+              if (!result.ok) return { ok: false, error: "저장 데이터를 찾을 수 없습니다." };
+              return backupSaveSlot(slotId, result.save);
+            }}
+            cloudBackups={cloudBackups}
+            onRestoreBackup={async (slotId) => {
+              const result = await restoreCloudBackup(slotId);
+              if (result.ok && storage) writeSaveGame(storage, slotId, result.save);
+              return result;
             }}
           />
         );
@@ -163,7 +243,11 @@ export function GameEntry() {
             <MapPlayScreen
               save={screen.save}
               onExitToMenu={() => setScreen({ name: "menu" })}
-              onCompleteWorld={() => updateSave(completeActiveWorld(screen.save, new Date().toISOString()))}
+              onCompleteWorld={() => {
+                const updated = completeActiveWorld(screen.save, new Date().toISOString());
+                updateSave(updated);
+                maybeAutoBackup(slotId, { ...updated, updatedAt: new Date().toISOString() });
+              }}
               onEndTurn={() => updateSave(endTurn(screen.save, new Date().toISOString()))}
               onFoundCity={(heroId, position) => {
                 const cityNumber = Object.keys(screen.save.cities).length + 1;
@@ -211,6 +295,7 @@ export function GameEntry() {
             onEnterCandidate={(candidateIndex, enlistedHeroIds) =>
               updateSave(enterMapCandidate(screen.save, candidateIndex, enlistedHeroIds, new Date().toISOString()))
             }
+            onSettings={() => setScreen({ name: "settings" })}
           />
         );
       }

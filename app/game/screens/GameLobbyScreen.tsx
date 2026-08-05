@@ -50,11 +50,13 @@ export function GameLobbyScreen({
   onExitToMenu,
   onUpdateSave,
   onEnterCandidate,
+  onSettings,
 }: {
   save: SaveGame;
   onExitToMenu: () => void;
   onUpdateSave: (save: SaveGame) => void;
   onEnterCandidate: (candidateIndex: number, enlistedHeroIds: string[]) => void;
+  onSettings: () => void;
 }) {
   const [sortMode, setSortMode] = useState<SortMode>("grade");
   const [viewingHeroId, setViewingHeroId] = useState<string | null>(null);
@@ -142,7 +144,7 @@ export function GameLobbyScreen({
           </span>
           <span className="hidden text-[10px] tracking-[0.2em] text-[#8fa6a8] sm:block">HERO STORY</span>
           <div className="flex gap-1">
-            <Button size="sm" variant="secondary" onClick={() => window.alert("설정 화면은 아직 만들어지지 않았습니다.")}>
+            <Button size="sm" variant="secondary" onClick={onSettings}>
               ⚙
             </Button>
             <Button size="sm" variant="secondary" onClick={onExitToMenu}>

@@ -1014,6 +1014,42 @@
     (또는 Logs) 탭에서 `client-error`로 검색하면 실제 플레이 중 난 오류를
     볼 수 있음.
 
+- **게스트/계정 연결 + 클라우드 백업 (Supabase)**: 설정 화면(`app/game/
+  screens/SettingsScreen.tsx`)에 사용자가 지정한 그대로 두 메뉴 —
+  "저장 데이터 백업"(체크박스, 스테이지 클리어시 자동백업) / "저장 데이터
+  복원". 계정 구조는 사용자 확정안대로 **모든 플레이어가 처음부터 익명
+  guest 세션**을 갖고(로그인 화면 없이, `GameEntry`가 마운트 시
+  `ensureGuestSession()` 호출), **이메일/비밀번호를 연결(link)한 뒤에만**
+  백업/자동백업이 활성화됨.
+  - `app/game/supabaseClient.ts` — `NEXT_PUBLIC_SUPABASE_URL`/
+    `NEXT_PUBLIC_SUPABASE_ANON_KEY` 환경변수가 없으면 `supabase`가
+    `null` (로컬에서 설정 안 해도 앱이 죽지 않음, 백업/복원만 비활성화).
+  - `app/game/account.ts` — `ensureGuestSession`(익명 로그인),
+    `getAccountStatus`(guest vs 연결된 이메일), `linkAccountWithEmail`
+    (익명 세션을 그대로 승격 — `auth.updateUser`라 user_id 유지, 기존
+    백업이 끊기지 않음), `signInWithEmail`(다른 기기에서 이미 연결된
+    계정으로 로그인), `backupSaveSlot`/`listCloudBackups`/
+    `restoreCloudBackup`. 복원된 데이터는 로컬 저장과 동일하게
+    `parseSaveGame`(JSON+모양+무결성 검증)을 통과해야만 신뢰함 — 클라우드
+    JSON도 손상된 localStorage와 마찬가지로 신뢰하지 않는 외부 데이터로
+    취급.
+  - Supabase 테이블/RLS: `supabase/schema.sql`에 실제 실행한 SQL 보관
+    (`saves` 테이블, `user_id = auth.uid()` 정책 — 보안 경계는 anon key가
+    아니라 RLS).
+  - `GameEntry.tsx`: `"settings"` 화면 추가, 메인 메뉴의 설정 버튼과
+    로비 화면(`GameLobbyScreen`)의 ⚙ 버튼 모두 여기로 연결(둘 다 기존엔
+    "아직 만들어지지 않았습니다" alert였음). 자동백업 켜짐 + 계정
+    연결됨 상태에서 `onCompleteWorld`(세계 정복 완료) 시점에
+    `backupSaveSlot` 자동 호출.
+  - **주의**: 이 샌드박스 환경의 아웃바운드 프록시가 `*.supabase.co`도
+    차단해서(Vercel/Cloudflare와 동일한 제약) 실제 Supabase 호출을 여기서
+    라이브로 테스트할 수 없었음 — 빌드/린트/전체 테스트(311개)는 통과,
+    Playwright로 설정 화면 진입까지는 콘솔 에러 없이 확인. **사용자가
+    실제 배포(Vercel)에서 계정 연결/백업/복원을 한 번씩 확인해줘야 함.**
+  - Vercel에 `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+    환경변수 등록 필요(프로젝트 설정 → Environment Variables) — 값은
+    사용자가 Supabase 대시보드에서 이미 확보해둔 URL/anon key.
+
 ## 진행 상황
 
 - [x] 1. 시스템 코드 폴더 구조 및 기본 타입 스캐폴딩 — `lib/game/hex.ts` +
