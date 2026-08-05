@@ -929,6 +929,29 @@
     확인하도록 수정(제갈량은 확정값이 아니므로 제외). 전체 311개 통과,
     tsc/eslint/프로덕션 빌드 클린.
 
+- **라우트 재배치: 게임을 루트로, Codex 프로토타입을 `/world-lab`으로
+  (2026-07-30, main 병합 직후)**: 사용자가 향후 모바일 앱(안드로이드 우선)
+  전환을 준비하면서, 앱의 기본 화면(루트)이 실제 게임이어야 한다고 판단함
+  - 지금까지는 반대로 루트가 Codex의 지형 생성 프로토타입이고 게임은
+  `/game`에 숨어있었음.
+  - `lib/game`/`app/game`의 실제 파일 위치는 건드리지 않음(소유권 경계 유지,
+    화면 파일들의 상대경로 import도 그대로) - `app/page.tsx`가 이제
+    `./game/GameEntry.tsx`를 렌더링하도록 바꾸고, `app/game/page.tsx`(라우트
+    파일)는 삭제, 대신 새 `app/world-lab/page.tsx`가 `WorldPrototype`을
+    렌더링함.
+  - `app/layout.tsx`의 공용 `<title>`/설명이 "세계 생성 실험실"(프로토타입
+    문구)이었던 걸 게임 자체를 설명하는 문구로 교체 - `/world-lab`은 페이지
+    자체 `metadata`로 예전 제목을 유지하도록 별도 지정.
+  - `tests/rendered-html.test.mjs`를 루트(이제 게임)/`/world-lab`(이제
+    프로토타입) 두 라우트 각각 검증하도록 재작성.
+  - **Codex 참고**: 프로토타입 개발 중이던 주소가 `/`에서 `/world-lab`으로
+    바뀌었습니다. `world-prototype.tsx` 파일 자체나 그 안의 로직은 전혀
+    건드리지 않았습니다 - 순수 라우팅 변경입니다.
+  - 검증: `pnpm run build`(Next.js, 엄격한 tsc 포함) 성공,
+    `tests/rendered-html.test.mjs` 2/2 통과, `pnpm run test:game` 311/311
+    통과, lint는 기존과 동일하게 `app/world-prototype.tsx`/
+    `components/world/TestHeroPanel.tsx`의 사전 존재 문제만 남음.
+
 ## 진행 상황
 
 - [x] 1. 시스템 코드 폴더 구조 및 기본 타입 스캐폴딩 — `lib/game/hex.ts` +

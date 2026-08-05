@@ -1,5 +1,5 @@
-import { WorldPrototype } from "./world-prototype";
+import { GameEntry } from "./game/GameEntry.tsx";
 
 export default function Home() {
-  return <WorldPrototype />;
+  return <GameEntry />;
 }

@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "World in Hero · 세계 생성 실험실",
-  description: "역사 영웅과 함께 정복할 랜덤 세계를 만드는 전략 게임 프로토타입",
+  title: "World in Hero",
+  description: "역사 영웅과 여러 부대를 운용해 절차적으로 생성되는 세계를 정복하는 턴제 전략 게임",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

@@ -234,3 +234,16 @@ must not... Merge directly into main" 규칙의 예외 - 담당자 부재로 인
 `.github/workflows/deploy.yml`은 병합 과정에서 제거됐습니다. 지형 연동
 계약(위 "아직 미완성인 부분" 참고)은 여전히 미해결 상태로 남아있으니,
 Codex가 복귀하면 그 부분부터 이어가면 됩니다.
+
+### 라우트 재배치 메모 (2026-07-30, 병합 직후)
+
+**Codex의 지형 생성 프로토타입 개발 주소가 `/`에서 `/world-lab`으로
+바뀌었습니다.** 사용자가 모바일 앱(안드로이드 우선) 전환을 준비하면서
+"앱의 기본 화면은 실제 게임이어야 한다"고 판단해 요청함 - 루트는 이제
+`GameEntry`(실제 게임)를 렌더링합니다. `app/world-prototype.tsx` 파일
+자체와 그 안의 로직·`lib/world`/`components/world`/`rendering/world`는
+전혀 건드리지 않았습니다 - `app/page.tsx`가 어느 컴포넌트를 렌더링하는지,
+그리고 새 라우트 파일(`app/world-lab/page.tsx`) 위치만 바뀐 순수 라우팅
+변경입니다. 로컬에서 작업하실 때 `pnpm dev` 후 `/`가 아니라 `/world-lab`로
+들어가시면 됩니다. 자세한 내용은 `docs/SYSTEM_LAYER.md`의 "라우트 재배치"
+항목 참고.
