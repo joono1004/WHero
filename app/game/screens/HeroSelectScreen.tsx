@@ -77,15 +77,28 @@ function HeroCard({
         color: "inherit",
       }}
     >
-      <div className="flex items-center justify-between gap-1">
-        <h3 className="text-sm font-bold text-[#f3dfaa]">{hero.name}</h3>
-        <span className="whitespace-nowrap rounded border border-[#d7b765] px-1 py-0.5 text-[10px] font-bold text-[#d7b765]">
-          {grade}급·{ARCHETYPE_LABEL[archetype]}
-        </span>
-      </div>
-      <p className="mt-1 line-clamp-2 text-[10px] leading-snug text-[#c0cbc7]">{hero.description}</p>
+      <div className="flex gap-2">
+        {/* Reserved for Codex's hero portrait art - a plain placeholder
+            until that's wired up, so the layout already has room for it. */}
+        <div
+          className="flex shrink-0 items-center justify-center rounded"
+          style={{ width: 48, height: 48, border: "1px solid #43606a", backgroundColor: "#0b2028" }}
+        >
+          <span className="text-lg text-[#43606a]">🧑</span>
+        </div>
 
-      <dl className="mt-1 grid grid-cols-2 gap-x-2 gap-y-0.5 text-[10px]">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center justify-between gap-1">
+            <h3 className="text-sm font-bold text-[#f3dfaa]">{hero.name}</h3>
+            <span className="whitespace-nowrap rounded border border-[#d7b765] px-1 py-0.5 text-[10px] font-bold text-[#d7b765]">
+              {grade}급·{ARCHETYPE_LABEL[archetype]}
+            </span>
+          </div>
+          <p className="mt-1 line-clamp-2 text-[10px] leading-snug text-[#c0cbc7]">{hero.description}</p>
+        </div>
+      </div>
+
+      <dl className="mt-1 grid grid-cols-2 gap-x-2 gap-y-0.5 text-xs">
         <Stat label="통솔" value={hero.attributes.leadership} />
         <Stat label="무력" value={hero.attributes.force} />
         <Stat label="지력" value={hero.attributes.intelligence} />
@@ -94,15 +107,15 @@ function HeroCard({
       </dl>
 
       {domesticEntries.length > 0 && (
-        <p className="mt-1 truncate text-[10px] text-[#8fa6a8]">
+        <p className="mt-1 truncate text-xs text-[#8fa6a8]">
           내정: {domesticEntries.map(([key, value]) => `${DOMESTIC_LABEL[key]} ${value}`).join(" · ")}
         </p>
       )}
-      <p className="truncate text-[10px] text-[#8fa6a8]">
+      <p className="truncate text-xs text-[#8fa6a8]">
         병과: {UNIT_TYPE_LABEL[hero.unitType]}
       </p>
       {traitEntries.length > 0 && (
-        <p className="truncate text-[10px] text-[#8fa6a8]">
+        <p className="truncate text-xs text-[#8fa6a8]">
           특기: {traitEntries.map(([key, value]) => `${TRAIT_LABEL[key]} ${value}`).join(" · ")}
         </p>
       )}
