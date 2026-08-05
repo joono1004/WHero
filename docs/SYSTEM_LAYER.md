@@ -952,6 +952,17 @@
     통과, lint는 기존과 동일하게 `app/world-prototype.tsx`/
     `components/world/TestHeroPanel.tsx`의 사전 존재 문제만 남음.
 
+- **Vercel 자동배포 연결 확인 (2026-07-30)**: `main`에 커밋이 여러 개
+  쌓였는데도 배포 사이트(`world-in-hero.vercel.app`)가 계속 예전 화면을
+  보여줘서 확인해보니, Vercel 프로젝트에 **GitHub 저장소 연결 자체가
+  안 돼 있었음** (Settings → Git이 비어있는 상태 - 배포 이력도 최초 1건
+  뿐이었음). 사용자가 저장소 연결 후 "Redeploy"를 눌렀지만 그건 최신
+  커밋을 새로 가져오는 게 아니라 기존 배포를 그대로 재실행하는
+  기능이라 여전히 예전 화면이 떴고, 빈 커밋(`6e77d57`)을 push하니
+  정상적으로 최신 상태가 자동 배포됨을 확인. 이제부터는 `main`에 push할
+  때마다 자동 반영됨 - 향후 세션(Claude·Codex 누구든)은 이 절차를
+  다시 밟을 필요 없음.
+
 ## 진행 상황
 
 - [x] 1. 시스템 코드 폴더 구조 및 기본 타입 스캐폴딩 — `lib/game/hex.ts` +

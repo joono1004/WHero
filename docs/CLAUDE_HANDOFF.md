@@ -247,3 +247,20 @@ Codex가 복귀하면 그 부분부터 이어가면 됩니다.
 변경입니다. 로컬에서 작업하실 때 `pnpm dev` 후 `/`가 아니라 `/world-lab`로
 들어가시면 됩니다. 자세한 내용은 `docs/SYSTEM_LAYER.md`의 "라우트 재배치"
 항목 참고.
+
+### Vercel 배포 연결 확인 (2026-07-30)
+
+Vercel 프로젝트(`whero` 팀 / `world-in-hero` 프로젝트)는 만들어져 있었지만
+**GitHub 저장소 연결(Settings → Git)이 안 돼 있어서**, `main`에 push해도
+자동 배포가 전혀 안 되고 있었음 (배포 이력이 어제 첫 배포
+`0a5efb2` 하나뿐이었고, 그 뒤 병합·라우팅 변경 커밋들이 반영 안 됨).
+사용자가 직접 Settings → Git에서 `joono1004/WHero` 저장소를 연결함.
+연결 직후 "Redeploy"를 눌렀더니 새 커밋을 가져오는 게 아니라 기존 배포를
+그대로 재배포하는 동작이라 여전히 예전 화면이 떴는데, Claude가 빈 커밋
+(`6e77d57`, "Trigger Vercel deploy now that GitHub integration is
+connected")을 push해서 정상적으로 최신 상태가 자동 배포됨을 확인.
+
+**현재 상태**: `https://world-in-hero.vercel.app`가 `main`의 최신 커밋을
+서빙 중이며(루트 = 게임, `/world-lab` = 프로토타입), 앞으로 `main`에
+push할 때마다 자동으로 재배포됩니다. Codex가 작업 후 push하면 별도 조치
+없이 그대로 반영됩니다.
