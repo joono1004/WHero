@@ -963,6 +963,21 @@
   때마다 자동 반영됨 - 향후 세션(Claude·Codex 누구든)은 이 절차를
   다시 밟을 필요 없음.
 
+- **게임 이름 확정: "영웅스토리" (2026-08-05)**: 사용자가 화면을 하나씩
+  검토하는 과정에서 임시명 "World in Hero"를 "영웅스토리"(Hero Story,
+  약어 영스)로 교체. 이름 후보를 여럿 검토하면서 실제 검색으로 기존
+  게임과 겹치는지 확인함 - "영웅전"은 넥슨의 "마비노기 영웅전", "백영웅전",
+  "영웅전설" 시리즈와 겹쳐서 제외, "영웅스토리"는 겹치는 게임 없음을 확인
+  후 확정. 화면 텍스트(`TitleScreen.tsx`/`GameLobbyScreen.tsx`), 공용
+  페이지 제목(`app/layout.tsx`), `/world-lab` 페이지 제목, `README.md`/
+  `docs/GAME_VISION.md` 제목, 렌더링 테스트 문자열을 전부 교체. Codex
+  소유 파일(`app/world-prototype.tsx`)의 헤더 텍스트 한 줄과 Codex 문서
+  2개(`PLAYER_MANUAL_DRAFT.md`/`PROJECT_PROGRESS.md`)의 제목도 이름
+  표기만 맞춰 바꿈(그 외 내용은 전혀 안 건드림 - 자세한 내용은
+  `docs/CLAUDE_HANDOFF.md`의 "게임 이름 확정" 항목 참고). `package.json`
+  내부 패키지명과 이력 문서의 옛 이름 언급은 의도적으로 유지.
+  검증: 전체 311개 테스트 통과, 렌더링 테스트 2/2 통과, 빌드 성공.
+
 ## 진행 상황
 
 - [x] 1. 시스템 코드 폴더 구조 및 기본 타입 스캐폴딩 — `lib/game/hex.ts` +

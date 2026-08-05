@@ -4534,7 +4534,7 @@ export function WorldPrototype() {
       <header className="topbar">
         <div>
           <p className="eyebrow">WORLD GENERATION LAB · WEBGL 2.5D</p>
-          <h1>World in Hero</h1>
+          <h1>영웅스토리</h1>
         </div>
         <WorldControls
           selectedMapTypeId={selectedMapTypeId}

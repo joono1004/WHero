@@ -264,3 +264,32 @@ connected")을 push해서 정상적으로 최신 상태가 자동 배포됨을 �
 서빙 중이며(루트 = 게임, `/world-lab` = 프로토타입), 앞으로 `main`에
 push할 때마다 자동으로 재배포됩니다. Codex가 작업 후 push하면 별도 조치
 없이 그대로 반영됩니다.
+
+### 게임 이름 확정: "영웅스토리" (Hero Story) (2026-08-05)
+
+사용자가 화면 하나씩 검토하는 과정에서 게임 이름을 **"영웅스토리" (영어:
+Hero Story, 약어: 영스)**로 확정했습니다. 기존 "World in Hero"는 임시
+프로젝트명이었습니다. 아래에 실제로 바뀐 곳을 정리합니다 - Codex 소유
+파일도 이름 표기 부분만 최소한으로 바꿨습니다(로직/렌더링은 안 건드림):
+
+- `app/game/screens/TitleScreen.tsx`, `GameLobbyScreen.tsx` (Claude 소유) -
+  화면에 보이는 게임 이름
+- `app/layout.tsx` (공용) - 공통 페이지 `<title>`
+- `app/world-lab/page.tsx` (Claude가 만든 라우트 파일) - 프로토타입 페이지
+  제목
+- **`app/world-prototype.tsx`의 `<h1>World in Hero</h1>` 한 줄만
+  `영웅스토리`로 교체** (Codex 소유 파일 - 이 한 줄 텍스트 외에는 전혀
+  건드리지 않음)
+- `README.md`, `docs/GAME_VISION.md` 제목
+- `docs/PLAYER_MANUAL_DRAFT.md`, `docs/PROJECT_PROGRESS.md` 제목(Codex
+  작성 문서 - 제목 텍스트만 교체, 본문은 안 건드림)
+- `tests/rendered-html.test.mjs`의 타이틀 검증 문자열
+
+**의도적으로 안 바꾼 것**: `package.json`의 내부 패키지명(`"name":
+"world-in-hero"`)은 플레이어에게 안 보이는 내부 식별자라 그대로 뒀습니다.
+이력 기록용 문서(`docs/DEPLOYMENT_MIGRATION.md`, 이 문서 위쪽의 병합 후속
+메모 등)에 있는 옛 이름은 "그 시점엔 그렇게 불렸다"는 역사 기록이라 의도적으로
+안 고쳤습니다.
+
+검증: `pnpm run build` 성공, `tests/rendered-html.test.mjs` 2/2 통과,
+`pnpm run test:game` 311/311 통과.

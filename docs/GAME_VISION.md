@@ -1,4 +1,4 @@
-# World in Hero — Game Vision
+# 영웅스토리 (Hero Story) — Game Vision
 
 역사 영웅과 여러 부대를 운용해 절차적으로 생성되는 세계를 정복하고, 일부 전력을 계승하며 더 큰 세계로 진출하는 웹 기반 턴제 전략 게임이다.
 

@@ -1,4 +1,4 @@
-# World in Hero
+# 영웅스토리 (Hero Story)
 
 모바일 우선 브라우저 기반 턴제 전략 게임 프로토타입입니다. 게임 규칙과 진행 상황은
 [개발 기록](docs/PROJECT_PROGRESS.md), 실제 조작 방법은

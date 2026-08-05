@@ -140,7 +140,7 @@ export function GameLobbyScreen({
           <span className="text-xs font-bold text-[#e3ce94]">
             {save.factionName} <span className="text-[#8fa6a8]">Lv.{playerFaction?.level ?? 1}</span>
           </span>
-          <span className="hidden text-[10px] tracking-[0.2em] text-[#8fa6a8] sm:block">WORLD HERO CONQUEST</span>
+          <span className="hidden text-[10px] tracking-[0.2em] text-[#8fa6a8] sm:block">HERO STORY</span>
           <div className="flex gap-1">
             <Button size="sm" variant="secondary" onClick={() => window.alert("설정 화면은 아직 만들어지지 않았습니다.")}>
               ⚙

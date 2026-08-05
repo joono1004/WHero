@@ -6,7 +6,7 @@ export function TitleScreen({ onStart }: { onStart: () => void }) {
     <ScreenShell>
       <div className="flex h-full flex-col items-center justify-center gap-5">
         <div className="text-center">
-          <p className="text-xs tracking-[0.3em] text-[#8fa6a8]">WORLD HERO CONQUEST</p>
+          <p className="text-xs tracking-[0.3em] text-[#8fa6a8]">HERO STORY</p>
           {/* app/globals.css has an unlayered `h1 { font-size: 28px; ... }`
               rule that beats Tailwind's layered utilities regardless of
               specificity (see Button.tsx) - style inline instead. */}
@@ -19,7 +19,7 @@ export function TitleScreen({ onStart }: { onStart: () => void }) {
               margin: "0.5rem 0 0",
             }}
           >
-            세계 영웅 정복
+            영웅스토리
           </h1>
         </div>
         <Button onClick={onStart}>시작하기</Button>
