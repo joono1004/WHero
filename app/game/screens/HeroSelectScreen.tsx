@@ -128,22 +128,27 @@ function HeroCard({
           )}
         </div>
 
-        <div className="flex min-w-0 flex-1 flex-col gap-1.5 py-0.5">
-          <dl className="grid grid-cols-2 gap-x-2 gap-y-1.5 text-sm">
+        <div className="flex min-w-0 flex-1 items-center py-0.5">
+          {/* 병과/내정 are items of this same grid, not a separate block -
+              col-start-1 forces each onto a fresh row (CSS grid auto-flow
+              can't back-fill column 1 once 매력 has taken row 3's column 1,
+              so it advances instead), landing them in the exact column the
+              grade values sit in above, with column 2 left blank. */}
+          <dl className="grid w-full grid-cols-2 gap-x-2 gap-y-1.5 text-sm">
             <GradeStat label="통솔" grade={hero.attributes.leadership} />
             <GradeStat label="무력" grade={hero.attributes.force} />
             <GradeStat label="지력" grade={hero.attributes.intelligence} />
             <GradeStat label="체력" grade={hero.attributes.vitality} />
             <GradeStat label="매력" grade={hero.attributes.charisma} />
+            <TextStat className="col-start-1" label="병과" value={UNIT_TYPE_LABEL[hero.unitType]} />
+            {domesticEntries.length > 0 && (
+              <TextStat
+                className="col-start-1"
+                label="내정"
+                value={domesticEntries.map(([key, value]) => `${DOMESTIC_LABEL[key]} ${value}`).join(" · ")}
+              />
+            )}
           </dl>
-
-          <TextStat label="병과" value={UNIT_TYPE_LABEL[hero.unitType]} />
-          {domesticEntries.length > 0 && (
-            <TextStat
-              label="내정"
-              value={domesticEntries.map(([key, value]) => `${DOMESTIC_LABEL[key]} ${value}`).join(" · ")}
-            />
-          )}
         </div>
       </div>
 
@@ -157,14 +162,15 @@ function HeroCard({
   );
 }
 
-// 병과/내정 share the attribute grid's grid-cols-2 column widths so a
-// value here lines up with where the grade column starts above it,
-// instead of being pushed flush against the card's right edge.
-function TextStat({ label, value }: { label: string; value: string }) {
+// Mirrors GradeStat's own label/value layout exactly (not a 2-column grid
+// of its own) so 병과/내정's value lands at the same x as the grade
+// letters above - both are just "label, then justify-between value" inside
+// a single grid cell of the same width.
+function TextStat({ label, value, className }: { label: string; value: string; className?: string }) {
   return (
-    <div className="grid grid-cols-2 gap-x-2 text-sm">
-      <span className="text-[#8fa6a8]">{label}</span>
-      <span className="truncate text-left font-bold text-[#e3ce94]">{value}</span>
+    <div className={`flex min-w-0 items-center justify-between gap-1${className ? ` ${className}` : ""}`}>
+      <span className="shrink-0 text-[#8fa6a8]">{label}</span>
+      <span className="truncate font-bold text-[#e3ce94]">{value}</span>
     </div>
   );
 }
