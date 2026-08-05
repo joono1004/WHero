@@ -84,35 +84,33 @@ function HeroCard({
         color: "inherit",
       }}
     >
-      <div className="flex gap-2">
-        {/* Reserved for Codex's hero portrait art (see HERO_PORTRAIT) - a
-            hero without an entry yet falls back to a plain placeholder. */}
-        <div
-          className="flex shrink-0 items-center justify-center overflow-hidden rounded"
-          style={{ width: 48, height: 48, border: "1px solid #43606a", backgroundColor: "#0b2028" }}
-        >
-          {HERO_PORTRAIT[hero.id] ? (
-            // eslint-disable-next-line @next/next/no-img-element -- local /public asset, same convention as components/world/TestHeroPanel.tsx
-            <img
-              src={HERO_PORTRAIT[hero.id]}
-              alt={`${hero.name} 초상`}
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <span className="text-lg text-[#43606a]">🧑</span>
-          )}
-        </div>
-
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center justify-between gap-1">
-            <h3 className="text-sm font-bold text-[#f3dfaa]">{hero.name}</h3>
-            <span className="whitespace-nowrap rounded border border-[#d7b765] px-1 py-0.5 text-[10px] font-bold text-[#d7b765]">
-              {grade}급·{ARCHETYPE_LABEL[archetype]}
-            </span>
-          </div>
-          <p className="mt-1 line-clamp-2 text-[10px] leading-snug text-[#c0cbc7]">{hero.description}</p>
-        </div>
+      {/* Reserved for Codex's hero portrait art (see HERO_PORTRAIT) - a
+          hero without an entry yet falls back to a plain placeholder. Sized
+          well above the card's own width so it scrolls (ScreenShell's
+          content area is overflow-y-auto) rather than getting clipped. */}
+      <div
+        className="mx-auto flex items-center justify-center overflow-hidden rounded"
+        style={{ width: 192, height: 192, border: "1px solid #43606a", backgroundColor: "#0b2028" }}
+      >
+        {HERO_PORTRAIT[hero.id] ? (
+          // eslint-disable-next-line @next/next/no-img-element -- local /public asset, same convention as components/world/TestHeroPanel.tsx
+          <img
+            src={HERO_PORTRAIT[hero.id]}
+            alt={`${hero.name} 초상`}
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <span className="text-5xl text-[#43606a]">🧑</span>
+        )}
       </div>
+
+      <div className="mt-2 flex items-center justify-between gap-1">
+        <h3 className="text-sm font-bold text-[#f3dfaa]">{hero.name}</h3>
+        <span className="whitespace-nowrap rounded border border-[#d7b765] px-1 py-0.5 text-[10px] font-bold text-[#d7b765]">
+          {grade}급·{ARCHETYPE_LABEL[archetype]}
+        </span>
+      </div>
+      <p className="mt-1 line-clamp-2 text-[10px] leading-snug text-[#c0cbc7]">{hero.description}</p>
 
       <dl className="mt-1 grid grid-cols-2 gap-x-2 gap-y-0.5 text-xs">
         <Stat label="통솔" value={hero.attributes.leadership} />
