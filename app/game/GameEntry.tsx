@@ -16,13 +16,8 @@ import {
 import type { AccountStatus } from "./account.ts";
 import { createNewSaveGame } from "../../lib/game/new-game.ts";
 import type { SaveGame } from "../../lib/game/save.ts";
-import {
-  deleteSaveGame,
-  listSaveSlots,
-  readSaveGame,
-  writeSaveGame,
-} from "../../lib/game/storage.ts";
-import type { KeyValueStorage, SaveSlotSummary } from "../../lib/game/storage.ts";
+import { listSaveSlots, readSaveGame, writeSaveGame } from "../../lib/game/storage.ts";
+import type { KeyValueStorage } from "../../lib/game/storage.ts";
 import { foundCity } from "../../lib/game/city-actions.ts";
 import { PLAYER_FACTION_ID } from "../../lib/game/faction.ts";
 import { assignHeroToCity } from "../../lib/game/hero.ts";
@@ -34,16 +29,18 @@ import { GameLobbyScreen } from "./screens/GameLobbyScreen.tsx";
 import { HeroSelectScreen } from "./screens/HeroSelectScreen.tsx";
 import { MainMenuScreen } from "./screens/MainMenuScreen.tsx";
 import { MapPlayScreen } from "./screens/MapPlayScreen.tsx";
-import { SaveSlotListScreen } from "./screens/SaveSlotListScreen.tsx";
 import { SettingsScreen } from "./screens/SettingsScreen.tsx";
 import { TitleScreen } from "./screens/TitleScreen.tsx";
 import { WorldGeneratingScreen } from "./screens/WorldGeneratingScreen.tsx";
 
+// The game only ever tracks one faction at a time (see MainMenuScreen's
+// 새 게임/이어하기 toggle) - there's no save-slot picker, so "settings"
+// just remembers whichever screen opened it (menu or the in-game lobby) to
+// return to on 뒤로가기, instead of always landing back on the main menu.
 type Screen =
   | { name: "title" }
   | { name: "menu" }
-  | { name: "load-list"; slots: SaveSlotSummary[] }
-  | { name: "settings" }
+  | { name: "settings"; returnTo: Screen }
   | { name: "faction-name" }
   | { name: "hero-select"; factionName: string }
   | { name: "generating"; factionName: string; heroId: string }
@@ -148,42 +145,32 @@ export function GameEntry() {
       case "title":
         return <TitleScreen onStart={() => setScreen({ name: "menu" })} />;
 
-      case "menu":
+      case "menu": {
+        const [existingSlot] = storage ? listSaveSlots(storage) : [];
         return (
           <MainMenuScreen
+            hasSave={!!existingSlot}
             onNewGame={() => setScreen({ name: "faction-name" })}
-            onContinue={() => setScreen({ name: "load-list", slots: storage ? listSaveSlots(storage) : [] })}
-            onSettings={() => setScreen({ name: "settings" })}
-            onGoToTitle={() => setScreen({ name: "title" })}
-          />
-        );
-
-      case "load-list":
-        return (
-          <SaveSlotListScreen
-            slots={screen.slots}
-            onBack={() => setScreen({ name: "menu" })}
-            onLoad={(slotId) => {
-              if (!storage) return;
-              const result = readSaveGame(storage, slotId);
+            onContinue={() => {
+              if (!storage || !existingSlot) return;
+              const result = readSaveGame(storage, existingSlot.slotId);
               if (result.ok) {
-                setScreen({ name: "main", slotId, save: result.save });
+                setScreen({ name: "main", slotId: existingSlot.slotId, save: result.save });
               } else {
                 window.alert("이 저장 데이터를 불러올 수 없습니다 (손상되었거나 지원하지 않는 버전).");
               }
             }}
-            onDelete={(slotId) => {
-              if (!storage) return;
-              deleteSaveGame(storage, slotId);
-              setScreen({ name: "load-list", slots: listSaveSlots(storage) });
-            }}
+            onSettings={() => setScreen({ name: "settings", returnTo: { name: "menu" } })}
+            onGoToTitle={() => setScreen({ name: "title" })}
           />
         );
+      }
 
       case "settings":
         return (
           <SettingsScreen
-            onBack={() => setScreen({ name: "menu" })}
+            onBack={() => setScreen(screen.returnTo)}
+            backLabel={screen.returnTo.name === "menu" ? "메인 메뉴로" : "이전 화면으로"}
             autoBackupEnabled={autoBackupEnabled}
             onToggleAutoBackup={(enabled) => {
               setAutoBackupEnabled(enabled);
@@ -317,7 +304,7 @@ export function GameEntry() {
             onEnterCandidate={(candidateIndex, enlistedHeroIds) =>
               updateSave(enterMapCandidate(screen.save, candidateIndex, enlistedHeroIds, new Date().toISOString()))
             }
-            onSettings={() => setScreen({ name: "settings" })}
+            onSettings={() => setScreen({ name: "settings", returnTo: screen })}
           />
         );
       }

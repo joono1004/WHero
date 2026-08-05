@@ -234,6 +234,7 @@ function RestoreDataModal({
 
 export function SettingsScreen({
   onBack,
+  backLabel,
   autoBackupEnabled,
   onToggleAutoBackup,
   accountStatus,
@@ -246,6 +247,7 @@ export function SettingsScreen({
   onRestoreBackup,
 }: {
   onBack: () => void;
+  backLabel: string;
   autoBackupEnabled: boolean;
   onToggleAutoBackup: (enabled: boolean) => void;
   accountStatus: AccountStatus | null;
@@ -431,7 +433,7 @@ export function SettingsScreen({
         {message && <p className="text-center text-xs text-[#d7b765]">{message}</p>}
 
         <Button variant="secondary" onClick={onBack}>
-          메인 메뉴로
+          {backLabel}
         </Button>
       </div>
 
