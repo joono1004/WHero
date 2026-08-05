@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { DeviceFrame } from "./DeviceFrame.tsx";
 import { GameErrorBoundary } from "./GameErrorBoundary.tsx";
 import { reportClientError } from "./reportError.ts";
 import {
@@ -138,7 +139,11 @@ export function GameEntry() {
     };
   }, [screen.name]);
 
-  return <GameErrorBoundary screen={screen.name}>{renderScreen()}</GameErrorBoundary>;
+  return (
+    <DeviceFrame>
+      <GameErrorBoundary screen={screen.name}>{renderScreen()}</GameErrorBoundary>
+    </DeviceFrame>
+  );
 
   function renderScreen() {
     switch (screen.name) {

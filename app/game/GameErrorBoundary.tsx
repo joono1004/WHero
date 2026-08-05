@@ -33,7 +33,7 @@ export class GameErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="flex h-dvh flex-col items-center justify-center gap-3 bg-[#0b2028] p-4 text-center">
+        <div className="flex h-full flex-col items-center justify-center gap-3 bg-[#0b2028] p-4 text-center">
           <p className="text-sm text-[#c0cbc7]">문제가 발생했습니다.</p>
           <button
             type="button"
