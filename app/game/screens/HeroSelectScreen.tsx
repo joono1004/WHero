@@ -128,7 +128,7 @@ function HeroCard({
           )}
         </div>
 
-        <div className="flex min-w-0 flex-1 flex-col justify-between py-0.5">
+        <div className="flex min-w-0 flex-1 flex-col gap-1.5 py-0.5">
           <dl className="grid grid-cols-2 gap-x-2 gap-y-1.5 text-sm">
             <GradeStat label="통솔" grade={hero.attributes.leadership} />
             <GradeStat label="무력" grade={hero.attributes.force} />
@@ -137,15 +137,13 @@ function HeroCard({
             <GradeStat label="매력" grade={hero.attributes.charisma} />
           </dl>
 
-          <dl className="flex flex-col gap-1 text-sm">
-            <Stat label="병과" value={UNIT_TYPE_LABEL[hero.unitType]} />
-            {domesticEntries.length > 0 && (
-              <Stat
-                label="내정"
-                value={domesticEntries.map(([key, value]) => `${DOMESTIC_LABEL[key]} ${value}`).join(" · ")}
-              />
-            )}
-          </dl>
+          <TextStat label="병과" value={UNIT_TYPE_LABEL[hero.unitType]} />
+          {domesticEntries.length > 0 && (
+            <TextStat
+              label="내정"
+              value={domesticEntries.map(([key, value]) => `${DOMESTIC_LABEL[key]} ${value}`).join(" · ")}
+            />
+          )}
         </div>
       </div>
 
@@ -159,11 +157,14 @@ function HeroCard({
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+// 병과/내정 share the attribute grid's grid-cols-2 column widths so a
+// value here lines up with where the grade column starts above it,
+// instead of being pushed flush against the card's right edge.
+function TextStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex min-w-0 justify-between gap-1">
-      <span className="shrink-0 text-[#8fa6a8]">{label}</span>
-      <span className="truncate font-bold text-[#e3ce94]">{value}</span>
+    <div className="grid grid-cols-2 gap-x-2 text-sm">
+      <span className="text-[#8fa6a8]">{label}</span>
+      <span className="truncate text-left font-bold text-[#e3ce94]">{value}</span>
     </div>
   );
 }
