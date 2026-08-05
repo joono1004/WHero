@@ -84,52 +84,57 @@ function HeroCard({
         color: "inherit",
       }}
     >
-      {/* Reserved for Codex's hero portrait art (see HERO_PORTRAIT) - a
-          hero without an entry yet falls back to a plain placeholder. Sized
-          well above the card's own width so it scrolls (ScreenShell's
-          content area is overflow-y-auto) rather than getting clipped. */}
-      <div
-        className="mx-auto flex items-center justify-center overflow-hidden rounded"
-        style={{ width: 144, height: 144, border: "1px solid #43606a", backgroundColor: "#0b2028" }}
-      >
-        {HERO_PORTRAIT[hero.id] ? (
-          // eslint-disable-next-line @next/next/no-img-element -- local /public asset, same convention as components/world/TestHeroPanel.tsx
-          <img
-            src={HERO_PORTRAIT[hero.id]}
-            alt={`${hero.name} 초상`}
-            className="h-full w-full object-cover"
-          />
-        ) : (
-          <span className="text-5xl text-[#43606a]">🧑</span>
-        )}
-      </div>
-
-      <div className="mt-2 flex items-center justify-between gap-1">
+      <div className="flex items-center justify-between gap-1">
         <h3 className="text-sm font-bold text-[#f3dfaa]">{hero.name}</h3>
         <span className="whitespace-nowrap rounded border border-[#d7b765] px-1 py-0.5 text-[10px] font-bold text-[#d7b765]">
           {grade}급·{ARCHETYPE_LABEL[archetype]}
         </span>
       </div>
+
+      <div className="mt-1 flex items-stretch gap-2">
+        {/* Reserved for Codex's hero portrait art (see HERO_PORTRAIT) - a
+            hero without an entry yet falls back to a plain placeholder.
+            Stretches to match the stat block's height via items-stretch. */}
+        <div
+          className="flex shrink-0 items-center justify-center overflow-hidden rounded"
+          style={{ width: 96, border: "1px solid #43606a", backgroundColor: "#0b2028" }}
+        >
+          {HERO_PORTRAIT[hero.id] ? (
+            // eslint-disable-next-line @next/next/no-img-element -- local /public asset, same convention as components/world/TestHeroPanel.tsx
+            <img
+              src={HERO_PORTRAIT[hero.id]}
+              alt={`${hero.name} 초상`}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <span className="text-4xl text-[#43606a]">🧑</span>
+          )}
+        </div>
+
+        <div className="flex min-w-0 flex-1 flex-col justify-between">
+          <dl className="grid grid-cols-2 gap-x-2 gap-y-0.5 text-xs">
+            <Stat label="통솔" value={hero.attributes.leadership} />
+            <Stat label="무력" value={hero.attributes.force} />
+            <Stat label="지력" value={hero.attributes.intelligence} />
+            <Stat label="체력" value={hero.attributes.vitality} />
+            <Stat label="매력" value={hero.attributes.charisma} />
+          </dl>
+
+          <dl className="grid grid-cols-2 gap-x-2 gap-y-0.5 text-xs">
+            <Stat label="병과" value={UNIT_TYPE_LABEL[hero.unitType]} />
+            {domesticEntries.length > 0 && (
+              <Stat
+                label="내정"
+                value={domesticEntries.map(([key, value]) => `${DOMESTIC_LABEL[key]} ${value}`).join(" · ")}
+              />
+            )}
+          </dl>
+        </div>
+      </div>
+
       <p className="mt-1 line-clamp-2 text-[10px] leading-snug text-[#c0cbc7]">{hero.description}</p>
-
-      <dl className="mt-1 grid grid-cols-2 gap-x-2 gap-y-0.5 text-xs">
-        <Stat label="통솔" value={hero.attributes.leadership} />
-        <Stat label="무력" value={hero.attributes.force} />
-        <Stat label="지력" value={hero.attributes.intelligence} />
-        <Stat label="체력" value={hero.attributes.vitality} />
-        <Stat label="매력" value={hero.attributes.charisma} />
-      </dl>
-
-      {domesticEntries.length > 0 && (
-        <p className="mt-1 truncate text-xs text-[#8fa6a8]">
-          내정: {domesticEntries.map(([key, value]) => `${DOMESTIC_LABEL[key]} ${value}`).join(" · ")}
-        </p>
-      )}
-      <p className="truncate text-xs text-[#8fa6a8]">
-        병과: {UNIT_TYPE_LABEL[hero.unitType]}
-      </p>
       {traitEntries.length > 0 && (
-        <p className="truncate text-xs text-[#8fa6a8]">
+        <p className="mt-1 truncate text-xs text-[#8fa6a8]">
           특기: {traitEntries.map(([key, value]) => `${TRAIT_LABEL[key]} ${value}`).join(" · ")}
         </p>
       )}
@@ -139,9 +144,9 @@ function HeroCard({
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex justify-between">
-      <span className="text-[#8fa6a8]">{label}</span>
-      <span className="font-bold text-[#e3ce94]">{value}</span>
+    <div className="flex min-w-0 justify-between gap-1">
+      <span className="shrink-0 text-[#8fa6a8]">{label}</span>
+      <span className="truncate font-bold text-[#e3ce94]">{value}</span>
     </div>
   );
 }
