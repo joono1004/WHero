@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { GameErrorBoundary } from "./GameErrorBoundary.tsx";
+import { reportClientError } from "./reportError.ts";
 import { createNewSaveGame } from "../../lib/game/new-game.ts";
 import type { SaveGame } from "../../lib/game/save.ts";
 import {
@@ -63,122 +65,155 @@ export function GameEntry() {
     return () => clearTimeout(timeout);
   }, [screen, storage]);
 
-  switch (screen.name) {
-    case "title":
-      return <TitleScreen onStart={() => setScreen({ name: "menu" })} />;
+  // Catches errors outside the render tree (event handlers, timeouts,
+  // rejected promises) that GameErrorBoundary below can't see - it only
+  // catches render-time errors. Re-registered whenever the screen changes
+  // (cheap - just two listeners) so the reported context always names the
+  // screen that was active when the error happened.
+  useEffect(() => {
+    function handleError(event: ErrorEvent) {
+      reportClientError(event.error ?? event.message, {
+        screen: screen.name,
+        action: "window.onerror",
+      });
+    }
+    function handleRejection(event: PromiseRejectionEvent) {
+      reportClientError(event.reason, {
+        screen: screen.name,
+        action: "unhandledrejection",
+      });
+    }
+    window.addEventListener("error", handleError);
+    window.addEventListener("unhandledrejection", handleRejection);
+    return () => {
+      window.removeEventListener("error", handleError);
+      window.removeEventListener("unhandledrejection", handleRejection);
+    };
+  }, [screen.name]);
 
-    case "menu":
-      return (
-        <MainMenuScreen
-          onNewGame={() => setScreen({ name: "faction-name" })}
-          onContinue={() => setScreen({ name: "load-list", slots: storage ? listSaveSlots(storage) : [] })}
-          onSettings={() => window.alert("설정 화면은 아직 만들어지지 않았습니다.")}
-          onExit={() => window.alert("이 창을 닫아 게임을 종료할 수 있습니다.")}
-        />
-      );
+  return <GameErrorBoundary screen={screen.name}>{renderScreen()}</GameErrorBoundary>;
 
-    case "load-list":
-      return (
-        <SaveSlotListScreen
-          slots={screen.slots}
-          onBack={() => setScreen({ name: "menu" })}
-          onLoad={(slotId) => {
-            if (!storage) return;
-            const result = readSaveGame(storage, slotId);
-            if (result.ok) {
-              setScreen({ name: "main", slotId, save: result.save });
-            } else {
-              window.alert("이 저장 데이터를 불러올 수 없습니다 (손상되었거나 지원하지 않는 버전).");
-            }
-          }}
-          onDelete={(slotId) => {
-            if (!storage) return;
-            deleteSaveGame(storage, slotId);
-            setScreen({ name: "load-list", slots: listSaveSlots(storage) });
-          }}
-        />
-      );
+  function renderScreen() {
+    switch (screen.name) {
+      case "title":
+        return <TitleScreen onStart={() => setScreen({ name: "menu" })} />;
 
-    case "faction-name":
-      return (
-        <FactionNameScreen
-          onBack={() => setScreen({ name: "menu" })}
-          onSubmit={(factionName) => setScreen({ name: "hero-select", factionName })}
-        />
-      );
-
-    case "hero-select":
-      return (
-        <HeroSelectScreen
-          onBack={() => setScreen({ name: "faction-name" })}
-          onConfirm={(heroId) => setScreen({ name: "generating", factionName: screen.factionName, heroId })}
-        />
-      );
-
-    case "generating":
-      return <WorldGeneratingScreen />;
-
-    case "main": {
-      const slotId = screen.slotId;
-      const updateSave = (updated: SaveGame) => {
-        if (!storage) return;
-        const withTimestamp = { ...updated, updatedAt: new Date().toISOString() };
-        writeSaveGame(storage, slotId, withTimestamp);
-        setScreen({ name: "main", slotId, save: withTimestamp });
-      };
-
-      if (screen.save.world) {
+      case "menu":
         return (
-          <MapPlayScreen
-            save={screen.save}
-            onExitToMenu={() => setScreen({ name: "menu" })}
-            onCompleteWorld={() => updateSave(completeActiveWorld(screen.save, new Date().toISOString()))}
-            onEndTurn={() => updateSave(endTurn(screen.save, new Date().toISOString()))}
-            onFoundCity={(heroId, position) => {
-              const cityNumber = Object.keys(screen.save.cities).length + 1;
-              try {
-                updateSave(foundCity(screen.save, heroId, position, `주둔지 ${cityNumber}`, new Date().toISOString()));
-              } catch (error) {
-                window.alert(error instanceof Error ? error.message : "주둔지를 건설할 수 없습니다.");
+          <MainMenuScreen
+            onNewGame={() => setScreen({ name: "faction-name" })}
+            onContinue={() => setScreen({ name: "load-list", slots: storage ? listSaveSlots(storage) : [] })}
+            onSettings={() => window.alert("설정 화면은 아직 만들어지지 않았습니다.")}
+            onExit={() => window.alert("이 창을 닫아 게임을 종료할 수 있습니다.")}
+          />
+        );
+
+      case "load-list":
+        return (
+          <SaveSlotListScreen
+            slots={screen.slots}
+            onBack={() => setScreen({ name: "menu" })}
+            onLoad={(slotId) => {
+              if (!storage) return;
+              const result = readSaveGame(storage, slotId);
+              if (result.ok) {
+                setScreen({ name: "main", slotId, save: result.save });
+              } else {
+                window.alert("이 저장 데이터를 불러올 수 없습니다 (손상되었거나 지원하지 않는 버전).");
               }
             }}
-            onStationHero={(heroId, cityId) => {
-              const city = screen.save.cities[cityId];
-              if (!city) return;
-              updateSave({
-                ...screen.save,
-                heroes: screen.save.heroes.map((hero) => (hero.heroId === heroId ? assignHeroToCity(hero, cityId) : hero)),
-                cities: { ...screen.save.cities, [cityId]: { ...city, heroId } },
-              });
-            }}
-            onCaptureCity={(cityId) => {
-              try {
-                updateSave(captureEnemyCity(screen.save, cityId, PLAYER_FACTION_ID, new Date().toISOString()));
-              } catch (error) {
-                window.alert(error instanceof Error ? error.message : "도시를 점령할 수 없습니다.");
-              }
-            }}
-            onSurrenderFaction={(factionId) => {
-              try {
-                updateSave(surrenderRivalFaction(screen.save, factionId, new Date().toISOString()));
-              } catch (error) {
-                window.alert(error instanceof Error ? error.message : "세력을 항복시킬 수 없습니다.");
-              }
+            onDelete={(slotId) => {
+              if (!storage) return;
+              deleteSaveGame(storage, slotId);
+              setScreen({ name: "load-list", slots: listSaveSlots(storage) });
             }}
           />
         );
-      }
 
-      return (
-        <GameLobbyScreen
-          save={screen.save}
-          onExitToMenu={() => setScreen({ name: "menu" })}
-          onUpdateSave={updateSave}
-          onEnterCandidate={(candidateIndex, enlistedHeroIds) =>
-            updateSave(enterMapCandidate(screen.save, candidateIndex, enlistedHeroIds, new Date().toISOString()))
-          }
-        />
-      );
+      case "faction-name":
+        return (
+          <FactionNameScreen
+            onBack={() => setScreen({ name: "menu" })}
+            onSubmit={(factionName) => setScreen({ name: "hero-select", factionName })}
+          />
+        );
+
+      case "hero-select":
+        return (
+          <HeroSelectScreen
+            onBack={() => setScreen({ name: "faction-name" })}
+            onConfirm={(heroId) => setScreen({ name: "generating", factionName: screen.factionName, heroId })}
+          />
+        );
+
+      case "generating":
+        return <WorldGeneratingScreen />;
+
+      case "main": {
+        const slotId = screen.slotId;
+        const updateSave = (updated: SaveGame) => {
+          if (!storage) return;
+          const withTimestamp = { ...updated, updatedAt: new Date().toISOString() };
+          writeSaveGame(storage, slotId, withTimestamp);
+          setScreen({ name: "main", slotId, save: withTimestamp });
+        };
+
+        if (screen.save.world) {
+          return (
+            <MapPlayScreen
+              save={screen.save}
+              onExitToMenu={() => setScreen({ name: "menu" })}
+              onCompleteWorld={() => updateSave(completeActiveWorld(screen.save, new Date().toISOString()))}
+              onEndTurn={() => updateSave(endTurn(screen.save, new Date().toISOString()))}
+              onFoundCity={(heroId, position) => {
+                const cityNumber = Object.keys(screen.save.cities).length + 1;
+                try {
+                  updateSave(foundCity(screen.save, heroId, position, `주둔지 ${cityNumber}`, new Date().toISOString()));
+                } catch (error) {
+                  reportClientError(error, { screen: screen.name, action: "onFoundCity" });
+                  window.alert(error instanceof Error ? error.message : "주둔지를 건설할 수 없습니다.");
+                }
+              }}
+              onStationHero={(heroId, cityId) => {
+                const city = screen.save.cities[cityId];
+                if (!city) return;
+                updateSave({
+                  ...screen.save,
+                  heroes: screen.save.heroes.map((hero) => (hero.heroId === heroId ? assignHeroToCity(hero, cityId) : hero)),
+                  cities: { ...screen.save.cities, [cityId]: { ...city, heroId } },
+                });
+              }}
+              onCaptureCity={(cityId) => {
+                try {
+                  updateSave(captureEnemyCity(screen.save, cityId, PLAYER_FACTION_ID, new Date().toISOString()));
+                } catch (error) {
+                  reportClientError(error, { screen: screen.name, action: "onCaptureCity" });
+                  window.alert(error instanceof Error ? error.message : "도시를 점령할 수 없습니다.");
+                }
+              }}
+              onSurrenderFaction={(factionId) => {
+                try {
+                  updateSave(surrenderRivalFaction(screen.save, factionId, new Date().toISOString()));
+                } catch (error) {
+                  reportClientError(error, { screen: screen.name, action: "onSurrenderFaction" });
+                  window.alert(error instanceof Error ? error.message : "세력을 항복시킬 수 없습니다.");
+                }
+              }}
+            />
+          );
+        }
+
+        return (
+          <GameLobbyScreen
+            save={screen.save}
+            onExitToMenu={() => setScreen({ name: "menu" })}
+            onUpdateSave={updateSave}
+            onEnterCandidate={(candidateIndex, enlistedHeroIds) =>
+              updateSave(enterMapCandidate(screen.save, candidateIndex, enlistedHeroIds, new Date().toISOString()))
+            }
+          />
+        );
+      }
     }
   }
 }

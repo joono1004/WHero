@@ -293,3 +293,19 @@ Hero Story, 약어: 영스)**로 확정했습니다. 기존 "World in Hero"는 �
 
 검증: `pnpm run build` 성공, `tests/rendered-html.test.mjs` 2/2 통과,
 `pnpm run test:game` 311/311 통과.
+
+### 클라이언트 오류 로깅 신설 (2026-08-05)
+
+`app/game/**`에 클라이언트 오류를 Vercel Runtime Logs로 보내는 경량 로깅을
+추가했습니다 (`app/api/log-error/route.ts` + `app/game/reportError.ts` +
+`app/game/GameErrorBoundary.tsx`). 사용자에게는 안 보이고, Vercel 대시보드
+Observability/Logs 탭에서 `client-error`로 검색하면 실제 플레이 중 난
+오류를 볼 수 있습니다. 자세한 내용은 `docs/SYSTEM_LAYER.md`의 "클라이언트
+오류 로깅 시스템 신설" 항목 참고.
+
+**Codex 참고**: `/world-lab` 프로토타입에는 아직 안 붙였습니다 - 지형
+생성/렌더링 쪽에서도 같은 방식으로 오류를 잡고 싶으면
+`app/game/reportError.ts`의 `reportClientError(error, {screen, action})`을
+그대로 가져다 쓰시면 됩니다 (Claude 소유 파일이지만 순수 유틸 함수라
+import해서 쓰는 건 문제없음 - 굳이 이 함수를 별도 공용 위치로 옮기고
+싶으면 그것도 괜찮습니다).

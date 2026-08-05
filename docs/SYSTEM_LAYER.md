@@ -978,6 +978,42 @@
   내부 패키지명과 이력 문서의 옛 이름 언급은 의도적으로 유지.
   검증: 전체 311개 테스트 통과, 렌더링 테스트 2/2 통과, 빌드 성공.
 
+- **클라이언트 오류 로깅 시스템 신설 (2026-08-05)**: 사용자가 플레이/테스트
+  중 발생하는 오류를 사용자에게는 안 보이면서 개발자(사용자+Claude+Codex)만
+  나중에 확인할 수 있게 해달라고 요청. 게임 로직이 거의 전부 브라우저에서
+  돌아가는 구조(서버/DB 없음, `docs/DEPLOYMENT_MIGRATION.md` 참고)라 서버
+  로그만으로는 클라이언트 오류를 못 잡는다는 문제를 해결하기 위해, 클라이언트
+  오류를 서버로 보내서 Vercel Runtime Logs(대시보드의 Observability 탭)에
+  찍히게 하는 방식을 택함 - 새 외부 서비스 계정 없이 이미 연결된 Vercel만
+  사용.
+  - `app/api/log-error/route.ts` (신규): 클라이언트가 POST하는 오류를
+    받아서 `console.error`로 한 줄 JSON을 찍기만 하는 라우트. 자체 저장소
+    없음 - Vercel이 이미 로그를 보관/조회해줌.
+  - `app/game/reportError.ts` (신규): `reportClientError(error, {screen,
+    action})` - 위 라우트로 best-effort beacon 전송(`keepalive: true`,
+    실패해도 절대 다시 throw 안 함).
+  - `app/game/GameErrorBoundary.tsx` (신규): 렌더링 중 에러를 잡는 React
+    Error Boundary. 잡히면 오류를 보고하고, 흰 화면 대신 "문제가
+    발생했습니다 + 새로고침" 버튼을 보여줌 - 베타 테스트 중 UX도 같이
+    개선.
+  - `GameEntry.tsx`: `window.onerror`/`unhandledrejection` 전역 리스너 추가
+    (렌더링 밖에서 나는 에러까지 커버), 전체 화면을 `GameErrorBoundary`로
+    감쌈, 기존에 `catch`해서 `window.alert`만 띄우던 3곳(도시 건설/점령/
+    항복)에도 `reportClientError` 호출 추가 - 사용자에게 안내는 그대로
+    뜨되 이제 로그에도 남음.
+  - **주의**: `useEffect` 밖(렌더 중)에서 `ref.current`를 직접 수정하는
+    코드를 처음에 짰다가 `react-hooks/refs` 린트 에러가 나서(정확히
+    `app/world-prototype.tsx`에 있던 것과 같은 문제) - ref 없이 매
+    화면전환마다 리스너를 다시 등록하는 방식으로 교체함(리스너 2개
+    추가/제거뿐이라 비용 거의 없음).
+  - 검증: `curl`로 `/api/log-error`에 직접 POST해서 로컬 dev 서버 터미널에
+    `[client-error] {...}` 한 줄로 찍히는 것까지 실제 확인. 전체 311개
+    테스트, 렌더링 테스트 2/2, 빌드/린트(기존 사전 존재 문제 10개 제외)
+    전부 통과.
+  - **사용자 확인 방법**: Vercel 대시보드 → 프로젝트 → **Observability**
+    (또는 Logs) 탭에서 `client-error`로 검색하면 실제 플레이 중 난 오류를
+    볼 수 있음.
+
 ## 진행 상황
 
 - [x] 1. 시스템 코드 폴더 구조 및 기본 타입 스캐폴딩 — `lib/game/hex.ts` +
