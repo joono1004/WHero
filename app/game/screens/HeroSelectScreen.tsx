@@ -127,23 +127,25 @@ function HeroCard({
         </div>
 
         <div className="flex min-w-0 flex-1 items-center py-0.5">
-          {/* 병과/내정 are items of this same grid, not a separate block -
-              col-start-1 forces each onto a fresh row (CSS grid auto-flow
-              can't back-fill column 1 once 매력 has taken row 3's column 1,
-              so it advances instead), landing them in the exact column the
-              grade values sit in above, with column 2 left blank. */}
+          {/* 병과/특기/스킬 are items of this same grid, not a separate block -
+              col-span-2 makes each take the full row width (and, as a side
+              effect, forces itself onto a fresh row, since a span-2 item
+              can't share a row with anything in a 2-column grid) so their
+              value has the whole card width to breathe in instead of being
+              squeezed into column 1 alone with column 2 sitting empty next
+              to it. */}
           <dl className="grid w-full grid-cols-2 gap-x-2 gap-y-1.5 text-sm">
             <GradeStat label="통솔" grade={hero.attributes.leadership} />
             <GradeStat label="무력" grade={hero.attributes.force} />
             <GradeStat label="지력" grade={hero.attributes.intelligence} />
             <GradeStat label="체력" grade={hero.attributes.vitality} />
             <GradeStat label="매력" grade={hero.attributes.charisma} />
-            <TextStat className="col-start-1" label="병과" value={UNIT_TYPE_LABEL[hero.unitType]} />
+            <TextStat className="col-span-2" label="병과" value={UNIT_TYPE_LABEL[hero.unitType]} />
             {traitNames.length > 0 && (
-              <TextStat className="col-start-1" label="특기" value={traitNames.join(" · ")} />
+              <TextStat className="col-span-2" label="특기" value={traitNames.join(" · ")} />
             )}
             {skillNames.length > 0 && (
-              <TextStat className="col-start-1" label="스킬" value={skillNames.join(" · ")} />
+              <TextStat className="col-span-2" label="스킬" value={skillNames.join(" · ")} />
             )}
           </dl>
         </div>
