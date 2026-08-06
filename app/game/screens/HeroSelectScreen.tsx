@@ -4,7 +4,6 @@ import { useState } from "react";
 import { heroArchetype, heroOverallGrade } from "../../../lib/game/hero-definition.ts";
 import type { HeroDefinition } from "../../../lib/game/hero-definition.ts";
 import type { CoreGrade } from "../../../lib/game/grade.ts";
-import { HERO_SKILL_CATALOG } from "../../../lib/game/hero-skill.ts";
 import { HERO_TRAIT_CATALOG, MAX_HERO_TRAITS } from "../../../lib/game/hero-trait.ts";
 import type { HeroId } from "../../../lib/game/ids.ts";
 import { STARTING_HEROES } from "../../../lib/game/starting-heroes.ts";
@@ -79,7 +78,6 @@ function HeroCard({
 }) {
   const grade = heroOverallGrade(hero.attributes);
   const archetype = heroArchetype(hero.attributes);
-  const skillNames = hero.skills.map((skillId) => HERO_SKILL_CATALOG[skillId].name);
 
   return (
     <button
@@ -126,25 +124,19 @@ function HeroCard({
         </div>
 
         <div className="flex min-w-0 flex-1 items-center py-0.5">
-          {/* 병과/스킬 are items of this same grid, not a separate block -
-              col-span-2 makes each take the full row width (and, as a side
-              effect, forces itself onto a fresh row, since a span-2 item
-              can't share a row with anything in a 2-column grid) so their
-              value has the whole card width to breathe in instead of being
-              squeezed into column 1 alone with column 2 sitting empty next
-              to it. 특기 used to live here too, but moved below into its own
-              fixed-slot row (2026-08-xx) - it no longer stretches the
-              portrait's height along with the grade stats. */}
+          {/* 병과 falls into column 2 of 매력's row by plain grid auto-flow
+              (no col-start/col-span override) - it's the 6th item in a
+              2-column grid, so it lands right beside 매력 instead of on its
+              own row. 스킬 doesn't appear on this card at all right now
+              (2026-08-xx: still deciding how to display it - see
+              HeroDetailScreen for the only place it currently shows). */}
           <dl className="grid w-full grid-cols-2 gap-x-2 gap-y-1.5 text-sm">
             <GradeStat label="통솔" grade={hero.attributes.leadership} />
             <GradeStat label="무력" grade={hero.attributes.force} />
             <GradeStat label="지력" grade={hero.attributes.intelligence} />
             <GradeStat label="체력" grade={hero.attributes.vitality} />
             <GradeStat label="매력" grade={hero.attributes.charisma} />
-            <TextStat className="col-span-2" label="병과" value={UNIT_TYPE_LABEL[hero.unitType]} />
-            {skillNames.length > 0 && (
-              <TextStat className="col-span-2" label="스킬" value={skillNames.join(" · ")} />
-            )}
+            <TextStat label="병과" value={UNIT_TYPE_LABEL[hero.unitType]} />
           </dl>
         </div>
       </div>
@@ -178,9 +170,10 @@ function HeroCard({
 }
 
 // Mirrors GradeStat's own label/value layout exactly (not a 2-column grid
-// of its own) so 병과/특기's value lands at the same x as the grade
-// letters above - both are just "label, then justify-between value" inside
-// a single grid cell of the same width.
+// of its own) so 병과's value lands at the same x as the grade letters
+// above - both are just "label, then justify-between value" inside a
+// single grid cell of the same width. className is only used by callers
+// that need to override grid placement (none currently do).
 function TextStat({ label, value, className }: { label: string; value: string; className?: string }) {
   return (
     <div className={`flex min-w-0 items-center justify-between gap-1${className ? ` ${className}` : ""}`}>
