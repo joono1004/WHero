@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { PLAYER_FACTION_ID } from "../../../lib/game/faction.ts";
 import type { Faction } from "../../../lib/game/faction.ts";
 import { appointGovernor } from "../../../lib/game/governor.ts";
@@ -15,8 +16,8 @@ import { upgradeResearch } from "../../../lib/game/research.ts";
 import type { ResearchCategory } from "../../../lib/game/research.ts";
 import type { SaveGame } from "../../../lib/game/save.ts";
 import { MAX_ENLISTED_HEROES } from "../../../lib/game/world-entry.ts";
-import type { MapTierId, MapTypeId } from "../../../lib/game/world.ts";
-import { MAP_TIER_INFO, MAP_TIER_ORDER, MAP_TYPE_INFO } from "../../../lib/game/world.ts";
+import type { MapTypeId } from "../../../lib/game/world.ts";
+import { MAP_TIER_INFO, MAP_TYPE_INFO } from "../../../lib/game/world.ts";
 import { Button } from "../Button.tsx";
 import { GRADE_COLOR } from "../gradeColors.ts";
 import { HERO_PORTRAIT } from "../heroPortraits.ts";
@@ -241,30 +242,47 @@ export function GameLobbyScreen({
             backgroundImage: "linear-gradient(180deg, rgba(215,183,101,0.14), rgba(215,183,101,0.02))",
           }}
         >
-          <div className="flex items-center justify-self-start">
-            <span className="text-xs font-bold text-[#f3dfaa]">{save.factionName}</span>
+          <div className="flex items-center gap-1.5 justify-self-start">
+            {/* 참고 이미지의 세력 초상 배지 자리 - 실제 세력 문장/초상 아트는
+                아직 없어서 방패 이모지로 대체 (2026-08-06). */}
             <span
-              className="ml-1 rounded-full px-1.5 py-0.5 text-[9px] font-bold"
-              style={{ border: "1px solid #d7b765", backgroundColor: "rgba(215,183,101,0.15)", color: "#d7b765" }}
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs"
+              style={{ border: "2px solid #d7b765", backgroundColor: "#0b2028" }}
             >
-              정복 세계 {clearedWorlds.length}
+              🛡️
             </span>
+            <div>
+              <span className="text-xs font-bold text-[#f3dfaa]">{save.factionName}</span>
+              <span
+                className="ml-1 rounded-full px-1.5 py-0.5 text-[9px] font-bold"
+                style={{ border: "1px solid #d7b765", backgroundColor: "rgba(215,183,101,0.15)", color: "#d7b765" }}
+              >
+                정복 세계 {clearedWorlds.length}
+              </span>
+            </div>
           </div>
           <span className="hidden justify-self-center text-[10px] tracking-[0.2em] text-[#8fa6a8] sm:block">
             HERO STORY
           </span>
           {/* 영주 배치로 얻는 자원 (2026-08-06 방향) - 실시간 생산 로직은
               아직 미구현이라 지금은 항상 0/0이지만, FactionResources에 실제
-              필드가 있으니 나중에 생산이 붙으면 이 칩들이 자동으로 반영됨. */}
+              필드가 있으니 나중에 생산이 붙으면 이 칩들이 자동으로 반영됨.
+              아이콘을 작은 원형 배지로 감싸서(참고 이미지의 자원 아이콘
+              스타일) 텍스트 옆 이모지보다 무게감 있게 보이도록 함. */}
           <div className="flex items-center justify-self-end gap-1.5">
             <div className="flex gap-1">
               {RESOURCE_CHIPS.map(({ key, icon, tint }) => (
                 <span
                   key={key}
-                  className="flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-bold"
-                  style={{ border: `1px solid ${tint}66`, backgroundColor: `${tint}1a`, color: tint }}
+                  className="flex items-center gap-1 rounded-full py-0.5 pr-1.5 pl-0.5 text-[9px] font-bold"
+                  style={{ border: `1px solid ${tint}66`, backgroundColor: `${tint}14`, color: tint }}
                 >
-                  <span>{icon}</span>
+                  <span
+                    className="flex h-3.5 w-3.5 items-center justify-center rounded-full text-[9px]"
+                    style={{ backgroundColor: `${tint}33`, border: `1px solid ${tint}` }}
+                  >
+                    {icon}
+                  </span>
                   <span>{resources?.[key] ?? 0}</span>
                 </span>
               ))}
@@ -318,16 +336,16 @@ export function GameLobbyScreen({
                 key={index}
                 onClick={() => setShowHeroRoster(true)}
                 aria-label="영웅 로스터 열기"
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm"
-                style={{
-                  border: "2px dashed #3a4f52",
-                  backgroundColor: "transparent",
-                  backgroundImage: "none",
-                  color: "#5c7276",
-                  cursor: "pointer",
-                }}
+                className="flex shrink-0 flex-col items-center gap-0.5"
+                style={{ border: "none", background: "none", backgroundImage: "none", padding: 0, cursor: "pointer" }}
               >
-                🔒
+                <span
+                  className="flex h-8 w-8 items-center justify-center rounded-full text-sm"
+                  style={{ border: "2px dashed #3a4f52", color: "#5c7276" }}
+                >
+                  ➕
+                </span>
+                <span className="text-[8px] text-[#5c7276]">빈 자리</span>
               </button>
             ),
           )}
@@ -361,49 +379,67 @@ export function GameLobbyScreen({
   );
 }
 
+// Icon sits in its own small tile, label below outside the tile - mirrors
+// the reference image's menu icons (a distinct icon badge + a caption under
+// it) rather than icon+label sharing one bordered box.
 function MenuBarButton({ icon, label, onClick }: { icon: string; label: string; onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      className="flex shrink-0 flex-col items-center justify-center gap-0.5 rounded-md px-2.5 py-1"
+      className="flex shrink-0 flex-col items-center gap-0.5"
       style={{
-        border: "1px solid #43606a",
-        backgroundImage: "linear-gradient(180deg, #1c3b44, #132a31)",
-        backgroundColor: "transparent",
+        border: "none",
+        background: "none",
+        backgroundImage: "none",
+        padding: 0,
         color: "#c0cbc7",
         fontWeight: 400,
         cursor: "pointer",
       }}
     >
-      <span className="text-sm leading-none">{icon}</span>
+      <span
+        className="flex h-8 w-8 items-center justify-center rounded-lg text-base"
+        style={{
+          border: "1px solid #bd9b4c",
+          backgroundImage: "linear-gradient(160deg, #2c4a40, #16302b)",
+          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.08)",
+        }}
+      >
+        {icon}
+      </span>
       <span className="text-[9px] font-bold">{label}</span>
     </button>
   );
 }
 
+// Name label under the portrait (2026-08-06, matching the reference
+// image's named formation avatars) - previously just a bare portrait with
+// a hover title.
 function FormationSlot({ entry, onClick }: { entry: HeroListEntry; onClick: () => void }) {
   const grade = heroOverallGrade(entry.definition.attributes);
   const portraitUrl = HERO_PORTRAIT[entry.definition.id];
   return (
     <button
       onClick={onClick}
-      title={entry.definition.name}
-      className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full"
-      style={{
-        border: `2px solid ${GRADE_COLOR[grade]}`,
-        backgroundColor: "#0b2028",
-        backgroundImage: "none",
-        boxShadow: `0 0 6px ${GRADE_COLOR[grade]}77`,
-        padding: 0,
-        cursor: "pointer",
-      }}
+      className="flex shrink-0 flex-col items-center gap-0.5"
+      style={{ border: "none", background: "none", backgroundImage: "none", padding: 0, cursor: "pointer" }}
     >
-      {portraitUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element -- local /public asset, same convention as HeroSelectScreen.tsx
-        <img src={portraitUrl} alt={`${entry.definition.name} 초상`} className="h-full w-full object-cover" />
-      ) : (
-        <span className="text-sm text-[#43606a]">🧑</span>
-      )}
+      <span
+        className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full"
+        style={{
+          border: `2px solid ${GRADE_COLOR[grade]}`,
+          backgroundColor: "#0b2028",
+          boxShadow: `0 0 6px ${GRADE_COLOR[grade]}77`,
+        }}
+      >
+        {portraitUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element -- local /public asset, same convention as HeroSelectScreen.tsx
+          <img src={portraitUrl} alt={`${entry.definition.name} 초상`} className="h-full w-full object-cover" />
+        ) : (
+          <span className="text-sm text-[#43606a]">🧑</span>
+        )}
+      </span>
+      <span className="max-w-10 truncate text-[8px] font-bold text-[#c0cbc7]">{entry.definition.name}</span>
     </button>
   );
 }
@@ -430,6 +466,48 @@ function RailArrowButton({ direction, onClick }: { direction: "left" | "right"; 
   );
 }
 
+// Shared card shell (2026-08-06, matching a reference screenshot the user
+// shared: cleared-world and new-candidate cards are all the same size/
+// format there, differing only by content/status text, not by size or
+// prominence tier - previously cleared-world chips were a visibly smaller,
+// muted "second class" card). `highlight` gives the gold, glowing border
+// reserved for cards the player can act on right now (an ungoverned
+// cleared world, or any new candidate); a governed world (nothing left to
+// do here) gets the plain muted border instead.
+function WorldCardShell({
+  highlight,
+  onClick,
+  children,
+}: {
+  highlight: boolean;
+  onClick?: () => void;
+  children: ReactNode;
+}) {
+  const style: CSSProperties = {
+    border: `1px solid ${highlight ? "#bd9b4c" : "#43606a"}`,
+    backgroundImage: "linear-gradient(160deg, #24404a, #142a30)",
+    boxShadow: highlight
+      ? "0 4px 14px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.05)"
+      : "0 2px 8px rgba(0,0,0,0.3)",
+  };
+  if (!onClick) {
+    return (
+      <div className="flex w-36 shrink-0 flex-col overflow-hidden rounded-lg" style={style}>
+        {children}
+      </div>
+    );
+  }
+  return (
+    <button
+      onClick={onClick}
+      className="flex w-36 shrink-0 flex-col overflow-hidden rounded-lg text-left"
+      style={{ ...style, backgroundColor: "transparent", color: "inherit", fontWeight: 400, cursor: "pointer" }}
+    >
+      {children}
+    </button>
+  );
+}
+
 // A cleared world's chip in the history rail - the rail grows to the left
 // as more worlds are cleared (oldest first, newest sitting right next to
 // the current candidates), with < >/drag navigation for older entries once
@@ -447,56 +525,22 @@ function ClearedWorldChip({
   const tierInfo = MAP_TIER_INFO[record.generation.mapTier];
   const isGoverned = record.governorHeroId !== null;
 
-  const body = (
-    <>
-      {/* Codex 지형 아트 자리 (2026-08-06) - 티어가 높을수록 살짝 커지도록
-          해서 "정복한 세계가 많을수록 큰 세계가 보인다"는 방향을 아트가
-          없는 지금도 시각적으로 어느 정도 드러나게 함. 실제 지형 이미지가
-          들어오면 이 자리를 그대로 배경/썸네일로 교체하면 됨. 히스토리
-          항목이라 활성 후보(TerrainOrb의 muted=false)보다 살짝 흐리게. */}
-      <TerrainOrb mapType={record.generation.mapType} tier={record.generation.mapTier} muted />
-      <p className="mt-1 truncate font-bold text-[#c0cbc7]">{worldLabel(record)}</p>
-      <p className="truncate text-[#8fa6a8]">
-        {typeInfo.label} · {tierInfo.label}
-      </p>
-      <p className="mt-0.5 whitespace-nowrap text-[#5f7a80]">정복 완료</p>
-      {isGoverned ? (
-        <p className="mt-0.5 truncate text-[#d9bd74]">영주 있음</p>
-      ) : (
-        <p className="mt-0.5 whitespace-nowrap text-[#6ea8e0]">임명 가능</p>
-      )}
-    </>
-  );
-
-  if (isGoverned) {
-    return (
-      <div
-        className="flex w-28 shrink-0 flex-col justify-start rounded-lg p-2 text-[9px]"
-        style={{
-          border: "1px solid #43606a",
-          backgroundImage: "linear-gradient(160deg, #1a3439, #0f262c)",
-          color: "#8fa6a8",
-        }}
-      >
-        {body}
-      </div>
-    );
-  }
-
   return (
-    <button
-      onClick={onAppointGovernor}
-      className="flex w-28 shrink-0 flex-col justify-start rounded-lg p-2 text-left text-[9px]"
-      style={{
-        border: "1px solid #43606a",
-        backgroundImage: "linear-gradient(160deg, #1a3439, #0f262c)",
-        color: "#8fa6a8",
-        fontWeight: 400,
-        cursor: "pointer",
-      }}
-    >
-      {body}
-    </button>
+    <WorldCardShell highlight={!isGoverned} onClick={isGoverned ? undefined : onAppointGovernor}>
+      <TerrainArt mapType={record.generation.mapType} muted={isGoverned} />
+      <div className="p-2 text-[9px]" style={{ color: "#8fa6a8" }}>
+        <p className="truncate font-bold text-[#c0cbc7]">{worldLabel(record)}</p>
+        <p className="truncate">
+          {typeInfo.label} · {tierInfo.label}
+        </p>
+        <p className="mt-0.5 whitespace-nowrap text-[#5f7a80]">정복 완료</p>
+        {isGoverned ? (
+          <p className="mt-0.5 truncate text-[#d9bd74]">영주 있음</p>
+        ) : (
+          <p className="mt-0.5 whitespace-nowrap text-[#6ea8e0]">임명 가능</p>
+        )}
+      </div>
+    </WorldCardShell>
   );
 }
 
@@ -507,59 +551,44 @@ function MapCandidateCard({ candidate, onEnter }: { candidate: MapCandidate; onE
   const typeInfo = MAP_TYPE_INFO[candidate.generation.mapType];
   const tierInfo = MAP_TIER_INFO[candidate.generation.mapTier];
   return (
-    <div
-      className="flex w-40 shrink-0 flex-col justify-between rounded-lg p-2"
-      style={{
-        border: "1px solid #bd9b4c",
-        backgroundImage: "linear-gradient(160deg, #24404a, #142a30)",
-        boxShadow: "0 4px 14px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.05)",
-      }}
-    >
-      <div>
-        <div className="flex justify-center">
-          <TerrainOrb mapType={candidate.generation.mapType} tier={candidate.generation.mapTier} />
+    <WorldCardShell highlight>
+      <TerrainArt mapType={candidate.generation.mapType} />
+      <div className="flex flex-1 flex-col justify-between p-2">
+        <div>
+          <p className="text-center text-xs font-bold text-[#f3dfaa]">{typeInfo.label}</p>
+          <p className="mt-0.5 text-center text-[9px] text-[#8fa6a8]">{typeInfo.description}</p>
         </div>
-        <p className="mt-1 text-center text-xs font-bold text-[#f3dfaa]">{typeInfo.label}</p>
-        <p className="mt-0.5 text-center text-[9px] text-[#8fa6a8]">{typeInfo.description}</p>
+        <div className="mt-2 text-[9px] text-[#c0cbc7]">
+          <p>
+            세계 {candidate.worldIndex} · {tierInfo.label}
+          </p>
+          <p>적 세력 {tierInfo.factions}개</p>
+        </div>
+        <Button size="sm" className="mt-2" onClick={onEnter}>
+          이 세계로 진출
+        </Button>
       </div>
-      <div className="mt-2 text-[9px] text-[#c0cbc7]">
-        <p>
-          세계 {candidate.worldIndex} · {tierInfo.label}
-        </p>
-        <p>적 세력 {tierInfo.factions}개</p>
-      </div>
-      <Button size="sm" className="mt-2" onClick={onEnter}>
-        이 세계로 진출
-      </Button>
-    </div>
+    </WorldCardShell>
   );
 }
 
 // Reserved space for Codex's per-region terrain art (2026-08-06 lobby
 // redesign direction - "처음 로비에 왔을때는... 평지의 소형 지형 이미지가
-// 보일꺼야", real art itself TBD - see docs/CLAUDE_HANDOFF.md). Until then,
-// a glowing "world orb" (radial-gradient tint + a type-matching emoji) reads
-// far more like a game map-select node than a plain dashed placeholder box
-// did (2026-08-06 "게임스럽게" visual pass, user feedback that the screen
-// read as an admin panel). Grows a little with map tier so "bigger tier =
-// bigger world" shows even without real art. `muted` dims it for the
-// cleared-world history rail, where it's a record rather than an active
-// choice.
-function TerrainOrb({ mapType, tier, muted = false }: { mapType: MapTypeId; tier: MapTierId; muted?: boolean }) {
-  const tierIndex = MAP_TIER_ORDER.indexOf(tier);
-  const size = 56 + tierIndex * 8;
+// 보일꺼야", real art itself TBD - see docs/CLAUDE_HANDOFF.md). A full-width
+// panel across the top of the card (not a small centered circle) so it
+// reads as a thumbnail/art frame the way the reference screenshot's world
+// cards do - once Codex has real art, this is the spot it replaces. `muted`
+// dims it for the cleared-world history rail once a world is governed
+// (nothing left to act on there).
+function TerrainArt({ mapType, muted = false }: { mapType: MapTypeId; muted?: boolean }) {
   const tint = MAP_TYPE_TINT[mapType];
   return (
     <div
-      className="mx-auto flex items-center justify-center rounded-full"
+      className="flex h-16 items-center justify-center text-3xl"
       style={{
-        width: size,
-        height: size,
-        fontSize: size * 0.4,
-        backgroundImage: `radial-gradient(circle at 35% 30%, ${tint}${muted ? "33" : "66"}, #0b2028 75%)`,
-        border: `2px solid ${muted ? `${tint}66` : tint}`,
-        boxShadow: muted ? "none" : `0 0 12px ${tint}66`,
-        opacity: muted ? 0.75 : 1,
+        backgroundImage: `radial-gradient(circle at 30% 25%, ${tint}${muted ? "33" : "55"}, #0b2028 80%)`,
+        borderBottom: `2px solid ${muted ? `${tint}66` : tint}`,
+        opacity: muted ? 0.8 : 1,
       }}
     >
       {MAP_TYPE_ICON[mapType]}
