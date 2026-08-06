@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import type { MouseEvent } from "react";
 import { heroArchetype, heroOverallGrade } from "../../../lib/game/hero-definition.ts";
 import type { HeroDefinition } from "../../../lib/game/hero-definition.ts";
 import type { CoreGrade } from "../../../lib/game/grade.ts";
+import { HERO_SKILL_CATALOG } from "../../../lib/game/hero-skill.ts";
 import { HERO_TRAIT_CATALOG, MAX_HERO_TRAITS } from "../../../lib/game/hero-trait.ts";
 import type { HeroId } from "../../../lib/game/ids.ts";
 import { STARTING_HEROES } from "../../../lib/game/starting-heroes.ts";
@@ -90,18 +92,29 @@ function HeroCard({
 }) {
   const grade = heroOverallGrade(hero.attributes);
   const archetype = heroArchetype(hero.attributes);
+  const [skillModalOpen, setSkillModalOpen] = useState(false);
 
   return (
-    <button
+    // Was a <button> - switched to a div (role="button" for the same a11y
+    // semantics + keyboard activation) because it now needs to contain a
+    // real nested <button> (스킬), and a <button> can't legally contain
+    // another interactive control.
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onSelect}
-      className="text-left transition-colors"
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onSelect();
+        }
+      }}
+      className="cursor-pointer text-left transition-colors"
       style={{
         borderRadius: 8,
         border: `1px solid ${selected ? "#d7b765" : "#43606a"}`,
         backgroundColor: selected ? "#1c3b44" : "#17343e",
-        backgroundImage: "none",
         padding: "0.45rem 0.7rem 0.55rem",
-        fontWeight: 400,
         color: "inherit",
       }}
     >
@@ -168,7 +181,32 @@ function HeroCard({
       </div>
 
       <div className="mt-1.5">
-        <p className="text-xs font-bold text-[#8fa6a8]">특기</p>
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-bold text-[#8fa6a8]">특기</p>
+          {hero.skills.length > 0 && (
+            <button
+              onClick={(event) => {
+                // Stop the click from also bubbling to the card's onSelect -
+                // opening the skill popup shouldn't also select the hero.
+                event.stopPropagation();
+                setSkillModalOpen(true);
+              }}
+              className="whitespace-nowrap text-[10px]"
+              style={{
+                borderRadius: 4,
+                border: "1px solid #6ea8e0",
+                padding: "0.0625rem 0.375rem",
+                backgroundColor: "transparent",
+                backgroundImage: "none",
+                color: "#6ea8e0",
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
+            >
+              스킬
+            </button>
+          )}
+        </div>
         <div className="mt-1 flex gap-1">
           {/* Fixed MAX_HERO_TRAITS slots, always all shown - a hero with
               fewer traits than the max just shows locked slots after their
@@ -191,7 +229,80 @@ function HeroCard({
       </div>
 
       <p className="mt-1.5 line-clamp-3 text-xs leading-relaxed text-[#c0cbc7]">{hero.description}</p>
-    </button>
+
+      {skillModalOpen && (
+        <SkillModal
+          hero={hero}
+          onClose={(event) => {
+            event.stopPropagation();
+            setSkillModalOpen(false);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+// Popup, not a screen change - covers the whole game box (not just this
+// card) via position:absolute + inset-0, resolving against DeviceFrame's
+// own position:relative box (the nearest positioned ancestor up the tree),
+// so it reads as "on top of" the hero-select screen the same way a native
+// modal would, on both the desktop preview box and a real phone. 애니메이션
+// (전투 중 스킬 사용 연출) 자리는 지금은 빈 placeholder - Codex와 나중에
+// 채울 예정 (2026-08-xx).
+function SkillModal({ hero, onClose }: { hero: HeroDefinition; onClose: (event: MouseEvent) => void }) {
+  return (
+    <div
+      className="absolute inset-0 z-50 flex items-center justify-center p-3"
+      style={{ backgroundColor: "rgba(6,16,20,0.75)" }}
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-[280px] text-left text-sm"
+        style={{ borderRadius: 8, border: "1px solid #43606a", backgroundColor: "#17343e", padding: "0.75rem" }}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-center justify-between gap-2">
+          <h4 className="text-sm font-bold text-[#f3dfaa]">{hero.name}의 스킬</h4>
+          <button
+            onClick={onClose}
+            aria-label="닫기"
+            style={{
+              borderRadius: 4,
+              border: "1px solid #43606a",
+              padding: "0.0625rem 0.375rem",
+              backgroundColor: "transparent",
+              backgroundImage: "none",
+              color: "#c0cbc7",
+              fontWeight: 700,
+              cursor: "pointer",
+            }}
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="mt-2 flex flex-col gap-2">
+          {hero.skills.map((skillId) => {
+            const skill = HERO_SKILL_CATALOG[skillId];
+            return (
+              <div key={skillId} className="rounded border p-2" style={{ borderColor: "#3a4f52" }}>
+                <p className="font-bold text-[#e3ce94]">{skill.name}</p>
+                <p className="mt-0.5 text-xs leading-relaxed text-[#c0cbc7]">{skill.effect}</p>
+                {/* Reserved for the skill-use animation (전투 중 사용 시 연출) -
+                    space only for now, per user direction. */}
+                <div
+                  className="mt-1.5 flex h-14 items-center justify-center rounded border border-dashed text-[10px]"
+                  style={{ borderColor: "#3a4f52", color: "#5c7276" }}
+                >
+                  애니메이션 (준비 중)
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
   );
 }
 
