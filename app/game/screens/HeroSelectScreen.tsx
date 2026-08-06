@@ -5,7 +5,7 @@ import { heroArchetype, heroOverallGrade } from "../../../lib/game/hero-definiti
 import type { HeroDefinition } from "../../../lib/game/hero-definition.ts";
 import type { CoreGrade } from "../../../lib/game/grade.ts";
 import { HERO_SKILL_CATALOG } from "../../../lib/game/hero-skill.ts";
-import { HERO_TRAIT_CATALOG } from "../../../lib/game/hero-trait.ts";
+import { HERO_TRAIT_CATALOG, MAX_HERO_TRAITS } from "../../../lib/game/hero-trait.ts";
 import type { HeroId } from "../../../lib/game/ids.ts";
 import { STARTING_HEROES } from "../../../lib/game/starting-heroes.ts";
 import { Button } from "../Button.tsx";
@@ -79,7 +79,6 @@ function HeroCard({
 }) {
   const grade = heroOverallGrade(hero.attributes);
   const archetype = heroArchetype(hero.attributes);
-  const traitNames = hero.traits.map((traitId) => HERO_TRAIT_CATALOG[traitId].name);
   const skillNames = hero.skills.map((skillId) => HERO_SKILL_CATALOG[skillId].name);
 
   return (
@@ -127,13 +126,15 @@ function HeroCard({
         </div>
 
         <div className="flex min-w-0 flex-1 items-center py-0.5">
-          {/* 병과/특기/스킬 are items of this same grid, not a separate block -
+          {/* 병과/스킬 are items of this same grid, not a separate block -
               col-span-2 makes each take the full row width (and, as a side
               effect, forces itself onto a fresh row, since a span-2 item
               can't share a row with anything in a 2-column grid) so their
               value has the whole card width to breathe in instead of being
               squeezed into column 1 alone with column 2 sitting empty next
-              to it. */}
+              to it. 특기 used to live here too, but moved below into its own
+              fixed-slot row (2026-08-xx) - it no longer stretches the
+              portrait's height along with the grade stats. */}
           <dl className="grid w-full grid-cols-2 gap-x-2 gap-y-1.5 text-sm">
             <GradeStat label="통솔" grade={hero.attributes.leadership} />
             <GradeStat label="무력" grade={hero.attributes.force} />
@@ -141,13 +142,33 @@ function HeroCard({
             <GradeStat label="체력" grade={hero.attributes.vitality} />
             <GradeStat label="매력" grade={hero.attributes.charisma} />
             <TextStat className="col-span-2" label="병과" value={UNIT_TYPE_LABEL[hero.unitType]} />
-            {traitNames.length > 0 && (
-              <TextStat className="col-span-2" label="특기" value={traitNames.join(" · ")} />
-            )}
             {skillNames.length > 0 && (
               <TextStat className="col-span-2" label="스킬" value={skillNames.join(" · ")} />
             )}
           </dl>
+        </div>
+      </div>
+
+      <div className="mt-2">
+        <p className="text-xs font-bold text-[#8fa6a8]">특기</p>
+        <div className="mt-1 flex gap-1">
+          {/* Fixed MAX_HERO_TRAITS slots, always all shown - a hero with
+              fewer traits than the max just shows locked slots after their
+              earned ones, so the row's length telegraphs "how much growth
+              room is left" rather than only ever showing what's owned. */}
+          {Array.from({ length: MAX_HERO_TRAITS }, (_, index) => hero.traits[index]).map((traitId, index) => (
+            <div
+              key={index}
+              className="flex flex-1 items-center justify-center rounded border py-1 text-xs font-bold"
+              style={{
+                borderColor: traitId ? "#6ea8e0" : "#3a4f52",
+                backgroundColor: traitId ? "rgba(110,168,224,0.1)" : "transparent",
+                color: traitId ? "#e3ce94" : "#5c7276",
+              }}
+            >
+              {traitId ? HERO_TRAIT_CATALOG[traitId].name : "🔒"}
+            </div>
+          ))}
         </div>
       </div>
 
