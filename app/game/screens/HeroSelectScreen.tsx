@@ -258,7 +258,7 @@ function SkillModal({ hero, onClose }: { hero: HeroDefinition; onClose: (event: 
       onClick={onClose}
     >
       <div
-        className="w-full max-w-[280px] text-left text-sm"
+        className="w-full max-w-[320px] text-left text-sm"
         style={{ borderRadius: 8, border: "1px solid #43606a", backgroundColor: "#17343e", padding: "0.75rem" }}
         onClick={(event) => event.stopPropagation()}
       >
@@ -286,16 +286,27 @@ function SkillModal({ hero, onClose }: { hero: HeroDefinition; onClose: (event: 
           {hero.skills.map((skillId) => {
             const skill = HERO_SKILL_CATALOG[skillId];
             return (
-              <div key={skillId} className="rounded border p-2" style={{ borderColor: "#3a4f52" }}>
-                <p className="font-bold text-[#e3ce94]">{skill.name}</p>
-                <p className="mt-0.5 text-xs leading-relaxed text-[#c0cbc7]">{skill.effect}</p>
+              <div
+                key={skillId}
+                className="flex items-stretch gap-2 rounded border p-2"
+                style={{ borderColor: "#3a4f52" }}
+              >
                 {/* Reserved for the skill-use animation (전투 중 사용 시 연출) -
-                    space only for now, per user direction. */}
+                    space only for now, per user direction. One tall box spans
+                    the full height of the name/summary/description column
+                    beside it (items-stretch), same "portrait beside stat
+                    block" pattern as the hero card itself. */}
                 <div
-                  className="mt-1.5 flex h-14 items-center justify-center rounded border border-dashed text-[10px]"
-                  style={{ borderColor: "#3a4f52", color: "#5c7276" }}
+                  className="flex shrink-0 flex-col items-center justify-center gap-0.5 rounded border border-dashed text-center text-[9px] leading-tight"
+                  style={{ width: 72, borderColor: "#3a4f52", color: "#5c7276" }}
                 >
-                  애니메이션 (준비 중)
+                  <span>애니메이션</span>
+                  <span>(준비 중)</span>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-bold text-[#e3ce94]">{skill.name}</p>
+                  <p className="mt-0.5 text-xs font-bold text-[#9fc4ea]">{skill.summary}</p>
+                  <p className="mt-0.5 text-xs leading-relaxed text-[#c0cbc7]">{skill.description}</p>
                 </div>
               </div>
             );

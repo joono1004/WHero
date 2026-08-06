@@ -127,7 +127,7 @@ export function HeroDetailScreen({
                   const skill = HERO_SKILL_CATALOG[skillId];
                   return (
                     <li key={skillId} className="text-[#c0cbc7]">
-                      <span className="font-bold text-[#e3ce94]">{skill.name}</span> · {skill.effect}
+                      <span className="font-bold text-[#e3ce94]">{skill.name}</span> · {skill.summary}
                     </li>
                   );
                 })}
