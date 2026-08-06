@@ -10,15 +10,17 @@
 // domesticSpecialties-driven internally for now); that's separate
 // follow-up work. The list below is a first batch, not the full roster -
 // expect more entries.
+//
+// "charge"(돌격) and "ironwall"(철벽) were originally listed here but got
+// reclassified as active hero-skill.ts entries instead (something a hero
+// activates in a fight, not an always-on passive) - see that module.
 export const HERO_TRAIT_CATALOG = {
   talent: { name: "인재", effect: "병사 생산 2배" },
   logging: { name: "벌목", effect: "목재 생산 2배" },
   farming: { name: "농사", effect: "식량 생산 2배" },
   trade: { name: "상인", effect: "금 생산 2배" },
-  charge: { name: "돌격", effect: "공격 2배, 방어 1.5배 감소" },
   peerless: { name: "무쌍", effect: "반격 무시" },
   "dual-wield": { name: "쌍수", effect: "공격 1.5배" },
-  ironwall: { name: "철벽", effect: "방어 2배" },
   navy: { name: "수군", effect: "바다·강·호수 이동을 평지 수준으로" },
   mountaineer: { name: "산악", effect: "산 이동 가능, 언덕·산 이동을 평지 수준으로" },
   longshot: { name: "원사", effect: "공격거리 +4" },

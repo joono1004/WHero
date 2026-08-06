@@ -1,6 +1,7 @@
 import { averageGrade, gradeToScore } from "./grade.ts";
 import type { CoreGrade, SpecialtyGrade } from "./grade.ts";
 import type { HeroId } from "./ids.ts";
+import type { HeroSkillId } from "./hero-skill.ts";
 import type { HeroTraitId } from "./hero-trait.ts";
 import type { TroopResearchKind } from "./research.ts";
 import { UNIT_TYPE_CATALOG } from "./unit-production.ts";
@@ -134,4 +135,13 @@ export type HeroDefinition = {
   // what each id means. Not wired into combat.ts/movement.ts yet (data/
   // display only for now).
   traits: HeroTraitId[];
+  // 스킬 (2026-08-xx direction, sibling to traits): up to MAX_HERO_SKILLS
+  // active abilities a hero uses in a fight on the map, rather than an
+  // always-on passive - see hero-skill.ts's HERO_SKILL_CATALOG. A hero can
+  // start with skills already (same as traits); the level-up mechanic
+  // (choose 1 of 3 random new traits to add/replace at certain level
+  // breakpoints) is confirmed to apply to traits only, not skills, and
+  // isn't built yet either way. Not wired into combat.ts yet (data/display
+  // only for now).
+  skills: HeroSkillId[];
 };

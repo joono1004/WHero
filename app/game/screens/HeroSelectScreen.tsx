@@ -4,6 +4,7 @@ import { useState } from "react";
 import { heroArchetype, heroOverallGrade } from "../../../lib/game/hero-definition.ts";
 import type { HeroDefinition } from "../../../lib/game/hero-definition.ts";
 import type { CoreGrade } from "../../../lib/game/grade.ts";
+import { HERO_SKILL_CATALOG } from "../../../lib/game/hero-skill.ts";
 import { HERO_TRAIT_CATALOG } from "../../../lib/game/hero-trait.ts";
 import type { HeroId } from "../../../lib/game/ids.ts";
 import { STARTING_HEROES } from "../../../lib/game/starting-heroes.ts";
@@ -79,6 +80,7 @@ function HeroCard({
   const grade = heroOverallGrade(hero.attributes);
   const archetype = heroArchetype(hero.attributes);
   const traitNames = hero.traits.map((traitId) => HERO_TRAIT_CATALOG[traitId].name);
+  const skillNames = hero.skills.map((skillId) => HERO_SKILL_CATALOG[skillId].name);
 
   return (
     <button
@@ -139,6 +141,9 @@ function HeroCard({
             <TextStat className="col-start-1" label="병과" value={UNIT_TYPE_LABEL[hero.unitType]} />
             {traitNames.length > 0 && (
               <TextStat className="col-start-1" label="특기" value={traitNames.join(" · ")} />
+            )}
+            {skillNames.length > 0 && (
+              <TextStat className="col-start-1" label="스킬" value={skillNames.join(" · ")} />
             )}
           </dl>
         </div>

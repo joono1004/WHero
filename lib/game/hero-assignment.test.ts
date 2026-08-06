@@ -28,6 +28,7 @@ function makeHeroDefinition(overrides: Partial<HeroDefinition> = {}): HeroDefini
     unitType: "infantry",
     domesticSpecialties: NO_SPECIALTIES,
     traits: [],
+    skills: [],
     ...overrides,
   };
 }

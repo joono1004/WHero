@@ -19,6 +19,11 @@ import type { HeroDefinition } from "./hero-definition.ts";
 // troops -> talent(인재), gold -> trade(상인), food -> farming(농사).
 // domesticSpecialties 필드 자체는 hero-assignment.ts가 아직 그대로 쓰고
 // 있어서 지우지 않음(legendary-heroes.ts 상단 주석 참고).
+//
+// skills (2026-08-xx, hero-skill.ts): 감녕만 charge(돌격)를 줬음 - 기존
+// description이 이미 "종을 매단 야습으로 유명한 무력형 영웅"이라 공격
+// 몰빵형 스킬과 자연스럽게 맞아떨어짐. 위연/서서는 뚜렷한 근거가 없어서
+// 억지로 채우지 않고 빈 배열로 둠.
 export const STARTING_HEROES: HeroDefinition[] = [
   {
     id: "gan-ning",
@@ -28,6 +33,7 @@ export const STARTING_HEROES: HeroDefinition[] = [
     unitType: "infantry",
     domesticSpecialties: { troops: "B", gold: "없음", food: "없음", iron: "없음", recovery: "없음", defense: "없음" },
     traits: ["talent"],
+    skills: ["charge"],
   },
   {
     id: "wei-yan",
@@ -37,6 +43,7 @@ export const STARTING_HEROES: HeroDefinition[] = [
     unitType: "infantry",
     domesticSpecialties: { troops: "A", gold: "없음", food: "없음", iron: "없음", recovery: "없음", defense: "없음" },
     traits: ["talent"],
+    skills: [],
   },
   {
     id: "xu-shu",
@@ -46,5 +53,6 @@ export const STARTING_HEROES: HeroDefinition[] = [
     unitType: "archer",
     domesticSpecialties: { gold: "B", food: "B", troops: "없음", iron: "없음", recovery: "없음", defense: "없음" },
     traits: ["trade", "farming"],
+    skills: [],
   },
 ];

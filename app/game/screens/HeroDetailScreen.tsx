@@ -1,6 +1,7 @@
 import { heroArchetype, heroOverallGrade } from "../../../lib/game/hero-definition.ts";
 import type { HeroDefinition } from "../../../lib/game/hero-definition.ts";
 import { pipsRequiredForNextGrade } from "../../../lib/game/grade.ts";
+import { HERO_SKILL_CATALOG } from "../../../lib/game/hero-skill.ts";
 import { HERO_TRAIT_CATALOG } from "../../../lib/game/hero-trait.ts";
 import type { AttributeKey, HeroState } from "../../../lib/game/hero.ts";
 import { MAX_ITEMS_PER_HERO } from "../../../lib/game/hero.ts";
@@ -115,6 +116,24 @@ export function HeroDetailScreen({
               </ul>
             ) : (
               <p className="mt-1 text-[#c0cbc7]">특기: 없음</p>
+            )}
+          </section>
+
+          <section className="rounded-md border border-[#43606a] bg-[#17343e] p-2">
+            <h3 className="mb-1 text-[10px] font-bold text-[#8fa6a8]">스킬</h3>
+            {definition.skills.length > 0 ? (
+              <ul className="flex flex-col gap-0.5">
+                {definition.skills.map((skillId) => {
+                  const skill = HERO_SKILL_CATALOG[skillId];
+                  return (
+                    <li key={skillId} className="text-[#c0cbc7]">
+                      <span className="font-bold text-[#e3ce94]">{skill.name}</span> · {skill.effect}
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <p className="text-[#c0cbc7]">없음</p>
             )}
           </section>
 

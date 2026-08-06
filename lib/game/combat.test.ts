@@ -41,6 +41,7 @@ function makeHeroDefinition(overrides: Partial<HeroDefinition> = {}): HeroDefini
     unitType: "infantry",
     domesticSpecialties: { gold: "없음", food: "없음", troops: "없음", iron: "없음", recovery: "없음", defense: "없음" },
     traits: [],
+    skills: [],
     ...overrides,
   };
 }

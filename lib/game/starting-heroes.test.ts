@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { heroArchetype, heroOverallGrade } from "./hero-definition.ts";
+import { HERO_SKILL_CATALOG, MAX_HERO_SKILLS } from "./hero-skill.ts";
 import { HERO_TRAIT_CATALOG, MAX_HERO_TRAITS } from "./hero-trait.ts";
 import { STARTING_HEROES } from "./starting-heroes.ts";
 
@@ -53,6 +54,15 @@ test("every starting hero's traits are known catalog ids within MAX_HERO_TRAITS,
     assert.ok(hero.traits.length <= MAX_HERO_TRAITS);
     for (const traitId of hero.traits) {
       assert.ok(traitId in HERO_TRAIT_CATALOG);
+    }
+  }
+});
+
+test("every starting hero's skills are known catalog ids within MAX_HERO_SKILLS", () => {
+  for (const hero of STARTING_HEROES) {
+    assert.ok(hero.skills.length <= MAX_HERO_SKILLS);
+    for (const skillId of hero.skills) {
+      assert.ok(skillId in HERO_SKILL_CATALOG);
     }
   }
 });
