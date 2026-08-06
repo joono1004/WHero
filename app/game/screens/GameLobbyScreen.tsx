@@ -2,30 +2,30 @@
 
 import { useEffect, useRef, useState } from "react";
 import { PLAYER_FACTION_ID } from "../../../lib/game/faction.ts";
+import type { Faction } from "../../../lib/game/faction.ts";
 import { appointGovernor } from "../../../lib/game/governor.ts";
-import { heroArchetype, heroOverallGrade } from "../../../lib/game/hero-definition.ts";
+import { heroOverallGrade } from "../../../lib/game/hero-definition.ts";
 import { governedWorldId, setDeploymentPriority, unequipItem } from "../../../lib/game/hero.ts";
 import type { HeroState } from "../../../lib/game/hero.ts";
-import {
-  buildHeroListEntries,
-  compareByArchetype,
-  compareByGrade,
-  compareByLevel,
-} from "../../../lib/game/hero-roster.ts";
+import { buildHeroListEntries } from "../../../lib/game/hero-roster.ts";
 import type { HeroListEntry } from "../../../lib/game/hero-roster.ts";
 import type { ClearedWorldRecord } from "../../../lib/game/world.ts";
 import type { MapCandidate } from "../../../lib/game/map-candidates.ts";
+import { upgradeResearch } from "../../../lib/game/research.ts";
+import type { ResearchCategory } from "../../../lib/game/research.ts";
 import type { SaveGame } from "../../../lib/game/save.ts";
+import { MAX_ENLISTED_HEROES } from "../../../lib/game/world-entry.ts";
 import type { MapTierId, MapTypeId } from "../../../lib/game/world.ts";
 import { MAP_TIER_INFO, MAP_TIER_ORDER, MAP_TYPE_INFO } from "../../../lib/game/world.ts";
 import { Button } from "../Button.tsx";
 import { GRADE_COLOR } from "../gradeColors.ts";
-import { ARCHETYPE_LABEL } from "../heroLabels.ts";
 import { HERO_PORTRAIT } from "../heroPortraits.ts";
 import { ScreenShell } from "../ScreenShell.tsx";
 import { GovernorAppointScreen } from "./GovernorAppointScreen.tsx";
 import { HeroDetailScreen } from "./HeroDetailScreen.tsx";
 import { HeroEnlistScreen } from "./HeroEnlistScreen.tsx";
+import { HeroRosterScreen } from "./HeroRosterScreen.tsx";
+import { ResearchScreen } from "./ResearchScreen.tsx";
 
 // Terrain flavor for the world orbs (2026-08-06, "게임스럽게" visual pass) -
 // an emoji + tint color per map type, standing in for Codex's eventual
@@ -58,19 +58,21 @@ const RESOURCE_CHIPS: { key: "gold" | "wood" | "iron" | "gem"; icon: string; lab
   { key: "gem", icon: "💎", label: "보석", tint: "#c17be0" },
 ];
 
-type SortMode = "grade" | "archetype" | "level";
+// Bottom-left menu bar (2026-08-06 direction, replacing the old 부대/도시/
+// 연구 footer buttons): only 연구/영웅 have a real destination so far -
+// 상점/병사/아이템 are placeholders. Deliberately a plain array (not a
+// Record) rendered via overflow-x-auto rather than fitting to a fixed
+// width, since the user expects this list to grow past 5 items later - a
+// new entry is just another array item, no layout rework needed.
+type MenuItemKey = "research" | "shop" | "heroes" | "troops" | "items";
 
-const SORT_COMPARATORS: Record<SortMode, (a: HeroListEntry, b: HeroListEntry) => number> = {
-  grade: compareByGrade,
-  archetype: compareByArchetype,
-  level: compareByLevel,
-};
-
-const SORT_LABEL: Record<SortMode, string> = {
-  grade: "등급",
-  archetype: "유형",
-  level: "레벨",
-};
+const MENU_ITEMS: { key: MenuItemKey; icon: string; label: string }[] = [
+  { key: "research", icon: "📜", label: "연구" },
+  { key: "shop", icon: "🏪", label: "상점" },
+  { key: "heroes", icon: "🛡️", label: "영웅" },
+  { key: "troops", icon: "⚔️", label: "병사" },
+  { key: "items", icon: "🎒", label: "아이템" },
+];
 
 // A cleared world's display name - the player-given one (governor.ts's
 // appointGovernor) once set, otherwise "세계 N" (2026-08-06: the user
@@ -98,14 +100,15 @@ export function GameLobbyScreen({
   onEnterCandidate: (candidateIndex: number, enlistedHeroIds: string[]) => void;
   onSettings: () => void;
 }) {
-  const [sortMode, setSortMode] = useState<SortMode>("grade");
   const [viewingHeroId, setViewingHeroId] = useState<string | null>(null);
   const [enlistingCandidateIndex, setEnlistingCandidateIndex] = useState<number | null>(null);
   const [appointingWorldId, setAppointingWorldId] = useState<string | null>(null);
+  const [showHeroRoster, setShowHeroRoster] = useState(false);
+  const [showResearch, setShowResearch] = useState(false);
   const railRef = useRef<HTMLDivElement>(null);
 
   const playerFaction = save.factions[PLAYER_FACTION_ID];
-  const entries = buildHeroListEntries(save.heroes).sort(SORT_COMPARATORS[sortMode]);
+  const entries = buildHeroListEntries(save.heroes);
   const clearedWorlds = Object.values(save.clearedWorlds).sort((a, b) => a.worldIndex - b.worldIndex);
 
   // Keep the newly-offered world candidates in view by default rather than
@@ -126,6 +129,15 @@ export function GameLobbyScreen({
     onUpdateSave({
       ...save,
       heroes: save.heroes.map((hero) => (hero.heroId === heroId ? updater(hero) : hero)),
+    });
+  };
+
+  const updateFaction = (updater: (faction: Faction) => Faction) => {
+    const faction = save.factions[PLAYER_FACTION_ID];
+    if (!faction) return;
+    onUpdateSave({
+      ...save,
+      factions: { ...save.factions, [PLAYER_FACTION_ID]: updater(faction) },
     });
   };
 
@@ -184,6 +196,39 @@ export function GameLobbyScreen({
     setAppointingWorldId(null);
   }
 
+  if (showHeroRoster) {
+    return (
+      <HeroRosterScreen
+        entries={entries}
+        onBack={() => setShowHeroRoster(false)}
+        onSelectHero={(heroId) => {
+          setShowHeroRoster(false);
+          setViewingHeroId(heroId);
+        }}
+        onToggleDeploymentPriority={(heroId) =>
+          updateHero(heroId, (hero) => setDeploymentPriority(hero, !hero.deploymentPriority))
+        }
+        governorLabelFor={governorLabelFor}
+      />
+    );
+  }
+
+  if (showResearch && playerFaction) {
+    return (
+      <ResearchScreen
+        research={playerFaction.research}
+        resources={playerFaction.resources}
+        onBack={() => setShowResearch(false)}
+        onUpgrade={(category: ResearchCategory) =>
+          updateFaction((faction) => {
+            const result = upgradeResearch(faction.research, faction.resources, category);
+            return { ...faction, research: result.levels, resources: result.resources };
+          })
+        }
+      />
+    );
+  }
+
   const resources = playerFaction?.resources;
 
   return (
@@ -235,100 +280,58 @@ export function GameLobbyScreen({
           </div>
         </div>
       }
+      footer={
+        <div className="flex gap-1.5 overflow-x-auto">
+          {MENU_ITEMS.map((item) => (
+            <MenuBarButton
+              key={item.key}
+              icon={item.icon}
+              label={item.label}
+              onClick={() => {
+                if (item.key === "research") setShowResearch(true);
+                else if (item.key === "heroes") setShowHeroRoster(true);
+                else window.alert("아직 준비 중인 기능입니다.");
+              }}
+            />
+          ))}
+        </div>
+      }
     >
-      <div className="flex h-full gap-2 py-1">
-        <aside
-          className="flex w-44 shrink-0 flex-col rounded-md"
-          style={{ border: "1px solid #43606a", backgroundImage: "linear-gradient(180deg, #1c3b44, #132a31)" }}
-        >
-          <div className="flex shrink-0 gap-1 border-b border-[#43606a] p-1">
-            {(Object.keys(SORT_LABEL) as SortMode[]).map((mode) => (
+      <div className="flex h-full flex-col gap-1.5 py-1">
+        {/* 출전 영웅 5슬롯 (2026-08-06, 상시 노출 리스트 -> 컴팩트 편성 바로
+            대체): ★로 표시된(deploymentPriority) 영웅을 우선순위 순으로
+            채움 - 세계 진입 시 실제로 어떤 5명이 나가는지와는 별개로(그건
+            HeroEnlistScreen에서 그때그때 고름), "다음에 출전시킬 생각인
+            주전"을 로비에서 한눈에 보여주는 용도. 빈 슬롯은 🔒로 표시되고
+            누르면 전체 로스터(HeroRosterScreen)로 이동해서 별을 찍을 수
+            있음. 깊은 관리(등급 상향, 아이템 장착 등)는 [영웅] 메뉴 버튼
+            뒤의 HeroRosterScreen/HeroDetailScreen으로 이동. */}
+        <div className="flex shrink-0 items-center gap-1.5">
+          <span className="text-[10px] text-[#8fa6a8]">출전 영웅</span>
+          {Array.from({ length: MAX_ENLISTED_HEROES }, (_, index) =>
+            entries.filter((entry) => entry.state.deploymentPriority)[index],
+          ).map((entry, index) =>
+            entry ? (
+              <FormationSlot key={entry.state.heroId} entry={entry} onClick={() => setViewingHeroId(entry.state.heroId)} />
+            ) : (
               <button
-                key={mode}
-                onClick={() => setSortMode(mode)}
-                className="flex-1 text-center"
+                key={index}
+                onClick={() => setShowHeroRoster(true)}
+                aria-label="영웅 로스터 열기"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm"
                 style={{
-                  borderRadius: 4,
-                  border: `1px solid ${sortMode === mode ? "#d7b765" : "#43606a"}`,
-                  backgroundColor: sortMode === mode ? "#1c3b44" : "transparent",
+                  border: "2px dashed #3a4f52",
+                  backgroundColor: "transparent",
                   backgroundImage: "none",
-                  color: sortMode === mode ? "#d7b765" : "#8fa6a8",
-                  fontWeight: 400,
-                  padding: "2px 0",
-                  fontSize: "10px",
+                  color: "#5c7276",
+                  cursor: "pointer",
                 }}
               >
-                {SORT_LABEL[mode]}순
+                🔒
               </button>
-            ))}
-          </div>
-          <div className="flex-1 overflow-y-auto p-1">
-            {entries.length === 0 && <p className="p-2 text-center text-[10px] text-[#8fa6a8]">영웅이 없습니다.</p>}
-            {entries.map(({ state, definition }) => {
-              const grade = heroOverallGrade(definition.attributes);
-              const archetype = heroArchetype(definition.attributes);
-              const governorLabel = governorLabelFor(state);
-              const portraitUrl = HERO_PORTRAIT[definition.id];
-              return (
-                <div
-                  key={state.heroId}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => setViewingHeroId(state.heroId)}
-                  onKeyDown={(event) => event.key === "Enter" && setViewingHeroId(state.heroId)}
-                  className="mb-1 flex cursor-pointer items-center gap-1.5 rounded p-1"
-                  style={{ border: "1px solid #274049" }}
-                >
-                  <button
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      updateHero(state.heroId, (hero) => setDeploymentPriority(hero, !hero.deploymentPriority));
-                    }}
-                    title="출전 우선 표시"
-                    className="shrink-0"
-                    style={{
-                      border: "none",
-                      background: "none",
-                      backgroundImage: "none",
-                      padding: 0,
-                      fontSize: "12px",
-                      color: state.deploymentPriority ? "#d7b765" : "#43606a",
-                    }}
-                  >
-                    {state.deploymentPriority ? "★" : "☆"}
-                  </button>
-                  {/* 영웅 초상 자리 (2026-08-06, 텍스트 뱃지 -> 초상 프레임) -
-                      HeroSelectScreen과 같은 HERO_PORTRAIT 맵을 공유하므로
-                      아트가 등록되는 즉시 여기도 자동으로 반영됨. 등급 색
-                      링(GRADE_COLOR) + 은은한 글로우로 "능력치 카드" 느낌을
-                      살림(2026-08-06, "게임스럽게" 시각 보정 패스). */}
-                  <div
-                    className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full"
-                    style={{
-                      border: `2px solid ${GRADE_COLOR[grade]}`,
-                      backgroundColor: "#0b2028",
-                      boxShadow: `0 0 6px ${GRADE_COLOR[grade]}77`,
-                    }}
-                  >
-                    {portraitUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element -- local /public asset, same convention as HeroSelectScreen.tsx
-                      <img src={portraitUrl} alt={`${definition.name} 초상`} className="h-full w-full object-cover" />
-                    ) : (
-                      <span className="text-sm text-[#43606a]">🧑</span>
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-[10px] font-bold text-[#f3dfaa]">{definition.name}</p>
-                    <p className="truncate text-[9px] text-[#8fa6a8]">
-                      {grade}급 · {ARCHETYPE_LABEL[archetype]} · Lv.{state.level}
-                    </p>
-                    {governorLabel && <p className="truncate text-[9px] text-[#d9bd74]">{governorLabel}</p>}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </aside>
+            ),
+          )}
+        </div>
 
         <div className="flex flex-1 flex-col gap-1.5 overflow-hidden">
           <p className="shrink-0 text-[10px] text-[#8fa6a8]">공략할 세계를 선택하세요</p>
@@ -355,6 +358,53 @@ export function GameLobbyScreen({
         </div>
       </div>
     </ScreenShell>
+  );
+}
+
+function MenuBarButton({ icon, label, onClick }: { icon: string; label: string; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex shrink-0 flex-col items-center justify-center gap-0.5 rounded-md px-2.5 py-1"
+      style={{
+        border: "1px solid #43606a",
+        backgroundImage: "linear-gradient(180deg, #1c3b44, #132a31)",
+        backgroundColor: "transparent",
+        color: "#c0cbc7",
+        fontWeight: 400,
+        cursor: "pointer",
+      }}
+    >
+      <span className="text-sm leading-none">{icon}</span>
+      <span className="text-[9px] font-bold">{label}</span>
+    </button>
+  );
+}
+
+function FormationSlot({ entry, onClick }: { entry: HeroListEntry; onClick: () => void }) {
+  const grade = heroOverallGrade(entry.definition.attributes);
+  const portraitUrl = HERO_PORTRAIT[entry.definition.id];
+  return (
+    <button
+      onClick={onClick}
+      title={entry.definition.name}
+      className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full"
+      style={{
+        border: `2px solid ${GRADE_COLOR[grade]}`,
+        backgroundColor: "#0b2028",
+        backgroundImage: "none",
+        boxShadow: `0 0 6px ${GRADE_COLOR[grade]}77`,
+        padding: 0,
+        cursor: "pointer",
+      }}
+    >
+      {portraitUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element -- local /public asset, same convention as HeroSelectScreen.tsx
+        <img src={portraitUrl} alt={`${entry.definition.name} 초상`} className="h-full w-full object-cover" />
+      ) : (
+        <span className="text-sm text-[#43606a]">🧑</span>
+      )}
+    </button>
   );
 }
 
