@@ -298,13 +298,19 @@ function SkillModal({ hero, onClose }: { hero: HeroDefinition; onClose: (event: 
                 style={{ borderColor: "#3a4f52" }}
               >
                 {/* Reserved for the skill-use animation (전투 중 사용 시 연출) -
-                    space only for now, per user direction. One tall box spans
-                    the full height of the name/summary/description column
-                    beside it (items-stretch), same "portrait beside stat
-                    block" pattern as the hero card itself. */}
+                    space only for now, per user direction. minHeight: 100
+                    (was ~91.5px natural content height, +10% per user
+                    request) is set directly on this box rather than the row,
+                    so it's the one driving the row's height via
+                    items-stretch - both a filled slot (whose own text column
+                    is naturally shorter than 100px) and a locked slot (just
+                    "미확인", far shorter) end up stretched to the exact same
+                    row height instead of a locked slot shrinking to fit its
+                    own shorter content. Font bumped 10px -> 11px to match
+                    the +10% box height. */}
                 <div
-                  className="flex shrink-0 flex-col items-center justify-center gap-0.5 rounded border border-dashed text-center text-[10px] leading-tight"
-                  style={{ width: 120, borderColor: "#3a4f52", color: "#5c7276" }}
+                  className="flex shrink-0 flex-col items-center justify-center gap-0.5 rounded border border-dashed text-center text-[11px] leading-tight"
+                  style={{ width: 120, minHeight: 100, borderColor: "#3a4f52", color: "#5c7276" }}
                 >
                   {skill ? (
                     <>
