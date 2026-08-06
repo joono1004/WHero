@@ -69,20 +69,22 @@ function formatResourceAmount(value: number): string {
   return String(value);
 }
 
-// Bottom-left menu bar (2026-08-06 direction, replacing the old 부대/도시/
-// 연구 footer buttons): only 연구/영웅 have a real destination so far -
-// 상점/병사/아이템 are placeholders. Deliberately a plain array (not a
-// Record) rendered via overflow-x-auto rather than fitting to a fixed
-// width, since the user expects this list to grow past 5 items later - a
-// new entry is just another array item, no layout rework needed.
-type MenuItemKey = "research" | "shop" | "heroes" | "troops" | "items";
+// Left sidebar menu (2026-08-06, replacing the earlier bottom-left
+// horizontal bar per the user's full-screen wireframe: 영웅/병사/가방/연구/
+// 순위/연맹). Only 연구/영웅 have a real destination so far - 병사/가방/순위
+// are placeholders, 연맹 is explicitly marked "예정" (planned) in the
+// wireframe itself. Deliberately a plain array (not a Record) rendered via
+// overflow-y-auto rather than a fixed height, since this list is expected
+// to keep growing - a new entry is just another array item.
+type MenuItemKey = "heroes" | "troops" | "bag" | "research" | "ranking" | "alliance";
 
 const MENU_ITEMS: { key: MenuItemKey; icon: string; label: string }[] = [
-  { key: "research", icon: "📜", label: "연구" },
-  { key: "shop", icon: "🏪", label: "상점" },
   { key: "heroes", icon: "🛡️", label: "영웅" },
   { key: "troops", icon: "⚔️", label: "병사" },
-  { key: "items", icon: "🎒", label: "아이템" },
+  { key: "bag", icon: "🎒", label: "가방" },
+  { key: "research", icon: "📜", label: "연구" },
+  { key: "ranking", icon: "🏆", label: "순위" },
+  { key: "alliance", icon: "🤝", label: "연맹(예정)" },
 ];
 
 // A cleared world's display name - the player-given one (governor.ts's
@@ -347,80 +349,96 @@ export function GameLobbyScreen({
           </div>
         </div>
       }
-      footer={
-        <div className="flex gap-1.5 overflow-x-auto">
-          {MENU_ITEMS.map((item) => (
-            <MenuBarButton
-              key={item.key}
-              icon={item.icon}
-              label={item.label}
-              onClick={() => {
-                if (item.key === "research") setShowResearch(true);
-                else if (item.key === "heroes") setShowHeroRoster(true);
-                else window.alert("아직 준비 중인 기능입니다.");
-              }}
-            />
-          ))}
-        </div>
-      }
     >
-      <div className="flex h-full flex-col gap-1.5 py-1">
-        {/* 출전 영웅 5슬롯 (2026-08-06, 상시 노출 리스트 -> 컴팩트 편성 바로
-            대체): ★로 표시된(deploymentPriority) 영웅을 우선순위 순으로
-            채움 - 세계 진입 시 실제로 어떤 5명이 나가는지와는 별개로(그건
-            HeroEnlistScreen에서 그때그때 고름), "다음에 출전시킬 생각인
-            주전"을 로비에서 한눈에 보여주는 용도. 빈 슬롯은 🔒로 표시되고
-            누르면 전체 로스터(HeroRosterScreen)로 이동해서 별을 찍을 수
-            있음. 깊은 관리(등급 상향, 아이템 장착 등)는 [영웅] 메뉴 버튼
-            뒤의 HeroRosterScreen/HeroDetailScreen으로 이동. */}
-        <div className="flex shrink-0 items-center gap-1.5">
-          <span className="text-[10px] text-[#8fa6a8]">출전 영웅</span>
-          {Array.from({ length: MAX_ENLISTED_HEROES }, (_, index) =>
-            entries.filter((entry) => entry.state.deploymentPriority)[index],
-          ).map((entry, index) =>
-            entry ? (
-              <FormationSlot key={entry.state.heroId} entry={entry} onClick={() => setViewingHeroId(entry.state.heroId)} />
-            ) : (
-              <button
-                key={index}
-                onClick={() => setShowHeroRoster(true)}
-                aria-label="영웅 로스터 열기"
-                className="flex shrink-0 flex-col items-center gap-0.5"
-                style={{ border: "none", background: "none", backgroundImage: "none", padding: 0, cursor: "pointer" }}
-              >
-                <span
-                  className="flex h-8 w-8 items-center justify-center rounded-full text-sm"
-                  style={{ border: "2px dashed #3a4f52", color: "#5c7276" }}
-                >
-                  ➕
-                </span>
-                <span className="text-[8px] text-[#5c7276]">빈 자리</span>
-              </button>
-            ),
-          )}
+      {/* 전체 화면 구조 재배치 (2026-08-06, 사용자가 첨부한 전체 와이어프레임
+          기준): 왼쪽 세로 메뉴 열 + 오른쪽 세계/출전영웅 열, 2컬럼 구성으로
+          바꿈. 이전엔 ScreenShell footer에 가로 메뉴 바가 있었는데, 이번
+          와이어프레임엔 그 자리가 없어서 footer prop 자체를 더 이상 안 씀
+          (ScreenShell은 footer를 안 넘기면 그 영역을 렌더링하지 않으므로
+          별도 처리 불필요). 출전 영웅 5슬롯도 순서상 세계 영역 위에서
+          아래로 옮김. */}
+      <div className="flex h-full gap-2 py-1">
+        {/* 왼쪽 열: 세로 메뉴(영웅/병사/가방/연구/순위/연맹) + 광고배너 +
+            채팅창. 메뉴는 항목이 계속 늘 수 있어 overflow-y-auto - 가로
+            메뉴 바 때와 같은 이유(그때는 overflow-x-auto)로 고정 개수를
+            가정하지 않음. */}
+        <div className="flex w-16 shrink-0 flex-col gap-1.5">
+          <div className="flex flex-1 flex-col gap-1 overflow-y-auto">
+            {MENU_ITEMS.map((item) => (
+              <MenuBarButton
+                key={item.key}
+                icon={item.icon}
+                label={item.label}
+                onClick={() => {
+                  if (item.key === "research") setShowResearch(true);
+                  else if (item.key === "heroes") setShowHeroRoster(true);
+                  else window.alert("아직 준비 중인 기능입니다.");
+                }}
+              />
+            ))}
+          </div>
+          <AdBannerPlaceholder />
+          <ChatPlaceholder />
         </div>
 
+        {/* 오른쪽 열: 세계 선택 레일(기존 그대로, 더 크게) + 출전 영웅
+            5슬롯(기존 그대로, 위치만 아래로). */}
         <div className="flex flex-1 flex-col gap-1.5 overflow-hidden">
-          <p className="shrink-0 text-[10px] text-[#8fa6a8]">공략할 세계를 선택하세요</p>
-          <div className="flex flex-1 items-stretch gap-1 overflow-hidden">
-            <RailArrowButton direction="left" onClick={() => scrollRail(-1)} />
-            <div ref={railRef} className="flex flex-1 items-stretch gap-2 overflow-x-auto scroll-smooth pb-1">
-              {clearedWorlds.map((record) => (
-                <ClearedWorldChip
-                  key={record.id}
-                  record={record}
-                  onAppointGovernor={() => setAppointingWorldId(record.id)}
-                />
-              ))}
-              {save.nextMapCandidates.map((candidate, index) => (
-                <MapCandidateCard
-                  key={`${candidate.worldIndex}-${candidate.generation.mapType}-${index}`}
-                  candidate={candidate}
-                  onEnter={() => setEnlistingCandidateIndex(index)}
-                />
-              ))}
+          <div className="flex flex-1 flex-col gap-1 overflow-hidden">
+            <p className="shrink-0 text-[10px] text-[#8fa6a8]">공략할 세계를 선택하세요</p>
+            <div className="flex flex-1 items-stretch gap-1 overflow-hidden">
+              <RailArrowButton direction="left" onClick={() => scrollRail(-1)} />
+              <div ref={railRef} className="flex flex-1 items-stretch gap-2 overflow-x-auto scroll-smooth pb-1">
+                {clearedWorlds.map((record) => (
+                  <ClearedWorldChip
+                    key={record.id}
+                    record={record}
+                    onAppointGovernor={() => setAppointingWorldId(record.id)}
+                  />
+                ))}
+                {save.nextMapCandidates.map((candidate, index) => (
+                  <MapCandidateCard
+                    key={`${candidate.worldIndex}-${candidate.generation.mapType}-${index}`}
+                    candidate={candidate}
+                    onEnter={() => setEnlistingCandidateIndex(index)}
+                  />
+                ))}
+              </div>
+              <RailArrowButton direction="right" onClick={() => scrollRail(1)} />
             </div>
-            <RailArrowButton direction="right" onClick={() => scrollRail(1)} />
+          </div>
+
+          {/* 출전 영웅 5슬롯: ★로 표시된(deploymentPriority) 영웅을 우선순위
+              순으로 채움 - 세계 진입 시 실제로 어떤 5명이 나가는지와는
+              별개로(그건 HeroEnlistScreen에서 그때그때 고름), "다음에
+              출전시킬 생각인 주전"을 로비에서 한눈에 보여주는 용도. 빈
+              슬롯은 ➕로 표시되고 누르면 전체 로스터(HeroRosterScreen)로
+              이동해서 별을 찍을 수 있음. */}
+          <div className="flex shrink-0 items-center gap-1.5">
+            <span className="text-[10px] text-[#8fa6a8]">출전 영웅</span>
+            {Array.from({ length: MAX_ENLISTED_HEROES }, (_, index) =>
+              entries.filter((entry) => entry.state.deploymentPriority)[index],
+            ).map((entry, index) =>
+              entry ? (
+                <FormationSlot key={entry.state.heroId} entry={entry} onClick={() => setViewingHeroId(entry.state.heroId)} />
+              ) : (
+                <button
+                  key={index}
+                  onClick={() => setShowHeroRoster(true)}
+                  aria-label="영웅 로스터 열기"
+                  className="flex shrink-0 flex-col items-center gap-0.5"
+                  style={{ border: "none", background: "none", backgroundImage: "none", padding: 0, cursor: "pointer" }}
+                >
+                  <span
+                    className="flex h-8 w-8 items-center justify-center rounded-full text-sm"
+                    style={{ border: "2px dashed #3a4f52", color: "#5c7276" }}
+                  >
+                    ➕
+                  </span>
+                  <span className="text-[8px] text-[#5c7276]">빈 자리</span>
+                </button>
+              ),
+            )}
           </div>
         </div>
       </div>
@@ -428,36 +446,73 @@ export function GameLobbyScreen({
   );
 }
 
-// Icon sits in its own small tile, label below outside the tile - mirrors
-// the reference image's menu icons (a distinct icon badge + a caption under
-// it) rather than icon+label sharing one bordered box.
+// Compact icon+label row (2026-08-06, switched from an icon-tile-with-
+// label-below stack to fit a narrow vertical sidebar): the old stacked
+// layout was sized for a horizontal bar and only fit ~3 of 6 items in the
+// sidebar's available height before needing a scroll. A single-line row
+// fits all 6 comfortably while still leaving room to grow further (scrolls
+// via the parent's overflow-y-auto once it doesn't).
 function MenuBarButton({ icon, label, onClick }: { icon: string; label: string; onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      className="flex shrink-0 flex-col items-center gap-0.5"
+      className="flex w-full shrink-0 items-center gap-1 text-left"
       style={{
-        border: "none",
-        background: "none",
-        backgroundImage: "none",
-        padding: 0,
+        border: "1px solid #bd9b4c",
+        borderRadius: 6,
+        padding: "4px 6px",
+        backgroundImage: "linear-gradient(160deg, #2c4a40, #16302b)",
+        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.08)",
         color: "#c0cbc7",
         fontWeight: 400,
         cursor: "pointer",
       }}
     >
-      <span
-        className="flex h-8 w-8 items-center justify-center rounded-lg text-base"
-        style={{
-          border: "1px solid #bd9b4c",
-          backgroundImage: "linear-gradient(160deg, #2c4a40, #16302b)",
-          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.08)",
-        }}
-      >
-        {icon}
-      </span>
-      <span className="text-[9px] font-bold">{label}</span>
+      <span className="shrink-0 text-xs">{icon}</span>
+      <span className="truncate text-[9px] font-bold">{label}</span>
     </button>
+  );
+}
+
+// Reserved spot for a future ad placement (2026-08-06 wireframe: "광고
+// 베너") - no ad SDK/network wired up, just a placeholder tile in the left
+// column above the chat window.
+function AdBannerPlaceholder() {
+  return (
+    <button
+      onClick={() => window.alert("아직 준비 중인 기능입니다.")}
+      className="flex h-8 shrink-0 items-center justify-center rounded-md text-[9px]"
+      style={{
+        border: "1px dashed #43606a",
+        background: "none",
+        backgroundImage: "none",
+        color: "#5c7276",
+        fontWeight: 400,
+        cursor: "pointer",
+      }}
+    >
+      광고
+    </button>
+  );
+}
+
+// Reserved spot for a future chat window (2026-08-06 wireframe: "채팅창
+// (배경 투명), 메시지 표시는 두줄, 입력창 한줄") - real chat needs a server/
+// networking layer that doesn't exist yet, so this only reserves the UI
+// shape (transparent background, two placeholder message lines, one
+// disabled input line) for Codex/a later networking pass to wire up.
+function ChatPlaceholder() {
+  return (
+    <div className="flex shrink-0 flex-col gap-0.5">
+      <p className="truncate text-[8px] text-[#5c7276]">[공지] 채팅 기능은 준비 중입니다.</p>
+      <p className="truncate text-[8px] text-[#5c7276]">아직 메시지를 보낼 수 없어요.</p>
+      <input
+        disabled
+        placeholder="채팅 입력 (준비 중)"
+        className="w-full rounded px-1.5 py-0.5 text-[8px]"
+        style={{ border: "1px solid #3a4f52", backgroundColor: "rgba(11,32,40,0.5)", color: "#5c7276" }}
+      />
+    </div>
   );
 }
 
