@@ -190,14 +190,16 @@ function HeroCard({
               event.stopPropagation();
               setSkillModalOpen(true);
             }}
-            className="whitespace-nowrap text-[10px]"
+            className="whitespace-nowrap"
             style={{
               borderRadius: 4,
               border: "1px solid #6ea8e0",
-              padding: "0.0625rem 0.375rem",
+              padding: "0 0.25rem",
               backgroundColor: "transparent",
               backgroundImage: "none",
               color: "#6ea8e0",
+              fontSize: "0.75rem",
+              lineHeight: 1.4,
               fontWeight: 700,
               cursor: "pointer",
             }}
