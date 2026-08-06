@@ -19,11 +19,44 @@ import type { MapCandidate } from "../../../lib/game/map-candidates.ts";
 import { upgradeResearch } from "../../../lib/game/research.ts";
 import type { ResearchCategory } from "../../../lib/game/research.ts";
 import type { SaveGame } from "../../../lib/game/save.ts";
+import type { MapTierId, MapTypeId } from "../../../lib/game/world.ts";
 import { MAP_TIER_INFO, MAP_TIER_ORDER, MAP_TYPE_INFO } from "../../../lib/game/world.ts";
 import { Button } from "../Button.tsx";
+import { GRADE_COLOR } from "../gradeColors.ts";
 import { ARCHETYPE_LABEL } from "../heroLabels.ts";
 import { HERO_PORTRAIT } from "../heroPortraits.ts";
 import { ScreenShell } from "../ScreenShell.tsx";
+
+// Terrain flavor for the world orbs (2026-08-06, "게임스럽게" visual pass) -
+// an emoji + tint color per map type, standing in for Codex's eventual
+// terrain art. Icon/tint choices only, not gameplay data - see
+// docs/CLAUDE_HANDOFF.md's "로비 화면 재배치" note for what Codex needs
+// when replacing these with real art.
+const MAP_TYPE_ICON: Record<MapTypeId, string> = {
+  inland: "🌾",
+  continent: "🌍",
+  archipelago: "🏝️",
+  highlands: "⛰️",
+  riverlands: "🏞️",
+};
+
+const MAP_TYPE_TINT: Record<MapTypeId, string> = {
+  inland: "#8fbc5a",
+  continent: "#6ea8e0",
+  archipelago: "#4fc3c9",
+  highlands: "#b5a58f",
+  riverlands: "#5fb0c4",
+};
+
+// One row per resource the lobby header shows (2026-08-06 direction) -
+// icon + tint turns "금화 0 · 목재 0 · ..." into a proper HUD-style resource
+// bar instead of a plain text line.
+const RESOURCE_CHIPS: { key: "gold" | "wood" | "iron" | "gem"; icon: string; label: string; tint: string }[] = [
+  { key: "gold", icon: "🪙", label: "금화", tint: "#d7b765" },
+  { key: "wood", icon: "🪵", label: "목재", tint: "#a97c50" },
+  { key: "iron", icon: "⛏️", label: "광석", tint: "#9aa5a3" },
+  { key: "gem", icon: "💎", label: "보석", tint: "#c17be0" },
+];
 import { GovernorAppointScreen } from "./GovernorAppointScreen.tsx";
 import { HeroDetailScreen } from "./HeroDetailScreen.tsx";
 import { HeroEnlistScreen } from "./HeroEnlistScreen.tsx";
@@ -186,10 +219,22 @@ export function GameLobbyScreen({
   return (
     <ScreenShell
       header={
-        <div className="flex flex-col gap-1">
+        <div
+          className="flex flex-col gap-1.5 rounded-md p-1.5"
+          style={{
+            border: "1px solid rgba(215,183,101,0.3)",
+            backgroundImage: "linear-gradient(180deg, rgba(215,183,101,0.14), rgba(215,183,101,0.02))",
+          }}
+        >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-[#e3ce94]">
-              {save.factionName} <span className="text-[#8fa6a8]">정복 세계 {clearedWorlds.length}</span>
+            <span className="text-xs font-bold text-[#f3dfaa]">
+              {save.factionName}{" "}
+              <span
+                className="ml-1 rounded-full px-1.5 py-0.5 text-[9px] font-bold"
+                style={{ border: "1px solid #d7b765", backgroundColor: "rgba(215,183,101,0.15)", color: "#d7b765" }}
+              >
+                정복 세계 {clearedWorlds.length}
+              </span>
             </span>
             <span className="hidden text-[10px] tracking-[0.2em] text-[#8fa6a8] sm:block">HERO STORY</span>
             <div className="flex gap-1">
@@ -204,10 +249,18 @@ export function GameLobbyScreen({
           {/* 영주 배치로 얻는 자원 (2026-08-06 방향) - 실시간 생산 로직은
               아직 미구현이라 지금은 항상 0/0이지만, FactionResources에 실제
               필드가 있으니 나중에 생산이 붙으면 이 줄이 자동으로 반영됨. */}
-          <p className="text-[9px] text-[#8fa6a8]">
-            금화 {resources?.gold ?? 0} · 목재 {resources?.wood ?? 0} · 광석 {resources?.iron ?? 0} · 보석{" "}
-            {resources?.gem ?? 0}
-          </p>
+          <div className="flex gap-1">
+            {RESOURCE_CHIPS.map(({ key, icon, tint }) => (
+              <span
+                key={key}
+                className="flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-bold"
+                style={{ border: `1px solid ${tint}66`, backgroundColor: `${tint}1a`, color: tint }}
+              >
+                <span>{icon}</span>
+                <span>{resources?.[key] ?? 0}</span>
+              </span>
+            ))}
+          </div>
         </div>
       }
       footer={
@@ -230,7 +283,10 @@ export function GameLobbyScreen({
       }
     >
       <div className="flex h-full gap-2 py-1">
-        <aside className="flex w-44 shrink-0 flex-col rounded-md border border-[#43606a] bg-[#17343e]">
+        <aside
+          className="flex w-44 shrink-0 flex-col rounded-md"
+          style={{ border: "1px solid #43606a", backgroundImage: "linear-gradient(180deg, #1c3b44, #132a31)" }}
+        >
           <div className="flex shrink-0 gap-1 border-b border-[#43606a] p-1">
             {(Object.keys(SORT_LABEL) as SortMode[]).map((mode) => (
               <button
@@ -289,10 +345,16 @@ export function GameLobbyScreen({
                   </button>
                   {/* 영웅 초상 자리 (2026-08-06, 텍스트 뱃지 -> 초상 프레임) -
                       HeroSelectScreen과 같은 HERO_PORTRAIT 맵을 공유하므로
-                      아트가 등록되는 즉시 여기도 자동으로 반영됨. */}
+                      아트가 등록되는 즉시 여기도 자동으로 반영됨. 등급 색
+                      링(GRADE_COLOR) + 은은한 글로우로 "능력치 카드" 느낌을
+                      살림(2026-08-06, "게임스럽게" 시각 보정 패스). */}
                   <div
-                    className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded"
-                    style={{ border: "1px solid #43606a", backgroundColor: "#0b2028" }}
+                    className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full"
+                    style={{
+                      border: `2px solid ${GRADE_COLOR[grade]}`,
+                      backgroundColor: "#0b2028",
+                      boxShadow: `0 0 6px ${GRADE_COLOR[grade]}77`,
+                    }}
                   >
                     {portraitUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element -- local /public asset, same convention as HeroSelectScreen.tsx
@@ -386,8 +448,9 @@ function ClearedWorldChip({
       {/* Codex 지형 아트 자리 (2026-08-06) - 티어가 높을수록 살짝 커지도록
           해서 "정복한 세계가 많을수록 큰 세계가 보인다"는 방향을 아트가
           없는 지금도 시각적으로 어느 정도 드러나게 함. 실제 지형 이미지가
-          들어오면 이 자리를 그대로 배경/썸네일로 교체하면 됨. */}
-      <TerrainArtPlaceholder tier={record.generation.mapTier} />
+          들어오면 이 자리를 그대로 배경/썸네일로 교체하면 됨. 히스토리
+          항목이라 활성 후보(TerrainOrb의 muted=false)보다 살짝 흐리게. */}
+      <TerrainOrb mapType={record.generation.mapType} tier={record.generation.mapTier} muted />
       <p className="mt-1 truncate font-bold text-[#c0cbc7]">{worldLabel(record)}</p>
       <p className="truncate text-[#8fa6a8]">
         {typeInfo.label} · {tierInfo.label}
@@ -404,8 +467,12 @@ function ClearedWorldChip({
   if (isGoverned) {
     return (
       <div
-        className="flex w-28 shrink-0 flex-col justify-start rounded-md p-2 text-[9px]"
-        style={{ border: "1px solid #43606a", backgroundColor: "#132a31", color: "#8fa6a8" }}
+        className="flex w-28 shrink-0 flex-col justify-start rounded-lg p-2 text-[9px]"
+        style={{
+          border: "1px solid #43606a",
+          backgroundImage: "linear-gradient(160deg, #1a3439, #0f262c)",
+          color: "#8fa6a8",
+        }}
       >
         {body}
       </div>
@@ -415,11 +482,10 @@ function ClearedWorldChip({
   return (
     <button
       onClick={onAppointGovernor}
-      className="flex w-28 shrink-0 flex-col justify-start rounded-md p-2 text-left text-[9px]"
+      className="flex w-28 shrink-0 flex-col justify-start rounded-lg p-2 text-left text-[9px]"
       style={{
         border: "1px solid #43606a",
-        backgroundColor: "#132a31",
-        backgroundImage: "none",
+        backgroundImage: "linear-gradient(160deg, #1a3439, #0f262c)",
         color: "#8fa6a8",
         fontWeight: 400,
         cursor: "pointer",
@@ -438,15 +504,19 @@ function MapCandidateCard({ candidate, onEnter }: { candidate: MapCandidate; onE
   const tierInfo = MAP_TIER_INFO[candidate.generation.mapTier];
   return (
     <div
-      className="flex w-40 shrink-0 flex-col justify-between rounded-md p-2"
-      style={{ border: "1px solid #bd9b4c", backgroundColor: "#1c3b44" }}
+      className="flex w-40 shrink-0 flex-col justify-between rounded-lg p-2"
+      style={{
+        border: "1px solid #bd9b4c",
+        backgroundImage: "linear-gradient(160deg, #24404a, #142a30)",
+        boxShadow: "0 4px 14px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.05)",
+      }}
     >
       <div>
         <div className="flex justify-center">
-          <TerrainArtPlaceholder tier={candidate.generation.mapTier} />
+          <TerrainOrb mapType={candidate.generation.mapType} tier={candidate.generation.mapTier} />
         </div>
-        <p className="mt-1 text-xs font-bold text-[#f3dfaa]">{typeInfo.label}</p>
-        <p className="mt-0.5 text-[9px] text-[#8fa6a8]">{typeInfo.description}</p>
+        <p className="mt-1 text-center text-xs font-bold text-[#f3dfaa]">{typeInfo.label}</p>
+        <p className="mt-0.5 text-center text-[9px] text-[#8fa6a8]">{typeInfo.description}</p>
       </div>
       <div className="mt-2 text-[9px] text-[#c0cbc7]">
         <p>
@@ -463,17 +533,32 @@ function MapCandidateCard({ candidate, onEnter }: { candidate: MapCandidate; onE
 
 // Reserved space for Codex's per-region terrain art (2026-08-06 lobby
 // redesign direction - "처음 로비에 왔을때는... 평지의 소형 지형 이미지가
-// 보일꺼야", art itself TBD). Box grows a little with map tier so "bigger
-// tier = bigger world" reads visually even before real art exists.
-function TerrainArtPlaceholder({ tier }: { tier: keyof typeof MAP_TIER_INFO }) {
+// 보일꺼야", real art itself TBD - see docs/CLAUDE_HANDOFF.md). Until then,
+// a glowing "world orb" (radial-gradient tint + a type-matching emoji) reads
+// far more like a game map-select node than a plain dashed placeholder box
+// did (2026-08-06 "게임스럽게" visual pass, user feedback that the screen
+// read as an admin panel). Grows a little with map tier so "bigger tier =
+// bigger world" shows even without real art. `muted` dims it for the
+// cleared-world history rail, where it's a record rather than an active
+// choice.
+function TerrainOrb({ mapType, tier, muted = false }: { mapType: MapTypeId; tier: MapTierId; muted?: boolean }) {
   const tierIndex = MAP_TIER_ORDER.indexOf(tier);
   const size = 56 + tierIndex * 8;
+  const tint = MAP_TYPE_TINT[mapType];
   return (
     <div
-      className="mx-auto flex items-center justify-center rounded border border-dashed text-[8px]"
-      style={{ width: size, height: size, borderColor: "#3a4f52", color: "#5c7276" }}
+      className="mx-auto flex items-center justify-center rounded-full"
+      style={{
+        width: size,
+        height: size,
+        fontSize: size * 0.4,
+        backgroundImage: `radial-gradient(circle at 35% 30%, ${tint}${muted ? "33" : "66"}, #0b2028 75%)`,
+        border: `2px solid ${muted ? `${tint}66` : tint}`,
+        boxShadow: muted ? "none" : `0 0 12px ${tint}66`,
+        opacity: muted ? 0.75 : 1,
+      }}
     >
-      지형
+      {MAP_TYPE_ICON[mapType]}
     </div>
   );
 }
