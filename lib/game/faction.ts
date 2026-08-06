@@ -16,11 +16,21 @@ export const PLAYER_FACTION_ID = "player-faction" as FactionId;
 // previously-cleared world yields (task 13 - governing a region was left
 // producing "some resource, form undecided"; this is that resource, spent
 // on research per this session's direction).
+//
+// wood/gem (2026-08-06, lobby redesign direction): the resources a governed
+// world produces over real elapsed time (not per-turn like the above four),
+// shown in the lobby header. Added here as real fields so the header can
+// read live state rather than fake zeros, but the actual production tick
+// (how often, how much, whether it accrues while offline) is explicitly
+// undecided/unbuilt - both start and stay at 0 until that lands. gem is
+// also the premium currency spent on hero gacha (also undecided/unbuilt).
 export type FactionResources = {
   gold: number;
   food: number;
   iron: number;
   researchResource: number;
+  wood: number;
+  gem: number;
 };
 
 export const ZERO_FACTION_RESOURCES: FactionResources = {
@@ -28,6 +38,8 @@ export const ZERO_FACTION_RESOURCES: FactionResources = {
   food: 0,
   iron: 0,
   researchResource: 0,
+  wood: 0,
+  gem: 0,
 };
 
 // A faction is any power on the map, player or AI. The world tiers already

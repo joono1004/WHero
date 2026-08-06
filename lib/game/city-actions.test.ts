@@ -51,7 +51,7 @@ test("foundCity sets the faction's capitalCityId on the first city, and never ch
   const firstCityId = updated.factions[PLAYER_FACTION_ID].cityIds[0];
   assert.equal(updated.factions[PLAYER_FACTION_ID].capitalCityId, firstCityId);
 
-  const RICH_RESOURCES = { gold: 100000, food: 100000, iron: 0, researchResource: 0 };
+  const RICH_RESOURCES = { gold: 100000, food: 100000, iron: 0, researchResource: 0, wood: 0, gem: 0 };
   const upgraded = upgradeCity(updated.cities[firstCityId], RICH_RESOURCES);
   updated = {
     ...updated,
@@ -108,7 +108,7 @@ test("with zero cities, the summon count is still treated as 1 (the founder alre
 });
 
 test("founding a second city (city count 2) promotes the next enlisted hero, but not the one after", () => {
-  const RICH_RESOURCES = { gold: 100000, food: 100000, iron: 0, researchResource: 0 };
+  const RICH_RESOURCES = { gold: 100000, food: 100000, iron: 0, researchResource: 0, wood: 0, gem: 0 };
   const save = activeWorldSaveWithHeroes(3);
   const [founderId, secondHeroId, thirdHeroId] = save.heroes.map((hero) => hero.heroId);
 

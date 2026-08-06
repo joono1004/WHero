@@ -179,6 +179,7 @@ test("a hero governing a cleared world is valid", () => {
     generation: { seed: 0, mapType: "continent", mapTier: "mini", terrainVersion: "v1" },
     clearedAt: "2026-07-20T00:00:00.000Z",
     governorHeroId: "hero-1",
+    name: null,
   };
   save.heroes[0].assignment = { mode: "governor", worldId: "world-0" };
   save.cities["city-1"].heroId = null;
@@ -201,6 +202,7 @@ test("flags a one-sided link: hero says it governs the world, but that record di
     generation: { seed: 0, mapType: "continent", mapTier: "mini", terrainVersion: "v1" },
     clearedAt: "2026-07-20T00:00:00.000Z",
     governorHeroId: null,
+    name: null,
   };
   save.heroes[0].assignment = { mode: "governor", worldId: "world-0" };
   save.cities["city-1"].heroId = null;
@@ -216,6 +218,7 @@ test("flags a one-sided link: cleared world lists a governor who says they're el
     generation: { seed: 0, mapType: "continent", mapTier: "mini", terrainVersion: "v1" },
     clearedAt: "2026-07-20T00:00:00.000Z",
     governorHeroId: "hero-1",
+    name: null,
   };
   // hero-1 stays assigned to city-1 (its default in makeValidSave), not the world
   const issues = findSaveGameIssues(save);
@@ -230,6 +233,7 @@ test("flags the active world also appearing in clearedWorlds", () => {
     generation: save.world!.generation,
     clearedAt: "2026-07-20T00:00:00.000Z",
     governorHeroId: null,
+    name: null,
   };
   const issues = findSaveGameIssues(save);
   assert.ok(issues.some((issue) => issue.includes("both the active world")));
@@ -250,6 +254,7 @@ test("a hero governing a cleared world does not count against the deployment lim
     generation: { seed: 0, mapType: "continent", mapTier: "mini", terrainVersion: "v1" },
     clearedAt: "2026-07-20T00:00:00.000Z",
     governorHeroId: "hero-1",
+    name: null,
   };
   save.heroes[0].assignment = { mode: "governor", worldId: "world-0" };
   save.cities["city-1"].heroId = null;

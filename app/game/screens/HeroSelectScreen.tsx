@@ -7,29 +7,11 @@ import type { HeroDefinition } from "../../../lib/game/hero-definition.ts";
 import type { CoreGrade } from "../../../lib/game/grade.ts";
 import { HERO_SKILL_CATALOG, MAX_HERO_SKILLS } from "../../../lib/game/hero-skill.ts";
 import { HERO_TRAIT_CATALOG, MAX_HERO_TRAITS } from "../../../lib/game/hero-trait.ts";
-import type { HeroId } from "../../../lib/game/ids.ts";
 import { STARTING_HEROES } from "../../../lib/game/starting-heroes.ts";
 import { Button } from "../Button.tsx";
+import { HERO_PORTRAIT, HERO_PORTRAIT_FRAME_PX } from "../heroPortraits.ts";
 import { ARCHETYPE_LABEL, UNIT_TYPE_LABEL } from "../heroLabels.ts";
 import { ScreenShell } from "../ScreenShell.tsx";
-
-// Filled in as Codex delivers each hero's art (public/art/heroes/) - a
-// hero with no entry here still gets the plain placeholder box below.
-const HERO_PORTRAIT: Partial<Record<HeroId, string>> = {
-  "wei-yan": "/art/heroes/wei-yan-classic-portrait-v3.webp",
-};
-
-// 영웅 초상 아트 스펙 (2026-08-xx, Codex 참고용): 카드의 초상 프레임은
-// HERO_PORTRAIT_FRAME_PX x HERO_PORTRAIT_FRAME_PX (96x96) 정사각형 고정
-// 크기이고, object-fit: cover로 렌더링됩니다 - 즉 프레임보다 넓거나 좁은
-// 원본은 중앙 기준으로 잘려서 채워집니다. 기존 위연 샘플
-// (wei-yan-classic-portrait-v3.webp)이 512x512 정사각형 webp라 이 프레임에
-// 딱 맞게 나옵니다 - 새 영웅 초상도 같은 스펙(정사각형, 512x512 이상 권장,
-// webp)으로 맞춰서 public/art/heroes/에 추가하고, 이 HERO_PORTRAIT 맵에
-// heroId -> 경로를 등록하면 됩니다. 정사각형이 아닌 원본을 줘도 동작은
-// 하지만(가운데 크롭) 인물의 얼굴/핵심 구도가 중앙 근처에 있어야
-// 잘림으로 인한 손실이 적습니다.
-const HERO_PORTRAIT_FRAME_PX = 96;
 
 // No grade-color convention existed anywhere in the codebase yet (Codex's
 // lib/world/prototype/faction-visual.ts explicitly notes "hero grade

@@ -120,6 +120,7 @@ test("completeActiveWorld leaves a governor's assignment untouched", () => {
         generation: { seed: 0, mapType: "continent", mapTier: "mini", terrainVersion: "v1" },
         clearedAt: NOW,
         governorHeroId: save.heroes[0].heroId,
+        name: null,
       },
     },
     heroes: save.heroes.map((hero) => appointHeroAsGovernor(hero, priorWorldId)),
@@ -149,7 +150,7 @@ test("completeActiveWorld resets the player faction's cityIds/unitIds but keeps 
         ...faction,
         cityIds: ["city-1"],
         unitIds: ["unit-1"],
-        resources: { gold: 500, food: 20, iron: 10, researchResource: 3 },
+        resources: { gold: 500, food: 20, iron: 10, researchResource: 3, wood: 0, gem: 0 },
       },
     },
   };
@@ -157,7 +158,7 @@ test("completeActiveWorld resets the player faction's cityIds/unitIds but keeps 
   const resultFaction = completed.factions[PLAYER_FACTION_ID];
   assert.deepEqual(resultFaction.cityIds, []);
   assert.deepEqual(resultFaction.unitIds, []);
-  assert.deepEqual(resultFaction.resources, { gold: 500, food: 20, iron: 10, researchResource: 3 });
+  assert.deepEqual(resultFaction.resources, { gold: 500, food: 20, iron: 10, researchResource: 3, wood: 0, gem: 0 });
 });
 
 test("enter -> complete -> enter again round-trips without integrity issues", () => {

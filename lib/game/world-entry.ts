@@ -177,6 +177,7 @@ export function completeActiveWorld(save: SaveGame, now: string): SaveGame {
       generation: world.generation,
       clearedAt: now,
       governorHeroId: null,
+      name: null,
     },
   };
 

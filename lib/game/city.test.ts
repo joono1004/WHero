@@ -31,7 +31,7 @@ function makeCity(overrides: Partial<City> = {}): City {
   };
 }
 
-const RICH_RESOURCES: FactionResources = { gold: 100000, food: 100000, iron: 0, researchResource: 0 };
+const RICH_RESOURCES: FactionResources = { gold: 100000, food: 100000, iron: 0, researchResource: 0, wood: 0, gem: 0 };
 
 test("createCity starts at outpost tier with no facilities or queue", () => {
   const city = createCity({ id: "city-1", factionId: "faction-1", name: "테스트도시", position: { row: 0, column: 0 } });

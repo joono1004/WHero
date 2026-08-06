@@ -86,4 +86,9 @@ export type ClearedWorldRecord = {
   generation: WorldGenerationParams;
   clearedAt: string;
   governorHeroId: HeroId | null;
+  // Player-given name (2026-08-06, lobby redesign direction - "영주 임명시
+  // 세계1과 같은 이름을 임의로 정할 수 있어"), set when a governor is first
+  // appointed (see governor.ts's appointGovernor). null until then - display
+  // code should fall back to "세계 {worldIndex}" when this is null.
+  name: string | null;
 };
