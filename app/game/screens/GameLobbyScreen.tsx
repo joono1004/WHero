@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { PLAYER_FACTION_ID } from "../../../lib/game/faction.ts";
-import type { Faction } from "../../../lib/game/faction.ts";
 import { appointGovernor } from "../../../lib/game/governor.ts";
 import { heroArchetype, heroOverallGrade } from "../../../lib/game/hero-definition.ts";
 import { governedWorldId, setDeploymentPriority, unequipItem } from "../../../lib/game/hero.ts";
@@ -16,8 +15,6 @@ import {
 import type { HeroListEntry } from "../../../lib/game/hero-roster.ts";
 import type { ClearedWorldRecord } from "../../../lib/game/world.ts";
 import type { MapCandidate } from "../../../lib/game/map-candidates.ts";
-import { upgradeResearch } from "../../../lib/game/research.ts";
-import type { ResearchCategory } from "../../../lib/game/research.ts";
 import type { SaveGame } from "../../../lib/game/save.ts";
 import type { MapTierId, MapTypeId } from "../../../lib/game/world.ts";
 import { MAP_TIER_INFO, MAP_TIER_ORDER, MAP_TYPE_INFO } from "../../../lib/game/world.ts";
@@ -26,6 +23,9 @@ import { GRADE_COLOR } from "../gradeColors.ts";
 import { ARCHETYPE_LABEL } from "../heroLabels.ts";
 import { HERO_PORTRAIT } from "../heroPortraits.ts";
 import { ScreenShell } from "../ScreenShell.tsx";
+import { GovernorAppointScreen } from "./GovernorAppointScreen.tsx";
+import { HeroDetailScreen } from "./HeroDetailScreen.tsx";
+import { HeroEnlistScreen } from "./HeroEnlistScreen.tsx";
 
 // Terrain flavor for the world orbs (2026-08-06, "게임스럽게" visual pass) -
 // an emoji + tint color per map type, standing in for Codex's eventual
@@ -57,10 +57,6 @@ const RESOURCE_CHIPS: { key: "gold" | "wood" | "iron" | "gem"; icon: string; lab
   { key: "iron", icon: "⛏️", label: "광석", tint: "#9aa5a3" },
   { key: "gem", icon: "💎", label: "보석", tint: "#c17be0" },
 ];
-import { GovernorAppointScreen } from "./GovernorAppointScreen.tsx";
-import { HeroDetailScreen } from "./HeroDetailScreen.tsx";
-import { HeroEnlistScreen } from "./HeroEnlistScreen.tsx";
-import { ResearchScreen } from "./ResearchScreen.tsx";
 
 type SortMode = "grade" | "archetype" | "level";
 
@@ -104,7 +100,6 @@ export function GameLobbyScreen({
 }) {
   const [sortMode, setSortMode] = useState<SortMode>("grade");
   const [viewingHeroId, setViewingHeroId] = useState<string | null>(null);
-  const [showResearch, setShowResearch] = useState(false);
   const [enlistingCandidateIndex, setEnlistingCandidateIndex] = useState<number | null>(null);
   const [appointingWorldId, setAppointingWorldId] = useState<string | null>(null);
   const railRef = useRef<HTMLDivElement>(null);
@@ -131,15 +126,6 @@ export function GameLobbyScreen({
     onUpdateSave({
       ...save,
       heroes: save.heroes.map((hero) => (hero.heroId === heroId ? updater(hero) : hero)),
-    });
-  };
-
-  const updateFaction = (updater: (faction: Faction) => Faction) => {
-    const faction = save.factions[PLAYER_FACTION_ID];
-    if (!faction) return;
-    onUpdateSave({
-      ...save,
-      factions: { ...save.factions, [PLAYER_FACTION_ID]: updater(faction) },
     });
   };
 
@@ -198,45 +184,46 @@ export function GameLobbyScreen({
     setAppointingWorldId(null);
   }
 
-  if (showResearch && playerFaction) {
-    return (
-      <ResearchScreen
-        research={playerFaction.research}
-        resources={playerFaction.resources}
-        onBack={() => setShowResearch(false)}
-        onUpgrade={(category: ResearchCategory) =>
-          updateFaction((faction) => {
-            const result = upgradeResearch(faction.research, faction.resources, category);
-            return { ...faction, research: result.levels, resources: result.resources };
-          })
-        }
-      />
-    );
-  }
-
   const resources = playerFaction?.resources;
 
   return (
     <ScreenShell
       header={
         <div
-          className="flex flex-col gap-1.5 rounded-md p-1.5"
+          className="grid grid-cols-3 items-center rounded-md p-1.5"
           style={{
             border: "1px solid rgba(215,183,101,0.3)",
             backgroundImage: "linear-gradient(180deg, rgba(215,183,101,0.14), rgba(215,183,101,0.02))",
           }}
         >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-[#f3dfaa]">
-              {save.factionName}{" "}
-              <span
-                className="ml-1 rounded-full px-1.5 py-0.5 text-[9px] font-bold"
-                style={{ border: "1px solid #d7b765", backgroundColor: "rgba(215,183,101,0.15)", color: "#d7b765" }}
-              >
-                정복 세계 {clearedWorlds.length}
-              </span>
+          <div className="flex items-center justify-self-start">
+            <span className="text-xs font-bold text-[#f3dfaa]">{save.factionName}</span>
+            <span
+              className="ml-1 rounded-full px-1.5 py-0.5 text-[9px] font-bold"
+              style={{ border: "1px solid #d7b765", backgroundColor: "rgba(215,183,101,0.15)", color: "#d7b765" }}
+            >
+              정복 세계 {clearedWorlds.length}
             </span>
-            <span className="hidden text-[10px] tracking-[0.2em] text-[#8fa6a8] sm:block">HERO STORY</span>
+          </div>
+          <span className="hidden justify-self-center text-[10px] tracking-[0.2em] text-[#8fa6a8] sm:block">
+            HERO STORY
+          </span>
+          {/* 영주 배치로 얻는 자원 (2026-08-06 방향) - 실시간 생산 로직은
+              아직 미구현이라 지금은 항상 0/0이지만, FactionResources에 실제
+              필드가 있으니 나중에 생산이 붙으면 이 칩들이 자동으로 반영됨. */}
+          <div className="flex items-center justify-self-end gap-1.5">
+            <div className="flex gap-1">
+              {RESOURCE_CHIPS.map(({ key, icon, tint }) => (
+                <span
+                  key={key}
+                  className="flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-bold"
+                  style={{ border: `1px solid ${tint}66`, backgroundColor: `${tint}1a`, color: tint }}
+                >
+                  <span>{icon}</span>
+                  <span>{resources?.[key] ?? 0}</span>
+                </span>
+              ))}
+            </div>
             <div className="flex gap-1">
               <Button size="sm" variant="secondary" onClick={onSettings}>
                 ⚙
@@ -246,39 +233,6 @@ export function GameLobbyScreen({
               </Button>
             </div>
           </div>
-          {/* 영주 배치로 얻는 자원 (2026-08-06 방향) - 실시간 생산 로직은
-              아직 미구현이라 지금은 항상 0/0이지만, FactionResources에 실제
-              필드가 있으니 나중에 생산이 붙으면 이 줄이 자동으로 반영됨. */}
-          <div className="flex gap-1">
-            {RESOURCE_CHIPS.map(({ key, icon, tint }) => (
-              <span
-                key={key}
-                className="flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-bold"
-                style={{ border: `1px solid ${tint}66`, backgroundColor: `${tint}1a`, color: tint }}
-              >
-                <span>{icon}</span>
-                <span>{resources?.[key] ?? 0}</span>
-              </span>
-            ))}
-          </div>
-        </div>
-      }
-      footer={
-        <div className="flex items-center justify-between">
-          <div className="flex gap-2">
-            <Button size="sm" variant="secondary" onClick={() => window.alert("로비에는 활성화된 세계가 없어 부대가 없습니다. 세계에 진출하면 그 화면에서 확인할 수 있습니다.")}>
-              부대
-            </Button>
-            <Button size="sm" variant="secondary" onClick={() => window.alert("로비에는 활성화된 세계가 없어 도시가 없습니다. 세계에 진출하면 그 화면에서 확인할 수 있습니다.")}>
-              도시
-            </Button>
-            <Button size="sm" variant="secondary" onClick={() => setShowResearch(true)}>
-              연구
-            </Button>
-          </div>
-          <span className="text-[10px] text-[#8fa6a8]">
-            금 {resources?.gold ?? 0} · 식량 {resources?.food ?? 0} · 유산 {resources?.researchResource ?? 0}
-          </span>
         </div>
       }
     >
