@@ -309,3 +309,29 @@ Observability/Logs 탭에서 `client-error`로 검색하면 실제 플레이 중
 그대로 가져다 쓰시면 됩니다 (Claude 소유 파일이지만 순수 유틸 함수라
 import해서 쓰는 건 문제없음 - 굳이 이 함수를 별도 공용 위치로 옮기고
 싶으면 그것도 괜찮습니다).
+
+### 영웅 특기/스킬 시스템 신설 + 영웅 카드 초상 아트 스펙 (2026-08-06)
+
+**Codex가 영웅 초상 아트를 만들 때 필요한 스펙만 요약** (자세한 배경/결정
+과정은 `docs/SYSTEM_LAYER.md`의 "내정 표시 → 특기(패시브) 시스템, 스킬
+(액티브) 시스템 신설" / "영웅 카드 레이아웃 재작업" 항목 참고):
+
+- 영웅 카드(`app/game/screens/HeroSelectScreen.tsx`)의 초상 프레임은
+  **고정 96×96px 정사각형**(`HERO_PORTRAIT_FRAME_PX` 상수), `object-fit:
+  cover`로 렌더링됩니다. 정사각형이 아닌 원본도 동작하지만 중앙 기준으로
+  잘리니, 얼굴/핵심 구도는 중앙 근처에 두는 걸 권장합니다.
+- 기존 위연 샘플(`public/art/heroes/wei-yan-classic-portrait-v3.webp`,
+  512×512 webp)이 이 스펙의 기준입니다. 새 영웅 초상도 **정사각형 ·
+  512×512 이상 · webp**로 맞춰서 `public/art/heroes/`에 추가하고,
+  `HeroSelectScreen.tsx`의 `HERO_PORTRAIT: Partial<Record<HeroId, string>>`
+  맵에 `heroId -> 경로`만 등록하면 카드에 바로 반영됩니다(등록 안 된
+  영웅은 🧑 이모지 placeholder). `HeroDefinition`에 이미지 필드를 따로
+  추가하진 않았습니다 - 지금은 이 하드코딩 맵 하나로 충분한 규모.
+- 같은 세션에서 "내정"(도메스틱 스페셜티) 등급 표시를 없애고 이름 있는
+  고정효과 패시브 "특기"(`lib/game/hero-trait.ts`, 최대 5개)로 교체했고,
+  이어서 전투 중 쓰는 액티브 "스킬"(`lib/game/hero-skill.ts`, 최대 2개)도
+  분리 신설했습니다. `HeroDefinition`에 `traits`/`skills` 필드가 새로
+  생겼습니다 - 둘 다 아직 데이터+화면 표시만 있고 `combat.ts`에는
+  연결 안 됨. 특기/스킬 아이콘이나 관련 아트를 나중에 만들게 되면
+  `lib/game/hero-trait.ts`/`hero-skill.ts`의 카탈로그(각 id → 이름/효과
+  설명)가 전체 목록의 출처입니다.

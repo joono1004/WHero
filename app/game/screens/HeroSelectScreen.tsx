@@ -17,6 +17,18 @@ const HERO_PORTRAIT: Partial<Record<HeroId, string>> = {
   "wei-yan": "/art/heroes/wei-yan-classic-portrait-v3.webp",
 };
 
+// 영웅 초상 아트 스펙 (2026-08-xx, Codex 참고용): 카드의 초상 프레임은
+// HERO_PORTRAIT_FRAME_PX x HERO_PORTRAIT_FRAME_PX (96x96) 정사각형 고정
+// 크기이고, object-fit: cover로 렌더링됩니다 - 즉 프레임보다 넓거나 좁은
+// 원본은 중앙 기준으로 잘려서 채워집니다. 기존 위연 샘플
+// (wei-yan-classic-portrait-v3.webp)이 512x512 정사각형 webp라 이 프레임에
+// 딱 맞게 나옵니다 - 새 영웅 초상도 같은 스펙(정사각형, 512x512 이상 권장,
+// webp)으로 맞춰서 public/art/heroes/에 추가하고, 이 HERO_PORTRAIT 맵에
+// heroId -> 경로를 등록하면 됩니다. 정사각형이 아닌 원본을 줘도 동작은
+// 하지만(가운데 크롭) 인물의 얼굴/핵심 구도가 중앙 근처에 있어야
+// 잘림으로 인한 손실이 적습니다.
+const HERO_PORTRAIT_FRAME_PX = 96;
+
 // No grade-color convention existed anywhere in the codebase yet (Codex's
 // lib/world/prototype/faction-visual.ts explicitly notes "hero grade
 // colours remain separate" without defining them) - standard low-to-high
@@ -114,12 +126,23 @@ function HeroCard({
       </div>
 
       <div className="mt-1.5 flex items-stretch gap-2">
-        {/* Reserved for Codex's hero portrait art (see HERO_PORTRAIT) - a
-            hero without an entry yet falls back to a plain placeholder.
-            Stretches to match the stat block's height via items-stretch. */}
+        {/* Fixed 96x96 square frame for hero portrait art - see HERO_PORTRAIT_FRAME_PX
+            below for the full spec Codex should target. Explicit width+height
+            (not "stretch to match the stat block" like before) so every card's
+            frame is identical whether or not that hero has real art yet:
+            leaving height to items-stretch made 위연's real (square, object-cover)
+            image render taller than 감녕/서서's plain emoji placeholder, since a
+            percentage-sized <img> inside a stretched flex item with no definite
+            height falls back to its own intrinsic aspect ratio instead of
+            actually stretching (a flexbox/replaced-element sizing quirk). */}
         <div
           className="flex shrink-0 items-center justify-center overflow-hidden rounded"
-          style={{ width: 96, border: "1px solid #43606a", backgroundColor: "#0b2028" }}
+          style={{
+            width: HERO_PORTRAIT_FRAME_PX,
+            height: HERO_PORTRAIT_FRAME_PX,
+            border: "1px solid #43606a",
+            backgroundColor: "#0b2028",
+          }}
         >
           {HERO_PORTRAIT[hero.id] ? (
             // eslint-disable-next-line @next/next/no-img-element -- local /public asset, same convention as components/world/TestHeroPanel.tsx
