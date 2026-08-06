@@ -88,22 +88,32 @@ function HeroCard({
         border: `1px solid ${selected ? "#d7b765" : "#43606a"}`,
         backgroundColor: selected ? "#1c3b44" : "#17343e",
         backgroundImage: "none",
-        padding: "0.6rem 0.7rem 0.8rem",
+        padding: "0.45rem 0.7rem 0.55rem",
         fontWeight: 400,
         color: "inherit",
       }}
     >
       <div className="flex items-center justify-between gap-1">
-        <h3 className="text-base font-bold text-[#f3dfaa]">{hero.name}</h3>
-        <span
-          className="whitespace-nowrap rounded border px-1.5 py-0.5 text-xs font-bold"
-          style={{ borderColor: GRADE_COLOR[grade], color: GRADE_COLOR[grade] }}
-        >
-          {grade}급·{ARCHETYPE_LABEL[archetype]}
+        {/* Name + grade·archetype badge grouped together on the left (was
+            split name-left/badge-right) - 병과 now takes the right side of
+            this row instead, since it doesn't fit landing beside 매력 in
+            the stat grid without truncating (2026-08-xx). */}
+        <div className="flex min-w-0 items-center gap-1.5">
+          <h3 className="shrink-0 text-base font-bold text-[#f3dfaa]">{hero.name}</h3>
+          <span
+            className="whitespace-nowrap rounded border px-1.5 py-0.5 text-xs font-bold"
+            style={{ borderColor: GRADE_COLOR[grade], color: GRADE_COLOR[grade] }}
+          >
+            {grade}급·{ARCHETYPE_LABEL[archetype]}
+          </span>
+        </div>
+        <span className="whitespace-nowrap text-xs">
+          <span className="text-[#8fa6a8]">병과 </span>
+          <span className="font-bold text-[#e3ce94]">{UNIT_TYPE_LABEL[hero.unitType]}</span>
         </span>
       </div>
 
-      <div className="mt-2 flex items-stretch gap-2">
+      <div className="mt-1.5 flex items-stretch gap-2">
         {/* Reserved for Codex's hero portrait art (see HERO_PORTRAIT) - a
             hero without an entry yet falls back to a plain placeholder.
             Stretches to match the stat block's height via items-stretch. */}
@@ -124,24 +134,17 @@ function HeroCard({
         </div>
 
         <div className="flex min-w-0 flex-1 items-center py-0.5">
-          {/* 병과 falls into column 2 of 매력's row by plain grid auto-flow
-              (no col-start/col-span override) - it's the 6th item in a
-              2-column grid, so it lands right beside 매력 instead of on its
-              own row. 스킬 doesn't appear on this card at all right now
-              (2026-08-xx: still deciding how to display it - see
-              HeroDetailScreen for the only place it currently shows). */}
           <dl className="grid w-full grid-cols-2 gap-x-2 gap-y-1.5 text-sm">
             <GradeStat label="통솔" grade={hero.attributes.leadership} />
             <GradeStat label="무력" grade={hero.attributes.force} />
             <GradeStat label="지력" grade={hero.attributes.intelligence} />
             <GradeStat label="체력" grade={hero.attributes.vitality} />
             <GradeStat label="매력" grade={hero.attributes.charisma} />
-            <TextStat label="병과" value={UNIT_TYPE_LABEL[hero.unitType]} />
           </dl>
         </div>
       </div>
 
-      <div className="mt-2">
+      <div className="mt-1.5">
         <p className="text-xs font-bold text-[#8fa6a8]">특기</p>
         <div className="mt-1 flex gap-1">
           {/* Fixed MAX_HERO_TRAITS slots, always all shown - a hero with
@@ -164,38 +167,21 @@ function HeroCard({
         </div>
       </div>
 
-      <p className="mt-2 line-clamp-3 text-xs leading-relaxed text-[#c0cbc7]">{hero.description}</p>
+      <p className="mt-1.5 line-clamp-3 text-xs leading-relaxed text-[#c0cbc7]">{hero.description}</p>
     </button>
   );
 }
 
-// Mirrors GradeStat's own label/value layout exactly (not a 2-column grid
-// of its own) so 병과's value lands at the same x as the grade letters
-// above - both are just "label, then justify-between value" inside a
-// single grid cell of the same width. className is only used by callers
-// that need to override grid placement (none currently do).
-function TextStat({ label, value, className }: { label: string; value: string; className?: string }) {
-  return (
-    <div className={`flex min-w-0 items-center justify-between gap-1${className ? ` ${className}` : ""}`}>
-      <span className="shrink-0 text-[#8fa6a8]">{label}</span>
-      <span className="truncate font-bold text-[#e3ce94]">{value}</span>
-    </div>
-  );
-}
-
 // Grade letters (D/C/B/A/S/SS) get their own component rather than reusing
-// Stat's left/right layout: the value is centered in a fixed-width slot
-// (2ch - room for "SS", the top of the scale, not just the single-letter
-// grades currently in use) and colored by GRADE_COLOR instead of a flat
-// gold, so the letter itself carries the tier at a glance.
+// a generic label/value layout: the value sits in a flex-1 slot after the
+// label and is text-center within it, so it's centered in the remaining
+// row width (not hugging the row's right edge the way justify-between
+// would) and colored by GRADE_COLOR instead of a flat gold.
 function GradeStat({ label, grade }: { label: string; grade: CoreGrade }) {
   return (
-    <div className="flex items-center justify-between gap-1">
+    <div className="flex items-center gap-1">
       <span className="shrink-0 text-[#8fa6a8]">{label}</span>
-      <span
-        className="inline-block text-center font-bold"
-        style={{ minWidth: "2ch", color: GRADE_COLOR[grade] }}
-      >
+      <span className="flex-1 text-center font-bold" style={{ color: GRADE_COLOR[grade] }}>
         {grade}
       </span>
     </div>
