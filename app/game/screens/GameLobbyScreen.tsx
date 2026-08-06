@@ -51,13 +51,23 @@ const MAP_TYPE_TINT: Record<MapTypeId, string> = {
 
 // One row per resource the lobby header shows (2026-08-06 direction) -
 // icon + tint turns "금화 0 · 목재 0 · ..." into a proper HUD-style resource
-// bar instead of a plain text line.
-const RESOURCE_CHIPS: { key: "gold" | "wood" | "iron" | "gem"; icon: string; label: string; tint: string }[] = [
-  { key: "gold", icon: "🪙", label: "금화", tint: "#d7b765" },
+// bar instead of a plain text line. Order (목재/광석/금화/보석) matches the
+// user's most recent header spec, not the FactionResources field order.
+const RESOURCE_CHIPS: { key: "wood" | "iron" | "gold" | "gem"; icon: string; label: string; tint: string }[] = [
   { key: "wood", icon: "🪵", label: "목재", tint: "#a97c50" },
   { key: "iron", icon: "⛏️", label: "광석", tint: "#9aa5a3" },
+  { key: "gold", icon: "🪙", label: "금화", tint: "#d7b765" },
   { key: "gem", icon: "💎", label: "보석", tint: "#c17be0" },
 ];
+
+// "458.6K" style compact formatting for the header resource bar (2026-08-06
+// direction) - real production isn't wired up yet so every value is 0
+// today, but the header should already render however a future large
+// number would look.
+function formatResourceAmount(value: number): string {
+  if (value >= 1000) return `${(value / 1000).toFixed(1)}K`;
+  return String(value);
+}
 
 // Bottom-left menu bar (2026-08-06 direction, replacing the old 부대/도시/
 // 연구 footer buttons): only 연구/영웅 have a real destination so far -
@@ -236,41 +246,48 @@ export function GameLobbyScreen({
     <ScreenShell
       header={
         <div
-          className="grid grid-cols-3 items-center rounded-md p-1.5"
+          className="flex items-center gap-2 rounded-md p-1.5"
           style={{
             border: "1px solid rgba(215,183,101,0.3)",
             backgroundImage: "linear-gradient(180deg, rgba(215,183,101,0.14), rgba(215,183,101,0.02))",
           }}
         >
-          <div className="flex items-center gap-1.5 justify-self-start">
-            {/* 참고 이미지의 세력 초상 배지 자리 - 실제 세력 문장/초상 아트는
-                아직 없어서 방패 이모지로 대체 (2026-08-06). */}
+          {/* 세력명 블록 (2026-08-06 재배치): 이름+정복세계 뱃지 한 줄,
+              그 아래 칭호 한 줄 - 참고 이미지의 "영웅왕/전설의 지휘관"
+              2줄 프로필 구조. 칭호는 이번에 새로 등장한 개념이라 아직
+              실제 칭호 시스템(획득 조건 등)은 없음 - 자리만 마련하고
+              placeholder 텍스트를 씀. HERO STORY 로고는 더 이상 헤더
+              중앙을 차지하지 않고, 이 블록 위에 작게 붙는 걸로 이동. */}
+          <div className="flex shrink-0 items-center gap-1.5">
             <span
-              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm"
               style={{ border: "2px solid #d7b765", backgroundColor: "#0b2028" }}
             >
               🛡️
             </span>
             <div>
-              <span className="text-xs font-bold text-[#f3dfaa]">{save.factionName}</span>
-              <span
-                className="ml-1 rounded-full px-1.5 py-0.5 text-[9px] font-bold"
-                style={{ border: "1px solid #d7b765", backgroundColor: "rgba(215,183,101,0.15)", color: "#d7b765" }}
-              >
-                정복 세계 {clearedWorlds.length}
-              </span>
+              <p className="text-[8px] tracking-[0.2em] text-[#8fa6a8]">HERO STORY</p>
+              <div className="flex items-center gap-1">
+                <span className="text-xs font-bold text-[#f3dfaa]">{save.factionName}</span>
+                <span
+                  className="rounded-full px-1.5 py-0.5 text-[9px] font-bold"
+                  style={{ border: "1px solid #d7b765", backgroundColor: "rgba(215,183,101,0.15)", color: "#d7b765" }}
+                >
+                  정복 세계 {clearedWorlds.length}
+                </span>
+              </div>
+              {/* TODO(칭호 시스템 미정): 실제 칭호를 어떻게/언제 얻는지는
+                  아직 설계 전 - 지금은 항상 이 문구만 보여줌. */}
+              <p className="text-[9px] text-[#8fa6a8]">신입 지휘관</p>
             </div>
           </div>
-          <span className="hidden justify-self-center text-[10px] tracking-[0.2em] text-[#8fa6a8] sm:block">
-            HERO STORY
-          </span>
-          {/* 영주 배치로 얻는 자원 (2026-08-06 방향) - 실시간 생산 로직은
-              아직 미구현이라 지금은 항상 0/0이지만, FactionResources에 실제
-              필드가 있으니 나중에 생산이 붙으면 이 칩들이 자동으로 반영됨.
-              아이콘을 작은 원형 배지로 감싸서(참고 이미지의 자원 아이콘
-              스타일) 텍스트 옆 이모지보다 무게감 있게 보이도록 함. */}
-          <div className="flex items-center justify-self-end gap-1.5">
-            <div className="flex gap-1">
+
+          {/* 자원 줄 (2026-08-06 재배치): 가로 폭을 넓게 써서 목재/광석/
+              금화/보석 순으로 펼쳐 보여주고, 보석 옆에 구매용 [+] -
+              실제 상점/과금 연동은 미구현이라 눌러도 안내만 뜸. 오른쪽
+              끝에 우편/알림(둘 다 신규 개념, 시스템 없음)·설정·닫기. */}
+          <div className="flex flex-1 items-center justify-between gap-2 overflow-hidden">
+            <div className="flex min-w-0 flex-1 items-center justify-between gap-1">
               {RESOURCE_CHIPS.map(({ key, icon, tint }) => (
                 <span
                   key={key}
@@ -278,16 +295,30 @@ export function GameLobbyScreen({
                   style={{ border: `1px solid ${tint}66`, backgroundColor: `${tint}14`, color: tint }}
                 >
                   <span
-                    className="flex h-3.5 w-3.5 items-center justify-center rounded-full text-[9px]"
+                    className="flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full text-[9px]"
                     style={{ backgroundColor: `${tint}33`, border: `1px solid ${tint}` }}
                   >
                     {icon}
                   </span>
-                  <span>{resources?.[key] ?? 0}</span>
+                  <span className="whitespace-nowrap">{formatResourceAmount(resources?.[key] ?? 0)}</span>
                 </span>
               ))}
+              <button
+                onClick={() => window.alert("아직 준비 중인 기능입니다.")}
+                aria-label="보석 구매"
+                className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
+                style={{ border: "1px solid #d7b765", backgroundColor: "rgba(215,183,101,0.15)", color: "#d7b765", cursor: "pointer" }}
+              >
+                +
+              </button>
             </div>
-            <div className="flex gap-1">
+            <div className="flex shrink-0 gap-1">
+              <Button size="sm" variant="secondary" onClick={() => window.alert("아직 준비 중인 기능입니다.")}>
+                ✉️
+              </Button>
+              <Button size="sm" variant="secondary" onClick={() => window.alert("아직 준비 중인 기능입니다.")}>
+                🔔
+              </Button>
               <Button size="sm" variant="secondary" onClick={onSettings}>
                 ⚙
               </Button>
