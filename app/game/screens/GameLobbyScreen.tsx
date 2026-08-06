@@ -55,7 +55,7 @@ const MAP_TYPE_TINT: Record<MapTypeId, string> = {
 // user's most recent header spec, not the FactionResources field order.
 const RESOURCE_CHIPS: { key: "wood" | "iron" | "gold" | "gem"; icon: string; label: string; tint: string }[] = [
   { key: "wood", icon: "🪵", label: "목재", tint: "#a97c50" },
-  { key: "iron", icon: "⛏️", label: "광석", tint: "#9aa5a3" },
+  { key: "iron", icon: "⛏️", label: "철광", tint: "#9aa5a3" },
   { key: "gold", icon: "🪙", label: "금화", tint: "#d7b765" },
   { key: "gem", icon: "💎", label: "보석", tint: "#c17be0" },
 ];
@@ -241,32 +241,46 @@ export function GameLobbyScreen({
   }
 
   const resources = playerFaction?.resources;
+  // 대표 영웅 (2026-08-06 방향): 처음엔 항상 최초 선택한 영웅
+  // (entries[0] - buildHeroListEntries가 save.heroes 순서를 그대로
+  // 보존하고, heroes 배열은 계속 append만 되므로 heroes[0]은 언제나
+  // "최초 선택한 영웅"을 가리킴). 나중에 영웅을 더 모으면 직접 다른
+  // 영웅으로 바꾸고 테두리도 고를 수 있게 할 예정 - 그 선택 상태를 저장할
+  // 필드가 아직 SaveGame에 없어서, 지금은 이 파생값 하나로 충분.
+  const representativePortraitUrl = entries[0] ? HERO_PORTRAIT[entries[0].definition.id] : undefined;
 
   return (
     <ScreenShell
       header={
         <div
-          className="flex items-center gap-2 rounded-md p-1.5"
+          className="grid grid-cols-[auto_1fr_auto] items-center gap-2 rounded-md p-1.5"
           style={{
             border: "1px solid rgba(215,183,101,0.3)",
             backgroundImage: "linear-gradient(180deg, rgba(215,183,101,0.14), rgba(215,183,101,0.02))",
           }}
         >
-          {/* 세력명 블록 (2026-08-06 재배치): 이름+정복세계 뱃지 한 줄,
-              그 아래 칭호 한 줄 - 참고 이미지의 "영웅왕/전설의 지휘관"
-              2줄 프로필 구조. 칭호는 이번에 새로 등장한 개념이라 아직
-              실제 칭호 시스템(획득 조건 등)은 없음 - 자리만 마련하고
-              placeholder 텍스트를 씀. HERO STORY 로고는 더 이상 헤더
-              중앙을 차지하지 않고, 이 블록 위에 작게 붙는 걸로 이동. */}
+          {/* 세력명 블록 (2026-08-06 재배치): 대표 영웅 초상 + 이름/정복세계
+              뱃지 + 칭호 3줄. 대표 영웅은 지금은 항상 heroes[0](최초 선택한
+              영웅, entries가 save.heroes 순서를 그대로 보존하므로 안전) -
+              사용자 방향: 나중에 영웅을 더 모으면 이 배지를 눌러서 대표로
+              보여줄 영웅 + 테두리를 직접 고르는 시스템을 만들 예정(아직
+              미착수, 지금은 클릭해도 안내만 뜸). 칭호도 마찬가지로 아직
+              실제 시스템은 없는 placeholder. */}
           <div className="flex shrink-0 items-center gap-1.5">
-            <span
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm"
-              style={{ border: "2px solid #d7b765", backgroundColor: "#0b2028" }}
+            <button
+              onClick={() => window.alert("아직 준비 중인 기능입니다.")}
+              aria-label="대표 영웅 초상 선택"
+              className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full text-base"
+              style={{ border: "2px solid #d7b765", backgroundColor: "#0b2028", backgroundImage: "none", padding: 0, cursor: "pointer" }}
             >
-              🛡️
-            </span>
+              {representativePortraitUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element -- local /public asset, same convention as HeroSelectScreen.tsx
+                <img src={representativePortraitUrl} alt="대표 영웅 초상" className="h-full w-full object-cover" />
+              ) : (
+                "🧑"
+              )}
+            </button>
             <div>
-              <p className="text-[8px] tracking-[0.2em] text-[#8fa6a8]">HERO STORY</p>
               <div className="flex items-center gap-1">
                 <span className="text-xs font-bold text-[#f3dfaa]">{save.factionName}</span>
                 <span
@@ -282,12 +296,16 @@ export function GameLobbyScreen({
             </div>
           </div>
 
-          {/* 자원 줄 (2026-08-06 재배치): 가로 폭을 넓게 써서 목재/광석/
+          <span className="justify-self-center text-base font-bold tracking-wide whitespace-nowrap text-[#f3dfaa]">
+            Hero Story
+          </span>
+
+          {/* 자원 줄 (2026-08-06 재배치): 가로 폭을 넓게 써서 목재/철광/
               금화/보석 순으로 펼쳐 보여주고, 보석 옆에 구매용 [+] -
               실제 상점/과금 연동은 미구현이라 눌러도 안내만 뜸. 오른쪽
               끝에 우편/알림(둘 다 신규 개념, 시스템 없음)·설정·닫기. */}
-          <div className="flex flex-1 items-center justify-between gap-2 overflow-hidden">
-            <div className="flex min-w-0 flex-1 items-center justify-between gap-1">
+          <div className="flex items-center justify-self-end gap-2">
+            <div className="flex items-center gap-1">
               {RESOURCE_CHIPS.map(({ key, icon, tint }) => (
                 <span
                   key={key}
