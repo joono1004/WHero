@@ -179,7 +179,7 @@ test("endTurn spawns a real unit into the faction's roster once production compl
 });
 
 test("endTurn speeds up production for a city with a stationed hero who has a troops specialty (task 11)", () => {
-  // gan-ning (STARTING_HEROES[0]) has domesticSpecialties.troops = "B".
+  // zhang-bao (STARTING_HEROES[0]) has domesticSpecialties.troops = "B".
   let save = freshActiveWorldSave();
   const heroId = save.heroes[0].heroId;
   save = withCity(save, {
@@ -199,7 +199,7 @@ test("endTurn speeds up production for a city with a stationed hero who has a tr
 });
 
 test("endTurn does not boost a resource yield when the stationed hero's specialty doesn't match", () => {
-  // gan-ning has gold/food domestic specialty "없음" - only troops is graded.
+  // zhang-bao has gold/food domestic specialty "없음" - only troops is graded.
   let save = freshActiveWorldSave();
   const heroId = save.heroes[0].heroId;
   save = withCity(save, { heroId, facilities: ["market"] });
@@ -292,7 +292,7 @@ test("endTurn heals the stationed 회복-specialty hero themselves, up to their 
 });
 
 test("endTurn speeds up a recovering hero's return when the faction has a 회복-specialty hero stationed anywhere", () => {
-  // gan-ning starts recovering with 3 turns remaining; zhao-yun (recovery
+  // zhang-bao starts recovering with 3 turns remaining; zhao-yun (recovery
   // specialist) is stationed in a city elsewhere on the map - the faction-
   // wide speedup (recoveryTurnsBonus) should shave an extra turn off.
   let save = freshActiveWorldSave();

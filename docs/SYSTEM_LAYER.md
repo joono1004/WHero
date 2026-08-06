@@ -1189,6 +1189,27 @@
     스크린샷 + 버튼 바운딩박스 실측(예: 애니메이션 박스 100×100px 확인)
     확인.
 
+- **시작 영웅 로스터 교체: 감녕(보병) → 장포(기병) (2026-08-06)**: 사용자
+  요청으로 `STARTING_HEROES[0]`을 감녕에서 장비의 아들 장포로 교체, 병과도
+  보병 → 기병으로 지정. **능력치/domesticSpecialties/traits/skills 수치는
+  감녕 시절 그대로 유지**(통솔 B·무력 S·지력 C·매력 C·체력 A,
+  domesticSpecialties.troops="B" 나머지 "없음", traits: ["talent"],
+  skills: ["charge"]) - `turn.test.ts`/`hero-roster.test.ts`가
+  `STARTING_HEROES[0]`의 이 수치들(특히 troops 등급, id는
+  `save.heroes[0].heroId`로 동적으로 참조)에 기대는 어서션을 갖고 있어서,
+  불필요한 리밸런스를 피하려고 id/name/description/unitType만 바꿈. 장포는
+  "장비의 아들, 용맹함을 물려받음" 플레이버라 기병+돌격(charge) 스킬
+  조합이 감녕의 보병+돌격보다 오히려 더 자연스럽게 맞아떨어짐.
+  - id `gan-ning` → `zhang-bao`로 변경 - 하드코딩된 `"gan-ning"` id
+    문자열을 참조하던 두 테스트(`starting-heroes.test.ts`의 "감녕 is the
+    warrior-type", `hero-roster.test.ts`의 archetype 정렬 테스트)를
+    업데이트, `turn.test.ts`의 스테일 주석 3곳도 같이 정리. `STARTING_HEROES[0].id`로
+    동적 참조하는 다른 테스트들(new-game/city-actions/world-entry/
+    world-progress)은 수정 불필요했음.
+  - 검증: `pnpm run build`/`npx tsc --noEmit`/`pnpm run test:game`
+    (312/312) 통과, Playwright로 영웅 선택 화면에 "장포"/"기병" 정상 표시 +
+    "감녕" 완전히 사라짐 확인.
+
 ## 진행 상황
 
 - [x] 1. 시스템 코드 폴더 구조 및 기본 타입 스캐폴딩 — `lib/game/hex.ts` +

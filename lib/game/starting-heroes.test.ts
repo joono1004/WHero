@@ -34,9 +34,9 @@ test("the 3 starting heroes cover general/warrior/strategist, one each", () => {
   assert.deepEqual(new Set(archetypes), new Set(["general", "warrior", "strategist"]));
 });
 
-test("감녕 is the warrior-type", () => {
-  const ganNing = STARTING_HEROES.find((hero) => hero.id === "gan-ning")!;
-  assert.equal(heroArchetype(ganNing.attributes), "warrior");
+test("장포 is the warrior-type", () => {
+  const zhangBao = STARTING_HEROES.find((hero) => hero.id === "zhang-bao")!;
+  assert.equal(heroArchetype(zhangBao.attributes), "warrior");
 });
 
 test("위연 is the general-type", () => {

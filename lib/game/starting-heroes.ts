@@ -10,7 +10,7 @@ import type { HeroDefinition } from "./hero-definition.ts";
 // picks like Guan Yu or Zhuge Liang (see legendary-heroes.ts for those).
 // unitType (2026-07-28, "영웅이 부대에 편승" 기능 제외 결정에 따른
 // unitTypeSpecialties -> 고정 unitType 개정): 사용자가 노출된 6명 전원의
-// 병과를 직접 지정함 - 감녕 보병, 위연 보병, 서서 궁병 (관우/조운/제갈량은
+// 병과를 직접 지정함 - 장포 기병, 위연 보병, 서서 궁병 (관우/조운/제갈량은
 // legendary-heroes.ts 참고). 전투에 실제로 쓰이는 건 이동력/사거리뿐
 // (레벨 초안, 조정 가능).
 //
@@ -20,17 +20,24 @@ import type { HeroDefinition } from "./hero-definition.ts";
 // domesticSpecialties 필드 자체는 hero-assignment.ts가 아직 그대로 쓰고
 // 있어서 지우지 않음(legendary-heroes.ts 상단 주석 참고).
 //
-// skills (2026-08-xx, hero-skill.ts): 감녕만 charge(돌격)를 줬음 - 기존
-// description이 이미 "종을 매단 야습으로 유명한 무력형 영웅"이라 공격
-// 몰빵형 스킬과 자연스럽게 맞아떨어짐. 위연/서서는 뚜렷한 근거가 없어서
-// 억지로 채우지 않고 빈 배열로 둠.
+// skills (2026-08-xx, hero-skill.ts): 첫 번째 슬롯 영웅만 charge(돌격)를
+// 줬음 - 기병 돌진과 자연스럽게 맞아떨어지는 조합. 위연/서서는 뚜렷한
+// 근거가 없어서 억지로 채우지 않고 빈 배열로 둠.
+//
+// 2026-08-06: 사용자 요청으로 첫 번째 슬롯을 감녕(보병) -> 장포(기병)로
+// 교체함. 능력치/domesticSpecialties/traits/skills 수치는 감녕 시절
+// 그대로 유지 - turn.test.ts/hero-roster.test.ts가 STARTING_HEROES[0]의
+// 이 값들(특히 domesticSpecialties.troops="B")에 기대는 어서션을 갖고
+// 있어서, id/name/description/unitType만 바꾸고 밸런스 수치는 건드리지
+// 않음(불필요한 리밸런스 방지). 장포는 장비의 아들로, 기병+돌격 조합이
+// 감녕의 보병+돌격보다 오히려 더 자연스러운 플레이버 fit.
 export const STARTING_HEROES: HeroDefinition[] = [
   {
-    id: "gan-ning",
-    name: "감녕",
-    description: "해적 출신에서 오나라의 충성스러운 맹장으로 성장한 인물. 종을 매단 야습으로 유명한 무력형 영웅.",
+    id: "zhang-bao",
+    name: "장포",
+    description: "장비의 아들로 태어나 아버지를 닮아 용맹함이 남달랐던 촉한의 맹장. 관우의 원수를 갚기 위한 오나라 원정에 앞장선 무력형 영웅.",
     attributes: { leadership: "B", force: "S", intelligence: "C", charisma: "C", vitality: "A" },
-    unitType: "infantry",
+    unitType: "cavalry",
     domesticSpecialties: { troops: "B", gold: "없음", food: "없음", iron: "없음", recovery: "없음", defense: "없음" },
     traits: ["talent"],
     skills: ["charge"],

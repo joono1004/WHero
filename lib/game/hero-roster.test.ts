@@ -85,14 +85,14 @@ test("compareByLevel sorts higher levels first", () => {
 });
 
 test("compareByArchetype groups general/warrior/strategist/allrounder in a stable order", () => {
-  // gan-ning=warrior, wei-yan=general, xu-shu=strategist
-  const ganNing = STARTING_HEROES.find((hero) => hero.id === "gan-ning")!;
+  // zhang-bao=warrior, wei-yan=general, xu-shu=strategist
+  const zhangBao = STARTING_HEROES.find((hero) => hero.id === "zhang-bao")!;
   const weiYan = STARTING_HEROES.find((hero) => hero.id === "wei-yan")!;
   const xuShu = STARTING_HEROES.find((hero) => hero.id === "xu-shu")!;
-  const entries = buildHeroListEntries([heroState(ganNing.id), heroState(xuShu.id), heroState(weiYan.id)]);
+  const entries = buildHeroListEntries([heroState(zhangBao.id), heroState(xuShu.id), heroState(weiYan.id)]);
   const sorted = [...entries].sort(compareByArchetype);
   assert.deepEqual(
     sorted.map((entry) => entry.definition.id),
-    [weiYan.id, ganNing.id, xuShu.id],
+    [weiYan.id, zhangBao.id, xuShu.id],
   );
 });
