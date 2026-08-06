@@ -258,7 +258,7 @@ function SkillModal({ hero, onClose }: { hero: HeroDefinition; onClose: (event: 
       onClick={onClose}
     >
       <div
-        className="w-full max-w-[320px] text-left text-sm"
+        className="w-full max-w-[480px] text-left text-sm"
         style={{ borderRadius: 8, border: "1px solid #43606a", backgroundColor: "#17343e", padding: "0.75rem" }}
         onClick={(event) => event.stopPropagation()}
       >
@@ -297,16 +297,16 @@ function SkillModal({ hero, onClose }: { hero: HeroDefinition; onClose: (event: 
                     beside it (items-stretch), same "portrait beside stat
                     block" pattern as the hero card itself. */}
                 <div
-                  className="flex shrink-0 flex-col items-center justify-center gap-0.5 rounded border border-dashed text-center text-[9px] leading-tight"
-                  style={{ width: 72, borderColor: "#3a4f52", color: "#5c7276" }}
+                  className="flex shrink-0 flex-col items-center justify-center gap-0.5 rounded border border-dashed text-center text-[10px] leading-tight"
+                  style={{ width: 108, borderColor: "#3a4f52", color: "#5c7276" }}
                 >
                   <span>애니메이션</span>
                   <span>(준비 중)</span>
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="font-bold text-[#e3ce94]">{skill.name}</p>
-                  <p className="mt-0.5 text-xs font-bold text-[#9fc4ea]">{skill.summary}</p>
-                  <p className="mt-0.5 text-xs leading-relaxed text-[#c0cbc7]">{skill.description}</p>
+                  <p className="mt-0.5 text-sm font-bold text-[#9fc4ea]">{skill.summary}</p>
+                  <p className="mt-1 text-sm leading-relaxed text-[#c0cbc7]">{skill.description}</p>
                 </div>
               </div>
             );
