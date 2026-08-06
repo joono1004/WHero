@@ -5,7 +5,7 @@ import type { MouseEvent } from "react";
 import { heroArchetype, heroOverallGrade } from "../../../lib/game/hero-definition.ts";
 import type { HeroDefinition } from "../../../lib/game/hero-definition.ts";
 import type { CoreGrade } from "../../../lib/game/grade.ts";
-import { HERO_SKILL_CATALOG } from "../../../lib/game/hero-skill.ts";
+import { HERO_SKILL_CATALOG, MAX_HERO_SKILLS } from "../../../lib/game/hero-skill.ts";
 import { HERO_TRAIT_CATALOG, MAX_HERO_TRAITS } from "../../../lib/game/hero-trait.ts";
 import type { HeroId } from "../../../lib/game/ids.ts";
 import { STARTING_HEROES } from "../../../lib/game/starting-heroes.ts";
@@ -183,29 +183,27 @@ function HeroCard({
       <div className="mt-1.5">
         <div className="flex items-center justify-between">
           <p className="text-xs font-bold text-[#8fa6a8]">특기</p>
-          {hero.skills.length > 0 && (
-            <button
-              onClick={(event) => {
-                // Stop the click from also bubbling to the card's onSelect -
-                // opening the skill popup shouldn't also select the hero.
-                event.stopPropagation();
-                setSkillModalOpen(true);
-              }}
-              className="whitespace-nowrap text-[10px]"
-              style={{
-                borderRadius: 4,
-                border: "1px solid #6ea8e0",
-                padding: "0.0625rem 0.375rem",
-                backgroundColor: "transparent",
-                backgroundImage: "none",
-                color: "#6ea8e0",
-                fontWeight: 700,
-                cursor: "pointer",
-              }}
-            >
-              스킬
-            </button>
-          )}
+          <button
+            onClick={(event) => {
+              // Stop the click from also bubbling to the card's onSelect -
+              // opening the skill popup shouldn't also select the hero.
+              event.stopPropagation();
+              setSkillModalOpen(true);
+            }}
+            className="whitespace-nowrap text-[10px]"
+            style={{
+              borderRadius: 4,
+              border: "1px solid #6ea8e0",
+              padding: "0.0625rem 0.375rem",
+              backgroundColor: "transparent",
+              backgroundImage: "none",
+              color: "#6ea8e0",
+              fontWeight: 700,
+              cursor: "pointer",
+            }}
+          >
+            스킬
+          </button>
         </div>
         <div className="mt-1 flex gap-1">
           {/* Fixed MAX_HERO_TRAITS slots, always all shown - a hero with
@@ -258,7 +256,7 @@ function SkillModal({ hero, onClose }: { hero: HeroDefinition; onClose: (event: 
       onClick={onClose}
     >
       <div
-        className="w-full max-w-[480px] text-left text-sm"
+        className="w-full max-w-[550px] text-left text-sm"
         style={{ borderRadius: 8, border: "1px solid #43606a", backgroundColor: "#17343e", padding: "0.75rem" }}
         onClick={(event) => event.stopPropagation()}
       >
@@ -283,11 +281,17 @@ function SkillModal({ hero, onClose }: { hero: HeroDefinition; onClose: (event: 
         </div>
 
         <div className="mt-2 flex flex-col gap-2">
-          {hero.skills.map((skillId) => {
-            const skill = HERO_SKILL_CATALOG[skillId];
+          {/* Fixed MAX_HERO_SKILLS slots, always all shown - same "telegraph
+              growth room" idea as the card's own 특기 slot bar. An empty
+              slot shows a lock icon where the animation preview would go
+              and "미확인" in place of the name/summary/description, rather
+              than the row list just being shorter for a hero with fewer
+              skills. */}
+          {Array.from({ length: MAX_HERO_SKILLS }, (_, index) => hero.skills[index]).map((skillId, index) => {
+            const skill = skillId ? HERO_SKILL_CATALOG[skillId] : null;
             return (
               <div
-                key={skillId}
+                key={index}
                 className="flex items-stretch gap-2 rounded border p-2"
                 style={{ borderColor: "#3a4f52" }}
               >
@@ -298,15 +302,27 @@ function SkillModal({ hero, onClose }: { hero: HeroDefinition; onClose: (event: 
                     block" pattern as the hero card itself. */}
                 <div
                   className="flex shrink-0 flex-col items-center justify-center gap-0.5 rounded border border-dashed text-center text-[10px] leading-tight"
-                  style={{ width: 108, borderColor: "#3a4f52", color: "#5c7276" }}
+                  style={{ width: 120, borderColor: "#3a4f52", color: "#5c7276" }}
                 >
-                  <span>애니메이션</span>
-                  <span>(준비 중)</span>
+                  {skill ? (
+                    <>
+                      <span>애니메이션</span>
+                      <span>(준비 중)</span>
+                    </>
+                  ) : (
+                    <span className="text-2xl">🔒</span>
+                  )}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="font-bold text-[#e3ce94]">{skill.name}</p>
-                  <p className="mt-0.5 text-sm font-bold text-[#9fc4ea]">{skill.summary}</p>
-                  <p className="mt-1 text-sm leading-relaxed text-[#c0cbc7]">{skill.description}</p>
+                  <p className="font-bold" style={{ color: skill ? "#e3ce94" : "#5c7276" }}>
+                    {skill ? skill.name : "미확인"}
+                  </p>
+                  {skill && (
+                    <>
+                      <p className="mt-0.5 text-sm font-bold text-[#9fc4ea]">{skill.summary}</p>
+                      <p className="mt-1 text-sm leading-relaxed text-[#c0cbc7]">{skill.description}</p>
+                    </>
+                  )}
                 </div>
               </div>
             );
