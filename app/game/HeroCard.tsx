@@ -9,7 +9,17 @@ import { HERO_SKILL_CATALOG, MAX_HERO_SKILLS } from "../../lib/game/hero-skill.t
 import { HERO_TRAIT_CATALOG, MAX_HERO_TRAITS } from "../../lib/game/hero-trait.ts";
 import { GRADE_COLOR } from "./gradeColors.ts";
 import { ARCHETYPE_LABEL, UNIT_TYPE_LABEL } from "./heroLabels.ts";
-import { HERO_PORTRAIT, HERO_PORTRAIT_FRAME_PX } from "./heroPortraits.ts";
+import { HERO_PORTRAIT } from "./heroPortraits.ts";
+
+// 초상 프레임 (2026-08-07, 사용자가 첨부한 목업대로 재설계: 통솔/무력/
+// 지력/체력/매력을 세로 1열로 나열하니 그 옆의 초상도 정사각형(96x96)
+// 대신 세로로 긴 직사각형으로 키움). 폭/높이 둘 다 고정값으로 - 아래
+// items-stretch로 동적 높이를 주면 실제 아트(<img>)가 그 높이를 못 채우고
+// 자기 원본 비율로 쪼그라드는 현상이 있었다는 게 이 파일의 예전 기록이라
+// (placeholder 이모지 카드와 높이가 달라짐), 그 문제를 다시 안 겪도록
+// 고정 width+height를 유지.
+const PORTRAIT_WIDTH_PX = 84;
+const PORTRAIT_HEIGHT_PX = 100;
 
 // Extracted out of HeroSelectScreen.tsx (2026-08-07) so the same hero-info
 // card (portrait/grade/stats/특기/스킬 popup/description) can be reused
@@ -59,7 +69,7 @@ export function HeroCard({
         borderRadius: 8,
         border: `1px solid ${selected ? "#d7b765" : "#43606a"}`,
         backgroundColor: selected ? "#1c3b44" : "#17343e",
-        padding: "0.45rem 0.7rem 0.55rem",
+        padding: "0.4rem 0.7rem 0.4rem",
         color: "inherit",
       }}
     >
@@ -83,21 +93,12 @@ export function HeroCard({
         </span>
       </div>
 
-      <div className="mt-1.5 flex items-stretch gap-2">
-        {/* Fixed 96x96 square frame for hero portrait art - see HERO_PORTRAIT_FRAME_PX
-            below for the full spec Codex should target. Explicit width+height
-            (not "stretch to match the stat block" like before) so every card's
-            frame is identical whether or not that hero has real art yet:
-            leaving height to items-stretch made 위연's real (square, object-cover)
-            image render taller than 감녕/서서's plain emoji placeholder, since a
-            percentage-sized <img> inside a stretched flex item with no definite
-            height falls back to its own intrinsic aspect ratio instead of
-            actually stretching (a flexbox/replaced-element sizing quirk). */}
+      <div className="mt-1 flex items-stretch gap-2">
         <div
           className="flex shrink-0 items-center justify-center overflow-hidden rounded"
           style={{
-            width: HERO_PORTRAIT_FRAME_PX,
-            height: HERO_PORTRAIT_FRAME_PX,
+            width: PORTRAIT_WIDTH_PX,
+            height: PORTRAIT_HEIGHT_PX,
             border: "1px solid #43606a",
             backgroundColor: "#0b2028",
           }}
@@ -114,18 +115,55 @@ export function HeroCard({
           )}
         </div>
 
-        <div className="flex min-w-0 flex-1 items-center py-0.5">
-          <dl className="grid w-full grid-cols-2 gap-x-2 gap-y-1.5 text-sm">
+        {/* 능력치를 2열 그리드 대신 세로 1열로 나열(목업 그대로) + 그 아래
+            "Point" 박스. Point는 목업에 새로 등장한 개념(능력치를 올리는 데
+            쓰는 포인트로 추정)인데, 아직 그 시스템 자체가 없어서(레벨업 시
+            포인트를 어떻게 얼마나 주는지 미정) 지금은 자리만 예약 - 0
+            고정값 표시 + 위쪽 화살표를 눌러도 "아직 준비 중" 안내만 뜸.
+            gap-0.5/text-xs로 촘촘하게 - 3줄→5줄+Point박스로 늘어난 세로
+            공간을 좁은 화면(844×390) 안에서 스크롤 없이 담기 위한
+            간격 최적화(Playwright로 실측하며 조정). */}
+        <div className="flex min-w-0 flex-1 flex-col justify-between">
+          <dl className="flex flex-col gap-0.5 text-xs">
             <GradeStat label="통솔" grade={hero.attributes.leadership} />
             <GradeStat label="무력" grade={hero.attributes.force} />
             <GradeStat label="지력" grade={hero.attributes.intelligence} />
             <GradeStat label="체력" grade={hero.attributes.vitality} />
             <GradeStat label="매력" grade={hero.attributes.charisma} />
           </dl>
+          <div
+            className="mt-0.5 flex items-center justify-between rounded px-1.5 py-0.5"
+            style={{ border: "1px solid #43606a" }}
+          >
+            <span className="text-[10px] font-bold text-[#8fa6a8]">Point</span>
+            <div className="flex items-center gap-1">
+              <span className="text-xs font-bold text-[#e3ce94]">0</span>
+              <button
+                onClick={(event) => {
+                  event.stopPropagation();
+                  window.alert("아직 준비 중인 기능입니다.");
+                }}
+                aria-label="능력치 포인트 사용"
+                style={{
+                  borderRadius: 4,
+                  border: "1px solid #6ea8e0",
+                  padding: "0 0.25rem",
+                  backgroundColor: "transparent",
+                  backgroundImage: "none",
+                  color: "#6ea8e0",
+                  fontSize: "0.7rem",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                ↑
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div className="mt-1.5">
+      <div className="mt-0.5">
         <div className="flex items-center justify-between">
           <p className="text-xs font-bold text-[#8fa6a8]">특기</p>
           <button
@@ -152,7 +190,7 @@ export function HeroCard({
             스킬
           </button>
         </div>
-        <div className="mt-1 flex gap-1">
+        <div className="mt-0.5 flex gap-1">
           {/* Fixed MAX_HERO_TRAITS slots, always all shown - a hero with
               fewer traits than the max just shows locked slots after their
               earned ones, so the row's length telegraphs "how much growth
@@ -160,20 +198,20 @@ export function HeroCard({
           {Array.from({ length: MAX_HERO_TRAITS }, (_, index) => hero.traits[index]).map((traitId, index) => (
             <div
               key={index}
-              className="flex flex-1 items-center justify-center rounded border py-1 text-xs font-bold"
+              className="flex flex-1 items-center justify-center rounded border py-0.5 text-xs font-bold"
               style={{
                 borderColor: traitId ? "#6ea8e0" : "#3a4f52",
                 backgroundColor: traitId ? "rgba(110,168,224,0.1)" : "transparent",
                 color: traitId ? "#e3ce94" : "#5c7276",
               }}
             >
-              {traitId ? HERO_TRAIT_CATALOG[traitId].name : "🔒"}
+              {traitId ? HERO_TRAIT_CATALOG[traitId].name : "-"}
             </div>
           ))}
         </div>
       </div>
 
-      <p className="mt-1.5 line-clamp-3 text-xs leading-relaxed text-[#c0cbc7]">{hero.description}</p>
+      <p className="mt-0.5 line-clamp-3 text-xs leading-relaxed text-[#c0cbc7]">{hero.description}</p>
 
       {skillModalOpen && (
         <SkillModal
