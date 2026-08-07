@@ -6,7 +6,7 @@ import { PLAYER_FACTION_ID } from "../../../lib/game/faction.ts";
 import type { Faction } from "../../../lib/game/faction.ts";
 import { appointGovernor } from "../../../lib/game/governor.ts";
 import { heroOverallGrade } from "../../../lib/game/hero-definition.ts";
-import { governedWorldId, setDeploymentPriority, unequipItem } from "../../../lib/game/hero.ts";
+import { governedWorldId, setDeploymentPriority } from "../../../lib/game/hero.ts";
 import type { HeroState } from "../../../lib/game/hero.ts";
 import { buildHeroListEntries } from "../../../lib/game/hero-roster.ts";
 import type { HeroListEntry } from "../../../lib/game/hero-roster.ts";
@@ -23,7 +23,6 @@ import { GRADE_COLOR } from "../gradeColors.ts";
 import { HERO_PORTRAIT } from "../heroPortraits.ts";
 import { ScreenShell } from "../ScreenShell.tsx";
 import { GovernorAppointScreen } from "./GovernorAppointScreen.tsx";
-import { HeroDetailScreen } from "./HeroDetailScreen.tsx";
 import { HeroEnlistScreen } from "./HeroEnlistScreen.tsx";
 import { HeroRosterScreen } from "./HeroRosterScreen.tsx";
 import { ResearchScreen } from "./ResearchScreen.tsx";
@@ -113,10 +112,10 @@ export function GameLobbyScreen({
   onEnterCandidate: (candidateIndex: number, enlistedHeroIds: string[]) => void;
   onSettings: () => void;
 }) {
-  const [viewingHeroId, setViewingHeroId] = useState<string | null>(null);
   const [enlistingCandidateIndex, setEnlistingCandidateIndex] = useState<number | null>(null);
   const [appointingWorldId, setAppointingWorldId] = useState<string | null>(null);
-  const [showHeroRoster, setShowHeroRoster] = useState(false);
+  const [heroScreenOpen, setHeroScreenOpen] = useState(false);
+  const [heroScreenInitialId, setHeroScreenInitialId] = useState<string | null>(null);
   const [showResearch, setShowResearch] = useState(false);
   const railRef = useRef<HTMLDivElement>(null);
 
@@ -136,6 +135,15 @@ export function GameLobbyScreen({
 
   const scrollRail = (direction: -1 | 1) => {
     railRef.current?.scrollBy({ left: direction * 180, behavior: "smooth" });
+  };
+
+  // Opens the combined roster+detail screen (2026-08-07) - `heroId` seeds
+  // which hero the left-side card starts on (a formation slot click passes
+  // its specific hero; the [영웅] menu button and an empty slot pass null,
+  // which HeroRosterScreen falls back to its first sorted entry).
+  const openHeroScreen = (heroId: string | null) => {
+    setHeroScreenInitialId(heroId);
+    setHeroScreenOpen(true);
   };
 
   const updateHero = (heroId: string, updater: (hero: HeroState) => HeroState) => {
@@ -160,25 +168,6 @@ export function GameLobbyScreen({
     const region = save.clearedWorlds[worldId];
     return region ? `${worldLabel(region)} 영주` : "영주";
   };
-
-  if (viewingHeroId) {
-    const viewing = entries.find((entry) => entry.state.heroId === viewingHeroId);
-    if (viewing) {
-      return (
-        <HeroDetailScreen
-          hero={viewing.state}
-          definition={viewing.definition}
-          governorLabel={governorLabelFor(viewing.state)}
-          onBack={() => setViewingHeroId(null)}
-          onToggleDeploymentPriority={() =>
-            updateHero(viewing.state.heroId, (hero) => setDeploymentPriority(hero, !hero.deploymentPriority))
-          }
-          onUnequipItem={(itemId) => updateHero(viewing.state.heroId, (hero) => unequipItem(hero, itemId))}
-        />
-      );
-    }
-    setViewingHeroId(null);
-  }
 
   if (enlistingCandidateIndex !== null) {
     return (
@@ -209,15 +198,12 @@ export function GameLobbyScreen({
     setAppointingWorldId(null);
   }
 
-  if (showHeroRoster) {
+  if (heroScreenOpen) {
     return (
       <HeroRosterScreen
         entries={entries}
-        onBack={() => setShowHeroRoster(false)}
-        onSelectHero={(heroId) => {
-          setShowHeroRoster(false);
-          setViewingHeroId(heroId);
-        }}
+        initialHeroId={heroScreenInitialId}
+        onBack={() => setHeroScreenOpen(false)}
         onToggleDeploymentPriority={(heroId) =>
           updateHero(heroId, (hero) => setDeploymentPriority(hero, !hero.deploymentPriority))
         }
@@ -371,7 +357,7 @@ export function GameLobbyScreen({
                 label={item.label}
                 onClick={() => {
                   if (item.key === "research") setShowResearch(true);
-                  else if (item.key === "heroes") setShowHeroRoster(true);
+                  else if (item.key === "heroes") openHeroScreen(null);
                   else window.alert("아직 준비 중인 기능입니다.");
                 }}
               />
@@ -420,11 +406,11 @@ export function GameLobbyScreen({
               entries.filter((entry) => entry.state.deploymentPriority)[index],
             ).map((entry, index) =>
               entry ? (
-                <FormationSlot key={entry.state.heroId} entry={entry} onClick={() => setViewingHeroId(entry.state.heroId)} />
+                <FormationSlot key={entry.state.heroId} entry={entry} onClick={() => openHeroScreen(entry.state.heroId)} />
               ) : (
                 <button
                   key={index}
-                  onClick={() => setShowHeroRoster(true)}
+                  onClick={() => openHeroScreen(null)}
                   aria-label="영웅 로스터 열기"
                   className="flex shrink-0 flex-col items-center gap-0.5"
                   style={{ border: "none", background: "none", backgroundImage: "none", padding: 0, cursor: "pointer" }}
