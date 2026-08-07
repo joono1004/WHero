@@ -40,10 +40,11 @@ test("제갈량 is the strategist-type", () => {
 });
 
 test("each legendary hero's fixed unitType matches the user's assignment", () => {
-  // 제갈량's real unitType is "책사" (undesigned - see the TODO in
-  // legendary-heroes.ts), so this only checks 관우/조운 for now.
   const guanYu = LEGENDARY_HEROES.find((hero) => hero.id === "guan-yu")!;
   const zhaoYun = LEGENDARY_HEROES.find((hero) => hero.id === "zhao-yun")!;
+  const zhugeLiang = LEGENDARY_HEROES.find((hero) => hero.id === "zhuge-liang")!;
   assert.equal(guanYu.unitType, "cavalry");
   assert.equal(zhaoYun.unitType, "cavalry");
+  // 2026-08-07: strategist(책사) 노드가 생기면서 archer 스톱갭을 걷어냄.
+  assert.equal(zhugeLiang.unitType, "strategist");
 });

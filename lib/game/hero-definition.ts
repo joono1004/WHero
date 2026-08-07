@@ -1,9 +1,8 @@
 import { averageGrade, gradeToScore } from "./grade.ts";
 import type { CoreGrade, SpecialtyGrade } from "./grade.ts";
-import type { HeroId } from "./ids.ts";
+import type { HeroId, ItemId, UnitTypeId } from "./ids.ts";
 import type { HeroSkillId } from "./hero-skill.ts";
 import type { HeroTraitId } from "./hero-trait.ts";
-import type { TroopResearchKind } from "./research.ts";
 import { UNIT_TYPE_CATALOG } from "./unit-production.ts";
 
 // 통솔력/무력/지력/매력/체력. Every hero has some level in each (never
@@ -73,7 +72,26 @@ export type DomesticSpecialtyKind = "gold" | "food" | "troops" | "iron" | "recov
 // 병과면 영웅도 병사와 동일한 기준으로 움직이고 공격 범위를 가짐) - 아래
 // heroCombatStats의 range, 그리고 영웅 단독 이동에 필요한 이동력은
 // UNIT_TYPE_CATALOG[unitType].baseMovement를 그대로 쓰면 된다.
-export type HeroUnitTypeKind = TroopResearchKind;
+//
+// 2026-08-07 (병과 진화 트리 방향): unit-production.ts의 병과가 4종
+// 고정에서 UnitTypeId 기반 트리로 바뀌면서 HeroUnitTypeKind도 그
+// UnitTypeId를 그대로 따라간다 - 영웅도 트리의 어떤 노드든(루트든 진화
+// 노드든) 자기 unitType으로 가질 수 있다는 뜻. 단, 병사와 달리 영웅의
+// 진화는 "선택"이 아니라 아래 HeroEvolution처럼 영웅마다 정해진 상위
+// 병과 하나로 레벨+아이템 조건을 만족하면 자동으로 바뀌는 방식(사용자
+// 방향) - hero.ts의 evolveHero 참고.
+export type HeroUnitTypeKind = UnitTypeId;
+
+// 영웅의 병과 진화 조건 (2026-08-07, 사용자 방향): "일정 레벨에 도달하고
+// 진화용 아이템을 보유하면 병과 진화가 가능" - 병사처럼 여러 갈래 중
+// 고르는 게 아니라 영웅마다 정해진 상위 병과 하나뿐이라 targetUnitType이
+// 고정값이다. 아이템을 얻는 경로(맵 랜덤 이벤트, 상점)는 사용자가 "나중에
+// 고민"이라고 명시한 별도 범위 - 여기서는 조건 검사만 다룬다.
+export type HeroEvolution = {
+  targetUnitType: HeroUnitTypeKind;
+  requiredLevel: number;
+  requiredItemId: ItemId;
+};
 
 // Draft combat stats derived from a hero's grade attributes (task 9 -
 // combat rules). No playtesting has happened yet, so every constant here is
@@ -144,4 +162,9 @@ export type HeroDefinition = {
   // isn't built yet either way. Not wired into combat.ts yet (data/display
   // only for now).
   skills: HeroSkillId[];
+  // 병과 진화 (2026-08-07, 사용자 방향): 이 영웅이 진화할 수 있는 상위
+  // 병과 하나 - null이면 이 영웅은 진화가 없다(대부분의 영웅이 여기
+  // 해당, 아직 실제 값을 넣은 영웅이 없음 - hero.ts의 evolveHero/
+  // canEvolveHero가 실제 조건 검사·전환을 담당).
+  evolution: HeroEvolution | null;
 };

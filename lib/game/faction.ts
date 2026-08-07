@@ -1,6 +1,9 @@
-import type { CityId, FactionId, UnitId } from "./ids.ts";
+import type { CityId, FactionId, ItemId, UnitId, UnitTypeId } from "./ids.ts";
 import type { ResearchLevels } from "./research.ts";
 import { ZERO_RESEARCH_LEVELS } from "./research.ts";
+import type { TroopLevels } from "./unit-evolution.ts";
+import { ZERO_TROOP_LEVELS } from "./unit-evolution.ts";
+import type { TroopLine } from "./unit-production.ts";
 
 // The player's faction identity is stable across world transitions - unlike
 // cityIds/unitIds (reset per world), resources/research represent long-term
@@ -54,6 +57,18 @@ export type Faction = {
   unitIds: UnitId[];
   resources: FactionResources;
   research: ResearchLevels;
+  // 2026-08-07 진화 트리 방향 (unit-evolution.ts): 병과 트리의 각 노드가
+  // 독립적으로 쌓는 등급 레벨(troopLevels), 지금까지 해금한 진화 노드
+  // 목록(unlockedUnitTypes - 루트 5종은 항상 해금된 것으로 취급되어 여기
+  // 들어가지 않음), 계열별로 지금 무엇을 생산할지 선택한 값
+  // (activeEvolution - 미선택 계열은 그 계열의 루트가 기본값), 그리고
+  // 진화용 아이템 등을 담는 세력 공용 인벤토리(itemInventory - 아이템을
+  // 얻는 경로는 별도 작업 범위, 지금은 이미 보유했다고 가정하고 소비만
+  // 함). 모두 research와 마찬가지로 세계 전환에도 살아남는 장기 투자값.
+  troopLevels: TroopLevels;
+  unlockedUnitTypes: UnitTypeId[];
+  activeEvolution: Partial<Record<TroopLine, UnitTypeId>>;
+  itemInventory: ItemId[];
   // 수도 (task 12, 2026-07-28): the city this faction founded first.
   // Null only briefly, before their first city exists - city-actions.ts's
   // foundCity sets it. Losing this city (world-progress.ts's
@@ -89,6 +104,10 @@ export function createFaction(params: {
     unitIds: [],
     resources: ZERO_FACTION_RESOURCES,
     research: ZERO_RESEARCH_LEVELS,
+    troopLevels: ZERO_TROOP_LEVELS,
+    unlockedUnitTypes: [],
+    activeEvolution: {},
+    itemInventory: [],
     capitalCityId: null,
     eliminationReason: null,
   };

@@ -1,10 +1,10 @@
-import type { FactionResources } from "./faction.ts";
+import type { Faction, FactionResources } from "./faction.ts";
 import { hexDistance } from "./hex.ts";
 import type { HexCoordinate } from "./hex.ts";
-import type { CityId, FactionId, HeroId } from "./ids.ts";
-import type { ResearchLevels } from "./research.ts";
-import { isUnitTypeUnlocked } from "./unit-production.ts";
-import type { TroopResearchKind } from "./research.ts";
+import type { CityId, FactionId, HeroId, UnitTypeId } from "./ids.ts";
+import { activeEvolutionFor, isUnitTypeUnlockedFor, troopLevel } from "./unit-evolution.ts";
+import { isRootUnitType, isUnitTypeUnlocked } from "./unit-production.ts";
+import type { TroopLine } from "./unit-production.ts";
 
 // City growth (task 10), per the user's spec: 주둔지(outpost) -> 소도시(small)
 // -> 중도시(medium) -> 대도시(large). Each tier raises the facility slot
@@ -109,7 +109,7 @@ export function canFoundAdditionalCity(existingCityTiers: CityTier[]): boolean {
 }
 
 export type ProductionOrder = {
-  unitType: TroopResearchKind;
+  unitType: UnitTypeId;
   turnsRemaining: number;
 };
 
@@ -199,20 +199,32 @@ export function buildFacility(
   };
 }
 
-export function canQueueUnitProduction(city: City, unitType: TroopResearchKind, research: ResearchLevels): boolean {
-  return hasBarracks(city) && isUnitTypeUnlocked(unitType, research[unitType]);
+// A city always produces whatever its faction currently has selected as
+// that line's "출전 병과" (unit-evolution.ts's activeEvolutionFor) - a root
+// type needs its own research level >= 1 (isUnitTypeUnlocked, infantry
+// exempt); an evolved type needs to already be in
+// faction.unlockedUnitTypes (isUnitTypeUnlockedFor) - evolving into it is a
+// separate, one-time action (unit-evolution.ts's evolveUnitType).
+export function canQueueUnitProduction(city: City, line: TroopLine, faction: Faction): boolean {
+  if (!hasBarracks(city)) return false;
+  const unitType = activeEvolutionFor(faction, line);
+  if (isRootUnitType(unitType)) {
+    return isUnitTypeUnlocked(unitType, troopLevel(faction.troopLevels, unitType));
+  }
+  return isUnitTypeUnlockedFor(faction, unitType);
 }
 
-// Adds a unit to the city's production queue. Doesn't spend resources
-// beyond the barracks/research gate - UNIT_PRODUCTION_TURNS is treated as
-// the cost (time investment), per this session's scope (no separate gold
-// sink was specified). Throws if the city has no barracks or the unit type
-// isn't unlocked by research yet - same UI-precheck convention as the rest
-// of this module.
-export function queueUnitProduction(city: City, unitType: TroopResearchKind, research: ResearchLevels): City {
-  if (!canQueueUnitProduction(city, unitType, research)) {
-    throw new Error(`city ${city.id} cannot produce ${unitType} right now`);
+// Adds a unit to the city's production queue, using the line's currently
+// active evolution. Doesn't spend resources beyond the barracks/unlock gate
+// - UNIT_PRODUCTION_TURNS is treated as the cost (time investment), per
+// this session's scope (no separate gold sink was specified). Throws if the
+// city has no barracks or that line's active unit type isn't producible yet
+// - same UI-precheck convention as the rest of this module.
+export function queueUnitProduction(city: City, line: TroopLine, faction: Faction): City {
+  if (!canQueueUnitProduction(city, line, faction)) {
+    throw new Error(`city ${city.id} cannot produce ${line} right now`);
   }
+  const unitType = activeEvolutionFor(faction, line);
   return {
     ...city,
     productionQueue: [...city.productionQueue, { unitType, turnsRemaining: UNIT_PRODUCTION_TURNS }],

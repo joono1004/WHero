@@ -20,15 +20,18 @@ import {
   upgradeCity,
 } from "./city.ts";
 import type { City } from "./city.ts";
-import { ZERO_FACTION_RESOURCES } from "./faction.ts";
+import { createFaction, ZERO_FACTION_RESOURCES } from "./faction.ts";
 import type { FactionResources } from "./faction.ts";
-import { ZERO_RESEARCH_LEVELS } from "./research.ts";
 
 function makeCity(overrides: Partial<City> = {}): City {
   return {
     ...createCity({ id: "city-1", factionId: "faction-1", name: "테스트도시", position: { row: 0, column: 0 } }),
     ...overrides,
   };
+}
+
+function makeFaction(overrides: Partial<import("./faction.ts").Faction> = {}) {
+  return { ...createFaction({ id: "faction-1", name: "테스트세력", isPlayerControlled: true }), ...overrides };
 }
 
 const RICH_RESOURCES: FactionResources = { gold: 100000, food: 100000, iron: 0, researchResource: 0, wood: 0, gem: 0 };
@@ -142,31 +145,31 @@ test("hasBarracks reflects whether a barracks was built", () => {
 
 test("canQueueUnitProduction requires a barracks even for infantry", () => {
   const cityWithoutBarracks = makeCity();
-  assert.equal(canQueueUnitProduction(cityWithoutBarracks, "infantry", ZERO_RESEARCH_LEVELS), false);
+  assert.equal(canQueueUnitProduction(cityWithoutBarracks, "infantry", makeFaction()), false);
 });
 
 test("canQueueUnitProduction allows infantry with a barracks even at 0 research", () => {
   const city = makeCity({ facilities: ["barracks"] });
-  assert.equal(canQueueUnitProduction(city, "infantry", ZERO_RESEARCH_LEVELS), true);
+  assert.equal(canQueueUnitProduction(city, "infantry", makeFaction()), true);
 });
 
-test("canQueueUnitProduction requires research investment for non-infantry types", () => {
+test("canQueueUnitProduction requires research investment for non-infantry root types", () => {
   const city = makeCity({ facilities: ["barracks"] });
-  assert.equal(canQueueUnitProduction(city, "archer", ZERO_RESEARCH_LEVELS), false);
-  assert.equal(canQueueUnitProduction(city, "archer", { ...ZERO_RESEARCH_LEVELS, archer: 1 }), true);
+  assert.equal(canQueueUnitProduction(city, "archer", makeFaction()), false);
+  assert.equal(canQueueUnitProduction(city, "archer", makeFaction({ troopLevels: { archer: 1 } })), true);
 });
 
 test("queueUnitProduction appends a production order with the flat turn cost", () => {
   const city = makeCity({ facilities: ["barracks"] });
-  const updated = queueUnitProduction(city, "infantry", ZERO_RESEARCH_LEVELS);
+  const updated = queueUnitProduction(city, "infantry", makeFaction());
   assert.equal(updated.productionQueue.length, 1);
   assert.equal(updated.productionQueue[0].unitType, "infantry");
   assert.ok(updated.productionQueue[0].turnsRemaining > 0);
 });
 
-test("queueUnitProduction throws when the city can't produce that unit type yet", () => {
+test("queueUnitProduction throws when the city can't produce that line's active unit type yet", () => {
   const city = makeCity({ facilities: ["barracks"] });
-  assert.throws(() => queueUnitProduction(city, "archer", ZERO_RESEARCH_LEVELS));
+  assert.throws(() => queueUnitProduction(city, "archer", makeFaction()));
 });
 
 // --- captureCity (task 12) ---

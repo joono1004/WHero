@@ -38,6 +38,7 @@ export function createNewSaveGame(params: NewGameParams): SaveGame {
     assignment: { mode: "solo", position: { row: 0, column: 0 } },
     attributeProgress: ZERO_ATTRIBUTE_PROGRESS,
     deploymentPriority: true,
+    evolvedUnitType: null,
   };
 
   return {

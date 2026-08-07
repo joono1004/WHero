@@ -1,20 +1,16 @@
 import type { FactionResources } from "./faction.ts";
 
-// 내정 연구: 금생산 / 식량생산.
+// 내정 연구: 금생산 / 식량생산. 병과 연구는 2026-08-07 진화 트리 방향으로
+// unit-evolution.ts의 TroopLevels(노드별 독립 등급)로 옮겨감 - 계열
+// 4종(TroopResearchKind)에서 5계열 트리 구조로 바뀌면서 "계열당 레벨 하나"
+// 라는 전제가 깨졌기 때문. 이 파일은 이제 내정(gold/food) 레벨만 다룬다.
 export type EconomyResearchKind = "gold" | "food";
-// 병과 연구: 보병 / 궁병 / 기병 / 공성병기.
-export type TroopResearchKind = "infantry" | "archer" | "cavalry" | "siege";
-export type ResearchCategory = EconomyResearchKind | TroopResearchKind;
 
-export type ResearchLevels = Record<ResearchCategory, number>;
+export type ResearchLevels = Record<EconomyResearchKind, number>;
 
 export const ZERO_RESEARCH_LEVELS: ResearchLevels = {
   gold: 0,
   food: 0,
-  infantry: 0,
-  archer: 0,
-  cavalry: 0,
-  siege: 0,
 };
 
 // Draft cap and cost curve - not confirmed with the user, easy to retune.
@@ -44,7 +40,7 @@ export type ResearchUpgradeResult = { levels: ResearchLevels; resources: Faction
 export function upgradeResearch(
   levels: ResearchLevels,
   resources: FactionResources,
-  category: ResearchCategory,
+  category: EconomyResearchKind,
 ): ResearchUpgradeResult {
   const cost = researchUpgradeCost(levels[category]);
   if (!cost) {

@@ -41,6 +41,7 @@ export const STARTING_HEROES: HeroDefinition[] = [
     domesticSpecialties: { troops: "B", gold: "없음", food: "없음", iron: "없음", recovery: "없음", defense: "없음" },
     traits: ["talent"],
     skills: ["charge"],
+    evolution: null,
   },
   {
     id: "wei-yan",
@@ -51,6 +52,7 @@ export const STARTING_HEROES: HeroDefinition[] = [
     domesticSpecialties: { troops: "A", gold: "없음", food: "없음", iron: "없음", recovery: "없음", defense: "없음" },
     traits: ["talent"],
     skills: [],
+    evolution: null,
   },
   {
     id: "xu-shu",
@@ -61,5 +63,6 @@ export const STARTING_HEROES: HeroDefinition[] = [
     domesticSpecialties: { gold: "B", food: "B", troops: "없음", iron: "없음", recovery: "없음", defense: "없음" },
     traits: ["trade", "farming"],
     skills: [],
+    evolution: null,
   },
 ];

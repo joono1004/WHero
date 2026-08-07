@@ -37,23 +37,23 @@ test("upgradeResearch raises the chosen category by exactly one level", () => {
 
 test("upgradeResearch does not touch other categories' levels", () => {
   const resources: FactionResources = { gold: 1000, food: 0, iron: 0, researchResource: 1000, wood: 0, gem: 0 };
-  const levels = { ...ZERO_RESEARCH_LEVELS, cavalry: 3 };
-  const result = upgradeResearch(levels, resources, "infantry");
-  assert.equal(result.levels.infantry, 1);
-  assert.equal(result.levels.cavalry, 3);
+  const levels = { ...ZERO_RESEARCH_LEVELS, food: 3 };
+  const result = upgradeResearch(levels, resources, "gold");
+  assert.equal(result.levels.gold, 1);
+  assert.equal(result.levels.food, 3);
 });
 
 test("upgradeResearch deducts exactly the cost from resources", () => {
   const resources: FactionResources = { gold: 1000, food: 42, iron: 0, researchResource: 1000, wood: 0, gem: 0 };
   const cost = researchUpgradeCost(0)!;
-  const result = upgradeResearch(ZERO_RESEARCH_LEVELS, resources, "archer");
+  const result = upgradeResearch(ZERO_RESEARCH_LEVELS, resources, "gold");
   assert.equal(result.resources.gold, 1000 - cost.gold);
   assert.equal(result.resources.researchResource, 1000 - cost.researchResource);
   assert.equal(result.resources.food, 42, "food should be untouched by research spending");
 });
 
 test("upgradeResearch throws when the faction can't afford it", () => {
-  assert.throws(() => upgradeResearch(ZERO_RESEARCH_LEVELS, ZERO_FACTION_RESOURCES, "siege"));
+  assert.throws(() => upgradeResearch(ZERO_RESEARCH_LEVELS, ZERO_FACTION_RESOURCES, "gold"));
 });
 
 test("upgradeResearch throws once a category is already at the max level", () => {
@@ -66,11 +66,11 @@ test("upgradeResearch never leaves a resource negative across many upgrades", ()
   let levels = ZERO_RESEARCH_LEVELS;
   let resources: FactionResources = { gold: 100000, food: 0, iron: 0, researchResource: 100000, wood: 0, gem: 0 };
   for (let i = 0; i < MAX_RESEARCH_LEVEL; i += 1) {
-    const result = upgradeResearch(levels, resources, "cavalry");
+    const result = upgradeResearch(levels, resources, "food");
     levels = result.levels;
     resources = result.resources;
     assert.ok(resources.gold >= 0);
     assert.ok(resources.researchResource >= 0);
   }
-  assert.equal(levels.cavalry, MAX_RESEARCH_LEVEL);
+  assert.equal(levels.food, MAX_RESEARCH_LEVEL);
 });

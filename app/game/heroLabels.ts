@@ -1,4 +1,5 @@
 import type { HeroArchetype, HeroUnitTypeKind } from "../../lib/game/hero-definition.ts";
+import { UNIT_TYPE_CATALOG } from "../../lib/game/unit-production.ts";
 
 // Korean display labels for hero-definition enums. Shared across every
 // screen that renders a hero (selection, main screen, later unit/city
@@ -10,14 +11,13 @@ export const ARCHETYPE_LABEL: Record<HeroArchetype, string> = {
   allrounder: "만능형",
 };
 
-// 병사 병과 이름 그대로 재사용(research.ts의 TroopResearchKind와 동일 값) -
-// heroLabels.ts가 이미 각 enum 라벨을 이 파일에 따로 두는 패턴을 따름.
-export const UNIT_TYPE_LABEL: Record<HeroUnitTypeKind, string> = {
-  infantry: "보병",
-  archer: "궁병",
-  cavalry: "기병",
-  siege: "공성",
-};
+// 2026-08-07 (병과 진화 트리 방향): 병사 병과가 4종 고정에서
+// unit-production.ts의 UnitTypeId 트리로 바뀌면서, 여기 따로 라벨 표를
+// 두는 대신 그 카탈로그의 label을 그대로 모아 쓴다 - 루트/진화 노드 어느
+// unitType이 와도(제갈량의 "strategist"처럼) 항상 값이 있다.
+export const UNIT_TYPE_LABEL: Record<HeroUnitTypeKind, string> = Object.fromEntries(
+  Object.values(UNIT_TYPE_CATALOG).map((node) => [node.id, node.label]),
+);
 
 // 특기 이름/효과 표시는 hero-trait.ts의 HERO_TRAIT_CATALOG을 직접 참조 -
 // 등급이 없어져서 (DOMESTIC_LABEL/TRAIT_LABEL처럼) enum -> 한글 라벨만

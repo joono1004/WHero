@@ -23,6 +23,7 @@ function heroState(heroId: string, overrides: Partial<HeroState> = {}): HeroStat
     assignment: { mode: "solo", position: { row: 0, column: 0 } },
     attributeProgress: ZERO_ATTRIBUTE_PROGRESS,
     deploymentPriority: false,
+    evolvedUnitType: null,
     ...overrides,
   };
 }

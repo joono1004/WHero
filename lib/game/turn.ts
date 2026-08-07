@@ -48,7 +48,7 @@ type RegenSpot = { position: HexCoordinate; factionId: string; amount: number };
 // every city's facility yield to its faction (boosted by a matching
 // specialty), advances every city's unit production queue (faster with a
 // 훈련 specialist; completed orders spawn a real Unit using the producing
-// world's researchSnapshot, task 10), and heals units/heroes sitting at a
+// world's troopLevelsSnapshot, task 10), and heals units/heroes sitting at a
 // 회복-specialist city's position. Throws if no world is active - the UI is
 // expected to only expose "턴 종료" from MapPlayScreen, which only renders
 // when save.world is set.
@@ -101,7 +101,7 @@ export function endTurn(save: SaveGame, now: string): SaveGame {
         factionId: city.factionId,
         unitType: order.unitType,
         position: city.position,
-        researchLevel: world.researchSnapshot[order.unitType],
+        researchLevel: world.troopLevelsSnapshot[order.unitType] ?? 0,
       });
       newUnitIds.push(unitId);
     }
