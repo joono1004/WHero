@@ -141,26 +141,10 @@ export function HeroRosterScreen({
                   className="flex cursor-pointer items-center gap-2 rounded-md p-1.5"
                   style={{ border: `1px solid ${isSelected ? "#d7b765" : "#274049"}`, backgroundColor: "#17343e" }}
                 >
-                  <button
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      onToggleDeploymentPriority(state.heroId);
-                    }}
-                    title="출전 우선 표시"
-                    className="shrink-0"
-                    style={{
-                      border: "none",
-                      background: "none",
-                      backgroundImage: "none",
-                      padding: 0,
-                      fontSize: "14px",
-                      color: state.deploymentPriority ? "#d7b765" : "#43606a",
-                    }}
-                  >
-                    {state.deploymentPriority ? "★" : "☆"}
-                  </button>
+                  {/* 초상 확대 (2026-08-07, 텍스트가 2줄->3줄로 늘어난 만큼
+                      비례해서 h-8/w-8(32px) -> h-12/w-12(48px)). */}
                   <div
-                    className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full"
+                    className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full"
                     style={{
                       border: `2px solid ${GRADE_COLOR[grade]}`,
                       backgroundColor: "#0b2028",
@@ -171,15 +155,51 @@ export function HeroRosterScreen({
                       // eslint-disable-next-line @next/next/no-img-element -- local /public asset, same convention as HeroSelectScreen.tsx
                       <img src={portraitUrl} alt={`${definition.name} 초상`} className="h-full w-full object-cover" />
                     ) : (
-                      <span className="text-base text-[#43606a]">🧑</span>
+                      <span className="text-xl text-[#43606a]">🧑</span>
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-xs font-bold text-[#f3dfaa]">{definition.name}</p>
-                    <p className="truncate text-[10px] text-[#8fa6a8]">
-                      {grade}급 · {ARCHETYPE_LABEL[archetype]} · Lv.{state.level}
-                    </p>
-                    {governorLabel && <p className="truncate text-[10px] text-[#d9bd74]">{governorLabel}</p>}
+                    {/* 1줄: 이름 + 출전 배지 (2026-08-07, 별표 토글 버튼을
+                        대체 - 같은 onToggleDeploymentPriority를 그대로
+                        쓰되, 항상 네모 배지로 표시하고 켜진 상태만 금색으로
+                        강조. 꺼진 상태도 계속 눌러서 켤 수 있도록 배지
+                        자체를 항상 렌더링. */}
+                    <div className="flex items-center justify-between gap-1">
+                      <p className="truncate text-xs font-bold text-[#f3dfaa]">{definition.name}</p>
+                      <button
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          onToggleDeploymentPriority(state.heroId);
+                        }}
+                        title="출전 우선 표시"
+                        className="shrink-0 rounded text-[9px] font-bold"
+                        style={{
+                          border: `1px solid ${state.deploymentPriority ? "#d7b765" : "#3a4f52"}`,
+                          backgroundColor: state.deploymentPriority ? "rgba(215,183,101,0.15)" : "transparent",
+                          backgroundImage: "none",
+                          color: state.deploymentPriority ? "#d7b765" : "#5c7276",
+                          padding: "1px 4px",
+                          cursor: "pointer",
+                        }}
+                      >
+                        출전
+                      </button>
+                    </div>
+                    {/* 2줄: 등급 네모박스(등급색 배경) + 레벨 */}
+                    <div className="mt-0.5 flex items-center gap-1">
+                      <span
+                        className="rounded text-[9px] font-bold"
+                        style={{ backgroundColor: GRADE_COLOR[grade], color: "#0b2028", padding: "1px 4px" }}
+                      >
+                        {grade}급
+                      </span>
+                      <span className="text-[10px] text-[#8fa6a8]">Lv.{state.level}</span>
+                    </div>
+                    {/* 3줄: 유형 + 영주 라벨(있을 때만) */}
+                    <div className="mt-0.5 flex items-center justify-between gap-1">
+                      <span className="truncate text-[10px] text-[#8fa6a8]">{ARCHETYPE_LABEL[archetype]}</span>
+                      {governorLabel && <span className="truncate text-[10px] text-[#d9bd74]">{governorLabel}</span>}
+                    </div>
                   </div>
                 </div>
               );
