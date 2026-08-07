@@ -6,7 +6,7 @@ import type { HeroListEntry } from "../../../lib/game/hero-roster.ts";
 import { compareByArchetype, compareByGrade, compareByLevel } from "../../../lib/game/hero-roster.ts";
 import { Button } from "../Button.tsx";
 import { GRADE_COLOR } from "../gradeColors.ts";
-import { HeroCard } from "../HeroCard.tsx";
+import { HeroInfoPanel } from "../HeroInfoPanel.tsx";
 import { ARCHETYPE_LABEL } from "../heroLabels.ts";
 import { HERO_PORTRAIT } from "../heroPortraits.ts";
 import { ScreenShell } from "../ScreenShell.tsx";
@@ -48,13 +48,16 @@ const BAG_EMPTY_PREVIEW_ROWS = 3;
 
 // 통합 화면: [영웅리스트] [영웅정보+보물] [가방] 3패널 (2026-08-07, 이전
 // 라운드의 좌우 2분할 -> 4열 재배치를 거쳐, 사용자가 "세 영역이 구분되어
-// 보였으면 좋겠다"고 요청한 이번 라운드에서 각 영역을 테두리+배경이 있는
+// 보였으면 좋겠다"고 요청한 라운드에서 각 영역을 테두리+배경이 있는
 // 패널로 감쌈 - 영웅정보와 보물은 같은 패널 안에 나란히 묶임(보물이
-// "지금 선택된 영웅"에게 장착하는 개념이라 자연스럽게 묶임). 영웅선택
-// 화면의 정보 카드(HeroCard.tsx)를 그대로 재사용하는 것과 </> 이전/다음
-// 동작은 이전 라운드 그대로. `initialHeroId`는 어떤 영웅으로 열지
-// 시드값(형식 슬롯 클릭은 해당 영웅, [영웅] 메뉴는 null -> 정렬 순서상
-// 첫 항목).
+// "지금 선택된 영웅"에게 장착하는 개념이라 자연스럽게 묶임). 영웅정보
+// 칸은 `HeroInfoPanel.tsx`(2026-08-07 신설) - 처음엔 HeroSelectScreen과
+// `HeroCard.tsx`를 그대로 같이 썼는데, 사용자가 목업대로 재설계해달라고
+// 한 뒤 "영웅 정보창에서만 바뀌어야 했는데, 새게임에서 영웅 선택창은
+// 이전꺼 그대로 유지해야해"라고 정정 - 그래서 재설계된 버전을 별도
+// 파일로 분리(HeroCard.tsx는 원래 모습으로 복원). </> 이전/다음 동작은
+// 이전 라운드 그대로. `initialHeroId`는 어떤 영웅으로 열지 시드값(형식
+// 슬롯 클릭은 해당 영웅, [영웅] 메뉴는 null -> 정렬 순서상 첫 항목).
 export function HeroRosterScreen({
   entries,
   initialHeroId,
@@ -214,12 +217,12 @@ export function HeroRosterScreen({
           className="flex flex-1 gap-2 overflow-hidden rounded-lg p-1.5"
           style={{ border: "1px solid #25454f", backgroundColor: "#132a32" }}
         >
-          {/* 2a. 영웅정보: 영웅선택 화면과 동일한 정보 카드 + </> 이전/다음 */}
+          {/* 2a. 영웅정보: HeroInfoPanel(이 화면 전용 재설계) + </> 이전/다음 */}
           <div className="flex flex-1 flex-col gap-1.5 overflow-hidden">
             {selected ? (
               <>
                 <div className="flex-1 overflow-y-auto">
-                  <HeroCard hero={selected.definition} selected />
+                  <HeroInfoPanel hero={selected.definition} selected />
                 </div>
                 <div className="flex shrink-0 items-center justify-center gap-3">
                   <NavButton direction="prev" onClick={goPrev} disabled={activeIndex <= 0} />

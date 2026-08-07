@@ -1646,6 +1646,33 @@
     스크롤 없음, (2) `HeroSelectScreen`의 3장 그리드도 오버플로우 없이
     들어가는 것(공유 컴포넌트라 같이 확인 필요), (3) 스크린샷으로 목업과
     비교해 레이아웃이 일치하는 것까지 확인.
+- **`HeroCard`/`HeroInfoPanel` 재분리 - 새 게임 영웅선택 화면은 원래
+  모습으로 복원 (2026-08-07, 위 재설계 바로 다음 라운드)**: 사용자
+  정정 - "영웅 정보창에서만 바뀌어야 했는데, 새게임에서 영웅 선택창은
+  이전꺼 그대로 유지해야해". 목업 재설계 라운드에서 `HeroCard.tsx`를
+  직접 고쳤는데, 그 컴포넌트가 `HeroSelectScreen`(새 게임 시작 시 3장
+  그리드)과 `HeroRosterScreen`(영웅 화면 정보 칸) 둘 다 쓰던 공유
+  컴포넌트라 의도치 않게 선택 화면까지 같이 바뀌어버렸던 것.
+  - **`HeroCard.tsx`를 재설계 이전 커밋(d3956ea) 그대로 되돌림** - 2열
+    능력치 그리드, 96×96 정사각형 초상, 특기 빈칸 🔒, Point 박스 없음.
+    `HeroSelectScreen.tsx`만 계속 이 파일을 씀.
+  - **`app/game/HeroInfoPanel.tsx` 신설**: 재설계된 버전(세로 능력치
+    1열, 세로로 긴 직사각형 초상, Point 박스, 특기 빈칸 "-")을 그대로
+    옮김 - `onSelect`/클릭 선택 개념이 없는 화면이라 그 prop과 관련
+    로직(`interactiveProps`, `stopPropagation` 호출들)은 정리해서 제거.
+    `HeroRosterScreen.tsx`만 이 파일을 씀.
+  - **`heroPortraits.ts` 문서 주석 갱신**: `HERO_PORTRAIT_FRAME_PX`(96,
+    정사각형)를 복원하고, 화면별 프레임 모양이 다시 갈라졌다는 점(선택
+    화면은 정사각형 고정 상수, 영웅 화면은 `HeroInfoPanel.tsx` 자체
+    상수인 세로 직사각형)을 다시 명시.
+  - 앞으로 두 컴포넌트는 **완전히 독립된 별도 파일**이라, 한쪽만
+    고쳐달라는 요청이 오면 그 파일만 건드리면 됨(공유 컴포넌트였을 때
+    처럼 의도치 않게 다른 화면까지 바뀌는 일이 없음).
+  - 검증: `npx tsc --noEmit` 클린, `pnpm run build` 성공, `pnpm run
+    test:game` 321/321, 린트 기존 문제 10개 제외 클린. Playwright로
+    `HeroSelectScreen`이 원래 모습(2열 그리드/🔒)으로 돌아온 것과
+    `HeroRosterScreen`은 재설계된 모습(세로 목록/Point 박스/"-") 그대로
+    유지되는 것을 각각 스크린샷으로 확인.
 
 ## 진행 상황
 
