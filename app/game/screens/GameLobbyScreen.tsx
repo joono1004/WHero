@@ -29,6 +29,7 @@ import { GovernorAppointScreen } from "./GovernorAppointScreen.tsx";
 import { HeroEnlistScreen } from "./HeroEnlistScreen.tsx";
 import { HeroRosterScreen } from "./HeroRosterScreen.tsx";
 import { ResearchScreen } from "./ResearchScreen.tsx";
+import { TroopsScreen } from "./TroopsScreen.tsx";
 
 // Terrain flavor for the world orbs (2026-08-06, "게임스럽게" visual pass) -
 // an emoji + tint color per map type, standing in for Codex's eventual
@@ -73,11 +74,12 @@ function formatResourceAmount(value: number): string {
 
 // Left sidebar menu (2026-08-06, replacing the earlier bottom-left
 // horizontal bar per the user's full-screen wireframe: 영웅/병사/가방/연구/
-// 순위/연맹). Only 연구/영웅 have a real destination so far - 병사/가방/순위
-// are placeholders, 연맹 is explicitly marked "예정" (planned) in the
-// wireframe itself. Deliberately a plain array (not a Record) rendered via
-// overflow-y-auto rather than a fixed height, since this list is expected
-// to keep growing - a new entry is just another array item.
+// 순위/연맹). 연구/영웅/병사(2026-08-08 추가 - TroopsScreen) have a real
+// destination so far - 가방/순위 are still placeholders, 연맹 is explicitly
+// marked "예정" (planned) in the wireframe itself. Deliberately a plain
+// array (not a Record) rendered via overflow-y-auto rather than a fixed
+// height, since this list is expected to keep growing - a new entry is
+// just another array item.
 type MenuItemKey = "heroes" | "troops" | "bag" | "research" | "ranking" | "alliance";
 
 const MENU_ITEMS: { key: MenuItemKey; icon: string; label: string }[] = [
@@ -120,6 +122,7 @@ export function GameLobbyScreen({
   const [heroScreenOpen, setHeroScreenOpen] = useState(false);
   const [heroScreenInitialId, setHeroScreenInitialId] = useState<string | null>(null);
   const [showResearch, setShowResearch] = useState(false);
+  const [showTroops, setShowTroops] = useState(false);
   const railRef = useRef<HTMLDivElement>(null);
 
   const playerFaction = save.factions[PLAYER_FACTION_ID];
@@ -228,6 +231,15 @@ export function GameLobbyScreen({
         }
         onUpgradeTroop={(unitType: UnitTypeId) => updateFaction((faction) => upgradeTroopLevel(faction, unitType))}
         onEvolve={(unitType: UnitTypeId) => updateFaction((faction) => evolveUnitType(faction, unitType))}
+      />
+    );
+  }
+
+  if (showTroops && playerFaction) {
+    return (
+      <TroopsScreen
+        faction={playerFaction}
+        onBack={() => setShowTroops(false)}
         onSetActive={(line: TroopLine, unitType: UnitTypeId) =>
           updateFaction((faction) => setActiveEvolution(faction, line, unitType))
         }
@@ -364,6 +376,7 @@ export function GameLobbyScreen({
                 label={item.label}
                 onClick={() => {
                   if (item.key === "research") setShowResearch(true);
+                  else if (item.key === "troops") setShowTroops(true);
                   else if (item.key === "heroes") openHeroScreen(null);
                   else window.alert("아직 준비 중인 기능입니다.");
                 }}

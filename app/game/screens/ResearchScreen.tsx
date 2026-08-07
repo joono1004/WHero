@@ -17,20 +17,22 @@ import { Button } from "../Button.tsx";
 import { ECONOMY_RESEARCH_CATEGORIES, RESEARCH_LABEL, TROOP_LINE_LABEL } from "../researchLabels.ts";
 import { ScreenShell } from "../ScreenShell.tsx";
 
+// 2026-08-08 (사용자 방향): 연구 화면은 레벨업/진화(해금)만 담당한다 -
+// "지금 출전할 병과를 고르는" 것은 병사 화면(TroopsScreen)의 몫으로
+// 옮겨감. 여기서는 참고용으로 어떤 노드가 지금 출전 중인지 표시만 하고,
+// 바꾸는 버튼은 두지 않는다.
 export function ResearchScreen({
   faction,
   onBack,
   onUpgradeEconomy,
   onUpgradeTroop,
   onEvolve,
-  onSetActive,
 }: {
   faction: Faction;
   onBack: () => void;
   onUpgradeEconomy: (category: EconomyResearchKind) => void;
   onUpgradeTroop: (unitType: UnitTypeId) => void;
   onEvolve: (unitType: UnitTypeId) => void;
-  onSetActive: (line: TroopLine, unitType: UnitTypeId) => void;
 }) {
   const { research, resources } = faction;
   return (
@@ -91,7 +93,6 @@ export function ResearchScreen({
                 faction={faction}
                 onUpgradeTroop={onUpgradeTroop}
                 onEvolve={onEvolve}
-                onSetActive={onSetActive}
               />
             ))}
           </div>
@@ -106,13 +107,11 @@ function TroopLineGroup({
   faction,
   onUpgradeTroop,
   onEvolve,
-  onSetActive,
 }: {
   line: TroopLine;
   faction: Faction;
   onUpgradeTroop: (unitType: UnitTypeId) => void;
   onEvolve: (unitType: UnitTypeId) => void;
-  onSetActive: (line: TroopLine, unitType: UnitTypeId) => void;
 }) {
   const activeUnitType = activeEvolutionFor(faction, line);
   return (
@@ -150,11 +149,6 @@ function TroopLineGroup({
                 {unlocked && (
                   <Button size="sm" disabled={!levelCost || !levelAffordable} onClick={() => onUpgradeTroop(node.id)}>
                     연구
-                  </Button>
-                )}
-                {unlocked && !isActive && (
-                  <Button size="sm" variant="secondary" onClick={() => onSetActive(line, node.id)}>
-                    출전
                   </Button>
                 )}
                 {!unlocked && node.unlock && (
