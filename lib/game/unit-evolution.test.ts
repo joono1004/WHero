@@ -13,6 +13,13 @@ import {
   upgradeTroopLevel,
 } from "./unit-evolution.ts";
 
+// 2026-08-08: 병과 트리가 계열당 외길(tier 0~5)로 단순화됨 - 분기/교차
+// 계열 선행조건/아이템 해금은 사용자가 "나중에 추가"로 명시적으로 미룸.
+// 그 메커니즘을 검증하던 테스트(분기, 교차 계열, 아이템)는 실제 카탈로그
+// 노드가 없어져서 지웠음 - unit-evolution.ts의 로직 자체(requiredItemId/
+// requiredUnitTypeIds 처리)는 그대로 남아있으니, 분기가 돌아오면 그때
+// 다시 채우면 됨.
+
 function makeFaction(overrides: Partial<Faction> = {}): Faction {
   return {
     ...createFaction({ id: "faction-1", name: "테스트세력", isPlayerControlled: true }),
@@ -36,86 +43,71 @@ test("upgradeTroopLevel raises a root node's own level and spends resources", ()
 
 test("upgradeTroopLevel throws for a non-root node that isn't unlocked yet", () => {
   const faction = makeFaction();
-  assert.throws(() => upgradeTroopLevel(faction, "infantry_mountain"));
+  assert.throws(() => upgradeTroopLevel(faction, "infantry_swordsman"));
 });
 
 test("canEvolveUnitType is false until the parent reaches the required grade", () => {
   const faction = makeFaction();
-  assert.equal(canEvolveUnitType(faction, "infantry_mountain"), false);
+  assert.equal(canEvolveUnitType(faction, "infantry_swordsman"), false);
 });
 
 test("canEvolveUnitType is true once the parent's grade and cost are met", () => {
   let faction = makeFaction();
-  // infantry_mountain requires infantry at grade C (researchLevelToUnitGrade
-  // reaches C at level 2 - see unit-production.ts).
+  // infantry_swordsman (tier 1) requires infantry at grade C
+  // (researchLevelToUnitGrade reaches C at level 2 - see unit-production.ts).
   for (let i = 0; i < 2; i += 1) faction = upgradeTroopLevel(faction, "infantry");
-  assert.equal(canEvolveUnitType(faction, "infantry_mountain"), true);
+  assert.equal(canEvolveUnitType(faction, "infantry_swordsman"), true);
 });
 
 test("evolveUnitType unlocks the node at level 0 and makes it the line's active evolution", () => {
   let faction = makeFaction();
   for (let i = 0; i < 2; i += 1) faction = upgradeTroopLevel(faction, "infantry");
-  faction = evolveUnitType(faction, "infantry_mountain");
-  assert.ok(faction.unlockedUnitTypes.includes("infantry_mountain"));
-  assert.equal(troopLevel(faction.troopLevels, "infantry_mountain"), 0);
-  assert.equal(activeEvolutionFor(faction, "infantry"), "infantry_mountain");
+  faction = evolveUnitType(faction, "infantry_swordsman");
+  assert.ok(faction.unlockedUnitTypes.includes("infantry_swordsman"));
+  assert.equal(troopLevel(faction.troopLevels, "infantry_swordsman"), 0);
+  assert.equal(activeEvolutionFor(faction, "infantry"), "infantry_swordsman");
 });
 
 test("evolving into a child does not carry over the parent's level", () => {
   let faction = makeFaction();
   for (let i = 0; i < 8; i += 1) faction = upgradeTroopLevel(faction, "infantry");
   assert.equal(troopGrade(faction.troopLevels, "infantry"), "A");
-  faction = evolveUnitType(faction, "infantry_mountain");
-  assert.equal(troopGrade(faction.troopLevels, "infantry_mountain"), "D");
+  faction = evolveUnitType(faction, "infantry_swordsman");
+  assert.equal(troopGrade(faction.troopLevels, "infantry_swordsman"), "D");
 });
 
-test("evolveUnitType throws when a required item is missing", () => {
+test("canEvolveUnitType is false when a deeper tier's own parent isn't unlocked yet", () => {
+  // infantry_mountain (tier 2) requires infantry_swordsman (tier 1) to be
+  // unlocked first, regardless of the root's own grade.
   let faction = makeFaction();
-  for (let i = 0; i < 5; i += 1) faction = upgradeTroopLevel(faction, "infantry");
-  faction = evolveUnitType(faction, "infantry_mountain");
-  for (let i = 0; i < 5; i += 1) faction = upgradeTroopLevel(faction, "infantry_mountain");
-  assert.throws(() => evolveUnitType(faction, "infantry_ranger"));
+  for (let i = 0; i < 8; i += 1) faction = upgradeTroopLevel(faction, "infantry");
+  assert.equal(canEvolveUnitType(faction, "infantry_mountain"), false);
 });
 
-test("evolveUnitType succeeds once the required item is in the faction's inventory, and consumes it", () => {
-  let faction = makeFaction({ itemInventory: ["evolution-item-ranger"] });
-  for (let i = 0; i < 5; i += 1) faction = upgradeTroopLevel(faction, "infantry");
-  faction = evolveUnitType(faction, "infantry_mountain");
-  for (let i = 0; i < 5; i += 1) faction = upgradeTroopLevel(faction, "infantry_mountain");
-  faction = evolveUnitType(faction, "infantry_ranger");
-  assert.ok(faction.unlockedUnitTypes.includes("infantry_ranger"));
-  assert.equal(faction.itemInventory.includes("evolution-item-ranger"), false);
-});
-
-test("cross-line prerequisite: cavalry_dragoon needs infantry_mountain unlocked first", () => {
+test("evolving through several tiers in a row works end to end", () => {
   let faction = makeFaction();
-  for (let i = 0; i < 5; i += 1) faction = upgradeTroopLevel(faction, "cavalry");
-  faction = evolveUnitType(faction, "cavalry_heavy");
-  for (let i = 0; i < 5; i += 1) faction = upgradeTroopLevel(faction, "cavalry_heavy");
-  assert.equal(canEvolveUnitType(faction, "cavalry_dragoon"), false);
-
-  let withInfantry = faction;
-  for (let i = 0; i < 2; i += 1) withInfantry = upgradeTroopLevel(withInfantry, "infantry");
-  withInfantry = evolveUnitType(withInfantry, "infantry_mountain");
-  assert.equal(canEvolveUnitType(withInfantry, "cavalry_dragoon"), true);
+  for (let i = 0; i < 2; i += 1) faction = upgradeTroopLevel(faction, "infantry");
+  faction = evolveUnitType(faction, "infantry_swordsman");
+  for (let i = 0; i < 2; i += 1) faction = upgradeTroopLevel(faction, "infantry_swordsman");
+  faction = evolveUnitType(faction, "infantry_mountain");
+  assert.deepEqual(new Set(faction.unlockedUnitTypes), new Set(["infantry_swordsman", "infantry_mountain"]));
+  assert.equal(activeEvolutionFor(faction, "infantry"), "infantry_mountain");
 });
 
 test("setActiveEvolution switches which node a line produces, once unlocked", () => {
   let faction = makeFaction();
   for (let i = 0; i < 2; i += 1) faction = upgradeTroopLevel(faction, "infantry");
-  faction = evolveUnitType(faction, "infantry_mountain");
+  faction = evolveUnitType(faction, "infantry_swordsman");
   faction = setActiveEvolution(faction, "infantry", "infantry");
   assert.equal(activeEvolutionFor(faction, "infantry"), "infantry");
 });
 
 test("setActiveEvolution throws for a node that isn't unlocked", () => {
   const faction = makeFaction();
-  assert.throws(() => setActiveEvolution(faction, "infantry", "infantry_mountain"));
+  assert.throws(() => setActiveEvolution(faction, "infantry", "infantry_swordsman"));
 });
 
-test("strategist's root is fire-elemental and ranged, its evolution switches to water", () => {
-  let faction = makeFaction();
-  for (let i = 0; i < 2; i += 1) faction = upgradeTroopLevel(faction, "strategist");
-  faction = evolveUnitType(faction, "strategist_water");
-  assert.equal(activeEvolutionFor(faction, "strategist"), "strategist_water");
+test("strategist's root is ranged and fire-elemental", () => {
+  const faction = makeFaction();
+  assert.equal(activeEvolutionFor(faction, "strategist"), "strategist");
 });

@@ -13,8 +13,8 @@ test("isUnitTypeUnlocked: infantry is always producible, even at research level 
   assert.equal(isUnitTypeUnlocked("infantry", 10), true);
 });
 
-test("isUnitTypeUnlocked: archer/cavalry/siege need at least 1 research level", () => {
-  for (const unitType of ["archer", "cavalry", "siege"] as const) {
+test("isUnitTypeUnlocked: archer/cavalry/strategist need at least 1 research level", () => {
+  for (const unitType of ["archer", "cavalry", "strategist"] as const) {
     assert.equal(isUnitTypeUnlocked(unitType, 0), false);
     assert.equal(isUnitTypeUnlocked(unitType, 1), true);
   }

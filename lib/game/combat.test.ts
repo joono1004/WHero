@@ -174,7 +174,7 @@ test("unitCombatant reads attack/defense/health/range straight from the unit", (
 test("heroCombatant derives attack/defense/maxHealth from grade attributes, range from unitType, and current health from state", () => {
   const definition = makeHeroDefinition({
     attributes: { leadership: "A", force: "S", intelligence: "D", charisma: "D", vitality: "B" },
-    unitType: "siege",
+    unitType: "archer",
   });
   const state = makeHeroState({ health: 12 });
   const combatant = heroCombatant(definition, state);
@@ -183,8 +183,8 @@ test("heroCombatant derives attack/defense/maxHealth from grade attributes, rang
   assert.equal(combatant.defense, 16);
   assert.equal(combatant.maxHealth, 60);
   assert.equal(combatant.health, 12);
-  // siege's range comes straight from UNIT_TYPE_CATALOG (unit-production.ts), same as a siege unit.
-  assert.equal(combatant.range, 3);
+  // archer's range comes straight from UNIT_TYPE_CATALOG (unit-production.ts), same as an archer unit.
+  assert.equal(combatant.range, 2);
 });
 
 // --- applying outcomes back ---
