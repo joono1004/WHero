@@ -42,6 +42,7 @@ function makeHeroDefinition(overrides: Partial<HeroDefinition> = {}): HeroDefini
     domesticSpecialties: { gold: "없음", food: "없음", troops: "없음", iron: "없음", recovery: "없음", defense: "없음" },
     traits: [],
     skills: [],
+    evolution: null,
     ...overrides,
   };
 }
@@ -56,6 +57,7 @@ function makeHeroState(overrides: Partial<HeroState> = {}): HeroState {
     assignment: { mode: "solo", position: { row: 0, column: 0 } },
     attributeProgress: ZERO_ATTRIBUTE_PROGRESS,
     deploymentPriority: false,
+    evolvedUnitType: null,
     ...overrides,
   };
 }

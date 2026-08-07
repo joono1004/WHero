@@ -1,5 +1,5 @@
 import type { FactionId, HeroId, WorldId } from "./ids.ts";
-import type { ResearchLevels } from "./research.ts";
+import type { TroopLevels } from "./unit-evolution.ts";
 
 // Mirrors MapTypeId / MapTierId in app/world-prototype.tsx. Duplicated rather
 // than imported (see the no-cross-import boundary in docs/SYSTEM_LAYER.md) —
@@ -61,11 +61,13 @@ export type WorldState = {
   // city-actions.ts's checkHeroSummons promotes them as the faction's city
   // count grows. Order matters - it's summon priority.
   enlistedHeroIds: HeroId[];
-  // The player faction's research levels at the moment this world was
-  // entered. Units produced during the campaign use this rather than
-  // live faction.research (this session's direction - "맵 시작 전 연구"
-  // carries over as-is) - see unit-production.ts.
-  researchSnapshot: ResearchLevels;
+  // The player faction's per-node troop levels (unit-evolution.ts's
+  // TroopLevels) at the moment this world was entered. Units produced
+  // during the campaign use this rather than live faction.troopLevels
+  // (this session's direction - "맵 시작 전 연구" carries over as-is) -
+  // see unit-production.ts. Named researchSnapshot until 2026-08-07, when
+  // troop leveling moved out of research.ts into unit-evolution.ts.
+  troopLevelsSnapshot: TroopLevels;
 };
 
 // A lightweight record of a world the player has already conquered. Kept

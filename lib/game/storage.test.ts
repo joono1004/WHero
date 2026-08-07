@@ -11,6 +11,7 @@ import type { SaveGame } from "./save.ts";
 import { SAVE_SCHEMA_VERSION } from "./save.ts";
 import { ZERO_FACTION_RESOURCES } from "./faction.ts";
 import { ZERO_RESEARCH_LEVELS } from "./research.ts";
+import { ZERO_TROOP_LEVELS } from "./unit-evolution.ts";
 
 function makeSave(overrides: Partial<SaveGame> = {}): SaveGame {
   return {
@@ -28,7 +29,7 @@ function makeSave(overrides: Partial<SaveGame> = {}): SaveGame {
       conquered: false,
       heroDeploymentLimit: 5,
       enlistedHeroIds: [],
-      researchSnapshot: ZERO_RESEARCH_LEVELS,
+      troopLevelsSnapshot: ZERO_TROOP_LEVELS,
     },
     nextMapCandidates: [],
     clearedWorlds: {},
@@ -42,6 +43,10 @@ function makeSave(overrides: Partial<SaveGame> = {}): SaveGame {
         unitIds: [],
         resources: ZERO_FACTION_RESOURCES,
         research: ZERO_RESEARCH_LEVELS,
+        troopLevels: ZERO_TROOP_LEVELS,
+        unlockedUnitTypes: [],
+        activeEvolution: {},
+        itemInventory: [],
         capitalCityId: null,
         eliminationReason: null,
       },

@@ -225,27 +225,27 @@ test("endTurn boosts a matching resource yield for a stationed hero with a domes
   );
 });
 
-test("endTurn's produced unit stats reflect the world's researchSnapshot, not live research", () => {
+test("endTurn's produced unit stats reflect the world's troopLevelsSnapshot, not live troopLevels", () => {
   let save = withCity(freshActiveWorldSave(), {
     facilities: ["barracks"],
     productionQueue: [{ unitType: "infantry", turnsRemaining: 1 }],
   });
-  // researchSnapshot was frozen at world entry (0 for a fresh game); bump
-  // live faction research afterward and confirm it's not what gets used.
+  // troopLevelsSnapshot was frozen at world entry (0 for a fresh game); bump
+  // live faction troopLevels afterward and confirm it's not what gets used.
   save = {
     ...save,
     factions: {
       ...save.factions,
       [PLAYER_FACTION_ID]: {
         ...save.factions[PLAYER_FACTION_ID],
-        research: { ...save.factions[PLAYER_FACTION_ID].research, infantry: 10 },
+        troopLevels: { ...save.factions[PLAYER_FACTION_ID].troopLevels, infantry: 10 },
       },
     },
   };
   const after = endTurn(save, NOW);
   const faction = after.factions[PLAYER_FACTION_ID];
   const unit = after.units[faction.unitIds[0]];
-  // researchSnapshot.infantry was 0 -> grade D -> the lowest attack tier.
+  // troopLevelsSnapshot.infantry was 0 -> grade D -> the lowest attack tier.
   assert.equal(unit.stats.attack, 1 * 3);
 });
 

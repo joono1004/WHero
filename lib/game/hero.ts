@@ -1,4 +1,4 @@
-import type { HeroAttributes } from "./hero-definition.ts";
+import type { HeroAttributes, HeroDefinition, HeroUnitTypeKind } from "./hero-definition.ts";
 import type { HexCoordinate } from "./hex.ts";
 import type { CityId, HeroId, ItemId, WorldId } from "./ids.ts";
 
@@ -91,7 +91,47 @@ export type HeroState = {
   // the hero itself - it's read by whatever later picks which heroes deploy
   // to a new world (task 11/12), not enforced by anything yet.
   deploymentPriority: boolean;
+  // 병과 진화 결과 (2026-08-07, 사용자 방향): null이면 아직 진화하지 않아
+  // definition.unitType 그대로 - evolveHero가 정의(HeroDefinition)의
+  // evolution.targetUnitType으로 채운다. definition은 정적 템플릿이라
+  // per-save로 바뀌는 이 값은 여기 HeroState에 둔다 - currentHeroUnitType
+  // 이 이 필드와 definition.unitType 중 실제로 쓸 값을 골라준다.
+  evolvedUnitType: HeroUnitTypeKind | null;
 };
+
+// 이 영웅이 지금 실제로 쓰는 병과 - 진화했으면 evolvedUnitType, 아니면
+// definition.unitType. heroCombatStats/heroBaseMovement를 부르는 곳(전투/
+// 이동 계산)은 definition.unitType을 직접 읽지 말고 항상 이 함수를 거쳐야
+// 진화 이후에도 값이 맞는다.
+export function currentHeroUnitType(definition: HeroDefinition, hero: HeroState): HeroUnitTypeKind {
+  return hero.evolvedUnitType ?? definition.unitType;
+}
+
+// 레벨+아이템 조건을 만족해 진화할 수 있는지 - definition.evolution이
+// null이면(이 영웅은 진화가 없음) false, 이미 진화했어도 false(1단계
+// 진화만 지원 - 사용자가 다단계 영웅 진화까지는 아직 말하지 않음).
+export function canEvolveHero(definition: HeroDefinition, hero: HeroState): boolean {
+  const evolution = definition.evolution;
+  if (!evolution) return false;
+  if (hero.evolvedUnitType !== null) return false;
+  if (hero.level < evolution.requiredLevel) return false;
+  return hero.items.some((item) => item.id === evolution.requiredItemId);
+}
+
+// 진화를 실행 - 진화 아이템을 소비하고 evolvedUnitType을 채운다. 조건
+// 미충족 시 throw (다른 모듈과 같은 UI 사전 검사 컨벤션 - canEvolveHero를
+// 먼저 확인).
+export function evolveHero(definition: HeroDefinition, hero: HeroState): HeroState {
+  if (!canEvolveHero(definition, hero)) {
+    throw new Error(`${hero.heroId} cannot evolve right now`);
+  }
+  const evolution = definition.evolution!;
+  return {
+    ...hero,
+    evolvedUnitType: evolution.targetUnitType,
+    items: hero.items.filter((item) => item.id !== evolution.requiredItemId),
+  };
+}
 
 export function isHeroSolo(hero: HeroState): boolean {
   return hero.assignment.mode === "solo";

@@ -13,8 +13,11 @@ import type { HeroListEntry } from "../../../lib/game/hero-roster.ts";
 import type { ClearedWorldRecord } from "../../../lib/game/world.ts";
 import type { MapCandidate } from "../../../lib/game/map-candidates.ts";
 import { upgradeResearch } from "../../../lib/game/research.ts";
-import type { ResearchCategory } from "../../../lib/game/research.ts";
+import type { EconomyResearchKind } from "../../../lib/game/research.ts";
 import type { SaveGame } from "../../../lib/game/save.ts";
+import type { UnitTypeId } from "../../../lib/game/ids.ts";
+import { evolveUnitType, setActiveEvolution, upgradeTroopLevel } from "../../../lib/game/unit-evolution.ts";
+import type { TroopLine } from "../../../lib/game/unit-production.ts";
 import { MAX_ENLISTED_HEROES } from "../../../lib/game/world-entry.ts";
 import type { MapTypeId } from "../../../lib/game/world.ts";
 import { MAP_TIER_INFO, MAP_TYPE_INFO } from "../../../lib/game/world.ts";
@@ -215,14 +218,18 @@ export function GameLobbyScreen({
   if (showResearch && playerFaction) {
     return (
       <ResearchScreen
-        research={playerFaction.research}
-        resources={playerFaction.resources}
+        faction={playerFaction}
         onBack={() => setShowResearch(false)}
-        onUpgrade={(category: ResearchCategory) =>
+        onUpgradeEconomy={(category: EconomyResearchKind) =>
           updateFaction((faction) => {
             const result = upgradeResearch(faction.research, faction.resources, category);
             return { ...faction, research: result.levels, resources: result.resources };
           })
+        }
+        onUpgradeTroop={(unitType: UnitTypeId) => updateFaction((faction) => upgradeTroopLevel(faction, unitType))}
+        onEvolve={(unitType: UnitTypeId) => updateFaction((faction) => evolveUnitType(faction, unitType))}
+        onSetActive={(line: TroopLine, unitType: UnitTypeId) =>
+          updateFaction((faction) => setActiveEvolution(faction, line, unitType))
         }
       />
     );

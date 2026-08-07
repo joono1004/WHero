@@ -13,8 +13,8 @@ import {
 import type { HeroState } from "./hero.ts";
 import type { CityId, FactionId, HeroId } from "./ids.ts";
 import { generateNextMapCandidates } from "./map-candidates.ts";
-import { ZERO_RESEARCH_LEVELS } from "./research.ts";
 import type { SaveGame } from "./save.ts";
+import { ZERO_TROOP_LEVELS } from "./unit-evolution.ts";
 import { MAP_TIER_INFO } from "./world.ts";
 import type { WorldState } from "./world.ts";
 
@@ -131,7 +131,7 @@ export function enterMapCandidate(
     conquered: false,
     heroDeploymentLimit: enlistedHeroIds.length,
     enlistedHeroIds,
-    researchSnapshot: save.factions[PLAYER_FACTION_ID]?.research ?? ZERO_RESEARCH_LEVELS,
+    troopLevelsSnapshot: save.factions[PLAYER_FACTION_ID]?.troopLevels ?? ZERO_TROOP_LEVELS,
   };
 
   return {

@@ -1706,6 +1706,78 @@
     (새 게임 영웅선택 화면)가 이번 변경과 무관하게 그대로인 것도 별도
     확인 + 최종 스크린샷.
 
+- **병과 진화 트리 시스템 도입 (2026-08-07)**: 사용자 요청 - "병사 화면을
+  병과 계열(보병/궁병/기병/공성/책사)마다 가로 트리로 보여주고, 연구로
+  풀린 진화 병과 중 하나를 선택하면 그게 그 계열의 출전 병과가 되는
+  구조". 대화로 세부 규칙을 확정: (1) 진화해도 등급(D~A)은 노드마다
+  독립적 - 부모가 A여도 자식은 D부터 다시 키워야 함, (2) 책사는
+  근접 불가·원거리 전용의 완전히 새로운 계열(판타지 마법사 - 기본 화공,
+  진화하면 수공 가능. 화공/수공의 실제 전투 효과는 사용자가 "나중에
+  개념 정리"로 명시 보류), (3) 해금 조건은 부모 등급 + 금/유산 비용 +
+  선택적 전용 아이템 + 선택적 타 계열 선행 진화(교차 계열 의존), 3단계
+  이상 이어지는 분기형 트리, (4) 영웅의 병과 진화는 병사와 달리 선택형이
+  아니라 영웅마다 정해진 상위 병과 하나뿐 - 레벨 조건 + 진화 아이템
+  보유로 자동 전환(아이템 획득 경로는 "나중에 고민"으로 범위 밖).
+  - `unit-production.ts`: 기존 4종 고정 카탈로그(`TroopResearchKind`
+    기반)를 `UnitTypeId`(문자열, `ids.ts`에 추가) 트리 노드 카탈로그로
+    재설계. `UnitTypeNode`(`line`/`parentId`/`meleeCapable`/
+    `attackElement`/`unlock`)와 예시 트리(보병→산악병/방패병→정찰병(3단,
+    아이템 필요), 기병→중기병→용기병(산악병 선행 필요 - 교차 계열
+    데모), 궁병→장궁병, 공성→투석기, 책사→책사(수공))를 `UNIT_TYPE_
+    CATALOG`에 채움 - 실제 트리 모양/수치는 사용자가 아직 확정하지 않아
+    "모든 메커니즘을 시연하는 draft 예시"로 명시. `isUnitTypeUnlocked`는
+    루트 4종(보병 무료/나머지 레벨 1 이상)의 기존 의미를 그대로 유지,
+    비루트 노드는 항상 true(실제 해금 판정은 아래 unit-evolution.ts가
+    맡고, 이 함수는 하위호환 유지용).
+  - `unit-evolution.ts` (신규): 노드별 독립 레벨(`TroopLevels`,
+    `research.ts`의 비용 곡선 재사용), 해금 상태(`Faction.
+    unlockedUnitTypes`), 출전 선택(`Faction.activeEvolution`),
+    `evolveUnitType`/`canEvolveUnitType`/`unitEvolutionBlockedReason`
+    (부모 등급·비용·아이템·교차 계열 선행조건을 전부 검사하고 사유를
+    한국어 문장으로 반환 - UI가 그대로 노출).
+  - `research.ts`: 병과 4종을 여기서 완전히 뺌 - 이제 내정(금/식량)만
+    다룸. 병과 레벨은 위 `unit-evolution.ts`로 이동(계열당 레벨 하나라는
+    옛 전제가 트리 구조와 안 맞아서).
+  - `faction.ts`: `troopLevels`/`unlockedUnitTypes`/`activeEvolution`/
+    `itemInventory`(진화 아이템을 담을 세력 공용 인벤토리 - 획득 경로는
+    범위 밖) 4개 필드 추가.
+  - `city.ts`: `queueUnitProduction`/`canQueueUnitProduction`이
+    `(city, unitType, research레벨)` 대신 `(city, line, faction)`을 받아
+    그 계열의 현재 출전 병과(`activeEvolutionFor`)를 스스로 찾음 - "계열
+    선택 → 그걸로 생산"이라는 사용자 의도를 그대로 반영.
+  - `world.ts`/`world-entry.ts`/`turn.ts`: `WorldState.researchSnapshot`
+    ->`troopLevelsSnapshot`(노드별 레벨 스냅샷)로 개명 - 맵 진입 시
+    얼린다는 기존 규칙은 그대로.
+  - `hero-definition.ts`: `HeroUnitTypeKind`가 이제 `UnitTypeId`를 그대로
+    따름(트리의 어떤 노드든 영웅의 고정 병과가 될 수 있음). 제갈량이
+    기다리던 "책사" 노드가 생겨서 스톱갭이었던 `unitType: "archer"`를
+    `"strategist"`로 승격(`legendary-heroes.ts`/`legendary-heroes.test.ts`
+    갱신, TODO 주석 제거). 신규 `HeroEvolution`(`targetUnitType`/
+    `requiredLevel`/`requiredItemId`) 타입 + `HeroDefinition.evolution`
+    필드(대부분 `null`, 관우만 데모로
+    `cavalry → cavalry_heavy`, 레벨5+아이템 채움).
+  - `hero.ts`: `HeroState.evolvedUnitType`(진화 결과, null이면
+    미진화) + `currentHeroUnitType`(definition.unitType과 evolved 중
+    실제 값 선택) + `canEvolveHero`/`evolveHero`(레벨+아이템 보유 검사,
+    성공 시 아이템 소비 + evolvedUnitType 설정. 다단계 진화는 아직 범위
+    밖이라 1회만 허용).
+  - `app/game/screens/ResearchScreen.tsx` + `researchLabels.ts` +
+    `heroLabels.ts`: 연구 화면이 이제 `research`/`resources` 대신
+    `faction` 전체를 받아 내정 섹션은 그대로 두고, 그 아래 5계열 각각의
+    트리(루트+진화 노드, 등급/레벨/해금 비용/해금 막힌 사유·진화·출전
+    버튼)를 렌더링. `heroLabels.ts`의 `UNIT_TYPE_LABEL`은 이제
+    `UNIT_TYPE_CATALOG`의 label을 그대로 모아 씀(고정 4종 표 대신 트리
+    전체 커버). `GameLobbyScreen.tsx`가 `onUpgradeTroop`/`onEvolve`/
+    `onSetActive` 핸들러를 새로 연결.
+  - 검증: `npx tsc --noEmit` 클린, `pnpm run build` 성공, `pnpm run
+    test:game` 340/340(신규 `unit-evolution.test.ts` + `hero.test.ts`
+    진화 테스트 포함), 린트 클린. Playwright로 새 게임 → 영웅 선택 →
+    로비 → 연구 화면까지 직접 구동해 5계열 트리가 렌더링되고, 해금 막힌
+    사유가 한국어로("보병 등급이 C 이상이어야 합니다" 등) 표시되는 것
+    확인 - 처음엔 영어 문장이 그대로 새고 있어서 전부 한국어로 교정.
+  - 사용자가 명시적으로 미룬 부분(다음 라운드용): 실제 트리 모양/밸런스
+    수치, 화공/수공/회복의 전투 효과, 진화 아이템 획득 경로(이벤트/상점).
+
 ## 진행 상황
 
 - [x] 1. 시스템 코드 폴더 구조 및 기본 타입 스캐폴딩 — `lib/game/hex.ts` +
@@ -1723,7 +1795,7 @@
 - [x] 12. 세계 진행(정복→계승→다음 세계) 시스템 구현 — `lib/game/world-progress.ts`(신규: `isWorldConquered`/`captureEnemyCity`/`surrenderFaction`/`surrenderRivalFaction`), `faction.ts`(`capitalCityId`/`eliminationReason`), `city.ts`(`captureCity`), `world-entry.ts`(맵 진입 시 최소 스캐폴딩 AI 세력 생성 - 수도만 있고 스탯·행동 없음). AI 세력 능력치(맵 유형/크기별)와 AI 턴 행동, 항복 판단 조건은 사용자가 명시적으로 "추후 논의"로 미룸 - `MapPlayScreen.tsx`에 Codex 맵 엔진 완성 전까지 쓸 "적 수도 점령 (테스트)"/"적 세력 항복 (테스트)" 임시 버튼으로 정복 흐름 전체를 시연 가능
 - [ ] 13. 유휴 영웅의 클리어 맵 배치(영주 임명) 시스템 구현 — 보상은 `researchResource`(유산)로 확정, 매턴 생산 로직은 아직 미구현
 - [ ] 14. 반란 세력 토벌 시스템 구현 — 24시간(달력 기준) 주기로 반란 지역 로테이션, 영주 제외 영웅 파견 시 경험치
-- [x] 15. 연구(내정/병과) 시스템 구현 — `lib/game/research.ts`, `Faction.resources`/`Faction.research`, `app/game/screens/ResearchScreen.tsx`
+- [x] 15. 연구(내정/병과) 시스템 구현 — `lib/game/research.ts`(내정), `lib/game/unit-evolution.ts`(2026-08-07 병과 진화 트리로 확장), `Faction.resources`/`Faction.research`/`Faction.troopLevels`/`Faction.unlockedUnitTypes`/`Faction.activeEvolution`, `app/game/screens/ResearchScreen.tsx`
 - [x] 16. 로비 화면 + 맵 후보 선택 시스템 재구성 (사용자 정정, 번호 없는 원래 계획 밖 작업) — `app/game/screens/GameLobbyScreen.tsx`(로비: 영웅목록+맵후보+클리어맵 레일) + `MapPlayScreen.tsx`(실제 게임 화면), `lib/game/map-candidates.ts`, `lib/game/world-entry.ts`. `SaveGame.world`가 `WorldState | null`이 된 것도 이 작업 결과 — 자세한 내용은 위 로그의 "로비 · 맵 후보 선택 시스템" 항목 참고
 
 ## 실행 방법

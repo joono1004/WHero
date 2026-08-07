@@ -8,6 +8,7 @@ import type { Faction } from "./faction.ts";
 import { ZERO_ATTRIBUTE_PROGRESS } from "./hero.ts";
 import type { HeroState } from "./hero.ts";
 import { ZERO_RESEARCH_LEVELS } from "./research.ts";
+import { ZERO_TROOP_LEVELS } from "./unit-evolution.ts";
 import type { Unit } from "./unit.ts";
 
 function makeValidSave(): SaveGame {
@@ -20,6 +21,7 @@ function makeValidSave(): SaveGame {
     assignment: { mode: "city", cityId: "city-1" },
     attributeProgress: ZERO_ATTRIBUTE_PROGRESS,
     deploymentPriority: true,
+    evolvedUnitType: null,
   };
   const unit: Unit = {
     id: "unit-1",
@@ -49,6 +51,10 @@ function makeValidSave(): SaveGame {
     unitIds: ["unit-1"],
     resources: ZERO_FACTION_RESOURCES,
     research: ZERO_RESEARCH_LEVELS,
+    troopLevels: ZERO_TROOP_LEVELS,
+    unlockedUnitTypes: [],
+    activeEvolution: {},
+    itemInventory: [],
     capitalCityId: "city-1",
     eliminationReason: null,
   };
@@ -67,7 +73,7 @@ function makeValidSave(): SaveGame {
       conquered: false,
       heroDeploymentLimit: 5,
       enlistedHeroIds: ["hero-1"],
-      researchSnapshot: ZERO_RESEARCH_LEVELS,
+      troopLevelsSnapshot: ZERO_TROOP_LEVELS,
     },
     nextMapCandidates: [],
     clearedWorlds: {},

@@ -30,7 +30,7 @@ function makeWorld(overrides: Partial<WorldState> = {}): WorldState {
     conquered: false,
     heroDeploymentLimit: 1,
     enlistedHeroIds: [],
-    researchSnapshot: { gold: 0, food: 0, infantry: 0, archer: 0, cavalry: 0, siege: 0 },
+    troopLevelsSnapshot: {},
     ...overrides,
   };
 }

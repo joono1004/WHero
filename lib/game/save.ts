@@ -172,6 +172,9 @@ function checkHeroShape(value: unknown, path: string): string[] {
   if (typeof value.deploymentPriority !== "boolean") {
     errors.push(`${path}.deploymentPriority must be a boolean`);
   }
+  if (value.evolvedUnitType !== null && typeof value.evolvedUnitType !== "string") {
+    errors.push(`${path}.evolvedUnitType must be a string or null`);
+  }
   const progress = value.attributeProgress;
   if (!isPlainObject(progress)) {
     errors.push(`${path}.attributeProgress must be an object`);
@@ -205,7 +208,7 @@ function checkWorldShape(value: unknown, path: string): string[] {
   if (typeof value.conquered !== "boolean") errors.push(`${path}.conquered must be a boolean`);
   if (typeof value.heroDeploymentLimit !== "number") errors.push(`${path}.heroDeploymentLimit must be a number`);
   if (!Array.isArray(value.enlistedHeroIds)) errors.push(`${path}.enlistedHeroIds must be an array`);
-  if (!isPlainObject(value.researchSnapshot)) errors.push(`${path}.researchSnapshot must be an object`);
+  if (!isPlainObject(value.troopLevelsSnapshot)) errors.push(`${path}.troopLevelsSnapshot must be an object`);
   return errors;
 }
 
@@ -257,10 +260,14 @@ function checkFactionShape(value: unknown, path: string): string[] {
   if (!isPlainObject(research)) {
     errors.push(`${path}.research must be an object`);
   } else {
-    for (const key of ["gold", "food", "infantry", "archer", "cavalry", "siege"]) {
+    for (const key of ["gold", "food"]) {
       if (typeof research[key] !== "number") errors.push(`${path}.research.${key} must be a number`);
     }
   }
+  if (!isPlainObject(value.troopLevels)) errors.push(`${path}.troopLevels must be an object`);
+  if (!Array.isArray(value.unlockedUnitTypes)) errors.push(`${path}.unlockedUnitTypes must be an array`);
+  if (!isPlainObject(value.activeEvolution)) errors.push(`${path}.activeEvolution must be an object`);
+  if (!Array.isArray(value.itemInventory)) errors.push(`${path}.itemInventory must be an array`);
   if (value.capitalCityId !== null && typeof value.capitalCityId !== "string") {
     errors.push(`${path}.capitalCityId must be a string or null`);
   }

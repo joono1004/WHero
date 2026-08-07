@@ -29,6 +29,7 @@ function makeHeroDefinition(overrides: Partial<HeroDefinition> = {}): HeroDefini
     domesticSpecialties: NO_SPECIALTIES,
     traits: [],
     skills: [],
+    evolution: null,
     ...overrides,
   };
 }

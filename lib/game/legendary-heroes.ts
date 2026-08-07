@@ -33,13 +33,17 @@ import type { HeroDefinition } from "./hero-definition.ts";
 // 영웅은 starting-heroes.ts 참고).
 //
 // 제갈량은 사용자가 "책사"(판타지 마법사 계열 - 직접 공격 없이 마법형
-// 공격/회복)로 지정했는데, 이건 기존 4개 병과(보병/궁병/기병/공성) 중
-// 하나가 아니라 완전히 새로운 병과라 상세 설계가 필요함(사용자 확인:
-// "추후 상세 논의 필요"). 새 병과를 만들려면 UNIT_TYPE_CATALOG(병사와
-// 공유하는 이동력/사거리 기준표)에 대응 항목이 있어야 하는데 아직 없어서,
-// 지금 unitType을 "책사"로 바꾸면 heroCombatStats/heroBaseMovement가 값을
-// 못 찾아 런타임 에러가 남 - 그래서 "책사" 설계가 나오기 전까지는 임시로
-// archer를 그대로 둠(실제 최종 값 아님, 표시/전투에 쓰지 말 것).
+// 공격/회복)로 지정했었는데, 그동안 UNIT_TYPE_CATALOG에 대응 항목이 없어
+// 임시로 archer를 대신 두고 있었다. 2026-08-07 병과 진화 트리 방향으로
+// unit-production.ts에 "strategist"(책사) 루트 노드가 생기면서 이 스톱갭을
+// 걷어내고 실제 unitType으로 승격함 - legendary-heroes.test.ts의 관련
+// 주석/어서션도 함께 갱신.
+//
+// evolution (2026-08-07): 병사와 달리 영웅의 진화는 선택형이 아니라
+// 영웅마다 정해진 상위 병과 하나 - 아직 데이터가 없어 대부분 null. 관우만
+// 데모로 cavalry -> cavalry_heavy(중기병) 진화 조건을 채워둠(레벨5 +
+// 진화 아이템, draft 수치 - 실제 밸런스 아님, hero.ts의 canEvolveHero/
+// evolveHero가 조건 검사·전환을 담당).
 export const LEGENDARY_HEROES: HeroDefinition[] = [
   {
     id: "guan-yu",
@@ -56,6 +60,7 @@ export const LEGENDARY_HEROES: HeroDefinition[] = [
     // 재분류되면서 skills로 옮김 - "형주를 오래 지킨" 이미지에 잘 맞음.
     traits: ["talent", "farming"],
     skills: ["ironwall"],
+    evolution: { targetUnitType: "cavalry_heavy", requiredLevel: 5, requiredItemId: "evolution-item-cavalry-heavy" },
   },
   {
     id: "zhao-yun",
@@ -66,20 +71,20 @@ export const LEGENDARY_HEROES: HeroDefinition[] = [
     domesticSpecialties: { troops: "B", food: "C", gold: "없음", iron: "없음", recovery: "B", defense: "없음" },
     traits: ["talent", "farming"],
     skills: [],
+    evolution: null,
   },
   {
     id: "zhuge-liang",
     name: "제갈량",
-    // TODO(책사 병과 설계 대기): 사용자가 이 영웅의 실제 병과를 "책사"(근접
-    // 공격 없음, 마법형 공격/회복 - 판타지 마법사 계열)로 지정했으나 상세
-    // 수치·규칙은 미정. UNIT_TYPE_CATALOG에 대응 항목이 생기기 전까지는
-    // 임시로 archer를 둔 것 - 실제 완성된 값이 아니므로 밸런스/표시 근거로
-    // 삼지 말 것.
+    // 사용자가 이 영웅의 실제 병과를 "책사"(근접 공격 없음, 마법형 공격/
+    // 회복 - 판타지 마법사 계열)로 지정했고, 이제 unit-production.ts에
+    // strategist 노드가 생겨서 실제 값으로 승격함(2026-08-07).
     description: "오장원과 기산에서 지략을 펼친 촉한의 승상. 내정과 계략에 능한 지략형 영웅.",
     attributes: { leadership: "B", force: "C", intelligence: "SS", charisma: "A", vitality: "B" },
-    unitType: "archer",
+    unitType: "strategist",
     domesticSpecialties: { food: "S", gold: "A", troops: "B", iron: "B", recovery: "없음", defense: "없음" },
     traits: ["farming", "trade", "talent"],
     skills: [],
+    evolution: null,
   },
 ];
