@@ -37,6 +37,10 @@ const MAX_TREASURE_SLOTS = 4;
 // 4칸 공간 잡아서"). 세력 소유 아이템을 정사각형 칸에 늘어놓고, 칸이
 // 넘치면 세로 스크롤 - 실제 아이템 재고 데이터가 아직 없어서(Faction에
 // 아이템 필드 자체가 없음) 지금은 항상 빈 상태만 보여주는 placeholder.
+// 칸 크기 자체는 이 상수가 아니라 가방 패널의 폭(아래 JSX의 `w-60`)으로
+// 정해짐 - 같은 날 후속 라운드에서 사용자가 "가방의 칸을 보물 칸 만큼
+// 늘려달라"고 해서, 4열 그리드가 채우는 폭 자체를 보물 슬롯(`w-16`
+// 컬럼)과 비슷한 한 칸 크기가 나오도록 패널을 `w-40`→`w-60`으로 넓힘.
 const BAG_GRID_COLUMNS = 4;
 
 // 빈 가방을 몇 칸(행×열)까지 미리 그려둘지 (2026-08-07, "바둑판 같은
@@ -102,7 +106,7 @@ export function HeroRosterScreen({
             바뀜. 2026-08-07: 세 영역(리스트 / 정보+보물 / 가방)이 서로
             구분되어 보이도록 각각 테두리+배경이 있는 패널로 감쌈. */}
         <div
-          className="flex w-60 shrink-0 flex-col gap-1.5 overflow-hidden rounded-lg p-1.5"
+          className="flex w-48 shrink-0 flex-col gap-1.5 overflow-hidden rounded-lg p-1.5"
           style={{ border: "1px solid #25454f", backgroundColor: "#132a32" }}
         >
           <div className="flex shrink-0 gap-1">
@@ -265,7 +269,7 @@ export function HeroRosterScreen({
             항상 빈 상태 - 재고 시스템이 생기면 이 그리드에 실제 아이템을
             채움. */}
         <div
-          className="flex w-40 shrink-0 flex-col gap-1.5 overflow-hidden rounded-lg p-1.5"
+          className="flex w-60 shrink-0 flex-col gap-1.5 overflow-hidden rounded-lg p-1.5"
           style={{ border: "1px solid #25454f", backgroundColor: "#132a32" }}
         >
           <p className="shrink-0 text-center text-[10px] text-[#8fa6a8]">가방</p>

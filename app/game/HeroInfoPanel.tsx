@@ -13,13 +13,14 @@ import { HERO_PORTRAIT } from "./heroPortraits.ts";
 
 // 초상 프레임 (2026-08-07, 사용자가 첨부한 목업대로 재설계: 통솔/무력/
 // 지력/체력/매력을 세로 1열로 나열하니 그 옆의 초상도 정사각형(96x96)
-// 대신 세로로 긴 직사각형으로 키움). 폭/높이 둘 다 고정값으로 - 아래
+// 대신 세로로 긴 직사각형으로 키움; 같은 날 후속 요청으로 84x100 ->
+// 94x112까지 한 번 더 키움). 폭/높이 둘 다 고정값으로 - 아래
 // items-stretch로 동적 높이를 주면 실제 아트(<img>)가 그 높이를 못 채우고
 // 자기 원본 비율로 쪼그라드는 현상이 있었다는 게 이 파일의 예전 기록이라
 // (placeholder 이모지 카드와 높이가 달라짐), 그 문제를 다시 안 겪도록
 // 고정 width+height를 유지.
-const PORTRAIT_WIDTH_PX = 84;
-const PORTRAIT_HEIGHT_PX = 100;
+const PORTRAIT_WIDTH_PX = 94;
+const PORTRAIT_HEIGHT_PX = 112;
 
 // HeroRosterScreen.tsx의 "영웅정보" 칸 전용 (2026-08-07 분리): 원래
 // HeroCard.tsx 하나를 HeroSelectScreen(시작 시 영웅 고르는 화면)과 이
@@ -43,7 +44,7 @@ export function HeroInfoPanel({ hero, selected = false }: { hero: HeroDefinition
         borderRadius: 8,
         border: `1px solid ${selected ? "#d7b765" : "#43606a"}`,
         backgroundColor: selected ? "#1c3b44" : "#17343e",
-        padding: "0.4rem 0.7rem 0.4rem",
+        padding: "0.35rem 0.6rem 0.3rem",
         color: "inherit",
       }}
     >
@@ -55,7 +56,7 @@ export function HeroInfoPanel({ hero, selected = false }: { hero: HeroDefinition
         <div className="flex min-w-0 items-center gap-1.5">
           <h3 className="shrink-0 text-base font-bold text-[#f3dfaa]">{hero.name}</h3>
           <span
-            className="whitespace-nowrap rounded border px-1.5 py-0.5 text-xs font-bold"
+            className="whitespace-nowrap rounded border px-1.5 py-0.5 text-sm font-bold"
             style={{ borderColor: GRADE_COLOR[grade], color: GRADE_COLOR[grade] }}
           >
             {grade}급·{ARCHETYPE_LABEL[archetype]}
@@ -67,7 +68,7 @@ export function HeroInfoPanel({ hero, selected = false }: { hero: HeroDefinition
         </span>
       </div>
 
-      <div className="mt-1 flex items-stretch gap-2">
+      <div className="mt-0.5 flex items-stretch gap-2">
         <div
           className="flex shrink-0 items-center justify-center overflow-hidden rounded"
           style={{
@@ -94,11 +95,14 @@ export function HeroInfoPanel({ hero, selected = false }: { hero: HeroDefinition
             쓰는 포인트로 추정)인데, 아직 그 시스템 자체가 없어서(레벨업 시
             포인트를 어떻게 얼마나 주는지 미정) 지금은 자리만 예약 - 0
             고정값 표시 + 위쪽 화살표를 눌러도 "아직 준비 중" 안내만 뜸.
-            gap-0.5/text-xs로 촘촘하게 - 3줄→5줄+Point박스로 늘어난 세로
-            공간을 좁은 화면(844×390) 안에서 스크롤 없이 담기 위한
-            간격 최적화(Playwright로 실측하며 조정). */}
+            촘촘한 gap/padding으로 - 3줄→5줄+Point박스로 늘어난 세로 공간을
+            좁은 화면(844×390) 안에서 스크롤 없이 담기 위한 간격 최적화
+            (Playwright로 실측하며 조정, 이후 초상 확대+등급 폰트 확대
+            라운드에서 한 번 더 조정). 라벨은 text-xs, 등급 글자만
+            GradeStat 안에서 text-sm으로 키움(사용자 요청 "등급 폰트도
+            좀 더 키우고"). */}
         <div className="flex min-w-0 flex-1 flex-col justify-between">
-          <dl className="flex flex-col gap-0.5 text-xs">
+          <dl className="flex flex-col gap-0 text-xs">
             <GradeStat label="통솔" grade={hero.attributes.leadership} />
             <GradeStat label="무력" grade={hero.attributes.force} />
             <GradeStat label="지력" grade={hero.attributes.intelligence} />
@@ -106,7 +110,7 @@ export function HeroInfoPanel({ hero, selected = false }: { hero: HeroDefinition
             <GradeStat label="매력" grade={hero.attributes.charisma} />
           </dl>
           <div
-            className="mt-0.5 flex items-center justify-between rounded px-1.5 py-0.5"
+            className="flex items-center justify-between rounded px-1.5 py-px"
             style={{ border: "1px solid #43606a" }}
           >
             <span className="text-[10px] font-bold text-[#8fa6a8]">Point</span>
@@ -134,7 +138,7 @@ export function HeroInfoPanel({ hero, selected = false }: { hero: HeroDefinition
         </div>
       </div>
 
-      <div className="mt-0.5">
+      <div>
         <div className="flex items-center justify-between">
           <p className="text-xs font-bold text-[#8fa6a8]">특기</p>
           <button
@@ -164,7 +168,7 @@ export function HeroInfoPanel({ hero, selected = false }: { hero: HeroDefinition
           {Array.from({ length: MAX_HERO_TRAITS }, (_, index) => hero.traits[index]).map((traitId, index) => (
             <div
               key={index}
-              className="flex flex-1 items-center justify-center rounded border py-0.5 text-xs font-bold"
+              className="flex flex-1 items-center justify-center rounded border py-px text-xs font-bold"
               style={{
                 borderColor: traitId ? "#6ea8e0" : "#3a4f52",
                 backgroundColor: traitId ? "rgba(110,168,224,0.1)" : "transparent",
@@ -177,7 +181,7 @@ export function HeroInfoPanel({ hero, selected = false }: { hero: HeroDefinition
         </div>
       </div>
 
-      <p className="mt-0.5 line-clamp-3 text-xs leading-relaxed text-[#c0cbc7]">{hero.description}</p>
+      <p className="line-clamp-3 text-xs leading-relaxed text-[#c0cbc7]">{hero.description}</p>
 
       {skillModalOpen && <SkillModal hero={hero} onClose={() => setSkillModalOpen(false)} />}
     </div>
@@ -291,7 +295,10 @@ function GradeStat({ label, grade }: { label: string; grade: CoreGrade }) {
   return (
     <div className="flex items-center gap-1">
       <span className="shrink-0 text-[#8fa6a8]">{label}</span>
-      <span className="flex-1 text-center font-bold" style={{ color: GRADE_COLOR[grade] }}>
+      {/* 등급 글자만 살짝 더 키움(2026-08-07, 사용자 요청 "등급 폰트도 좀
+          더 키우고") - 라벨은 text-xs(dl에서 상속) 그대로 두고 값만
+          text-sm으로 덮어씀. */}
+      <span className="flex-1 text-center text-sm font-bold" style={{ color: GRADE_COLOR[grade] }}>
         {grade}
       </span>
     </div>
