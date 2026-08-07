@@ -39,11 +39,12 @@ import type { HeroDefinition } from "./hero-definition.ts";
 // 걷어내고 실제 unitType으로 승격함 - legendary-heroes.test.ts의 관련
 // 주석/어서션도 함께 갱신.
 //
-// evolution (2026-08-07): 병사와 달리 영웅의 진화는 선택형이 아니라
-// 영웅마다 정해진 상위 병과 하나 - 아직 데이터가 없어 대부분 null. 관우만
-// 데모로 cavalry -> cavalry_heavy(중기병) 진화 조건을 채워둠(레벨5 +
-// 진화 아이템, draft 수치 - 실제 밸런스 아님, hero.ts의 canEvolveHero/
-// evolveHero가 조건 검사·전환을 담당).
+// evolution (2026-08-07, 2026-08-08 대상 id 갱신): 병사와 달리 영웅의
+// 진화는 선택형이 아니라 영웅마다 정해진 상위 병과 하나 - 아직 데이터가
+// 없어 대부분 null. 관우만 데모로 cavalry -> cavalry_ironclad(철기병, 기병
+// 계열의 1단계) 진화 조건을 채워둠(레벨5 + 진화 아이템, draft 수치 - 실제
+// 밸런스 아님, hero.ts의 canEvolveHero/evolveHero가 조건 검사·전환을
+// 담당).
 export const LEGENDARY_HEROES: HeroDefinition[] = [
   {
     id: "guan-yu",
@@ -60,7 +61,7 @@ export const LEGENDARY_HEROES: HeroDefinition[] = [
     // 재분류되면서 skills로 옮김 - "형주를 오래 지킨" 이미지에 잘 맞음.
     traits: ["talent", "farming"],
     skills: ["ironwall"],
-    evolution: { targetUnitType: "cavalry_heavy", requiredLevel: 5, requiredItemId: "evolution-item-cavalry-heavy" },
+    evolution: { targetUnitType: "cavalry_ironclad", requiredLevel: 5, requiredItemId: "evolution-item-cavalry-ironclad" },
   },
   {
     id: "zhao-yun",

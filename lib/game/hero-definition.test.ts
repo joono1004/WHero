@@ -112,7 +112,7 @@ test("heroCombatStats derives range from unitType, shared with UNIT_TYPE_CATALOG
   assert.equal(heroCombatStats(attributes, "infantry").range, null);
   assert.equal(heroCombatStats(attributes, "cavalry").range, null);
   assert.equal(heroCombatStats(attributes, "archer").range, 2);
-  assert.equal(heroCombatStats(attributes, "siege").range, 3);
+  assert.equal(heroCombatStats(attributes, "strategist").range, 2);
 });
 
 test("heroBaseMovement mirrors UNIT_TYPE_CATALOG's baseMovement for the hero's unitType", () => {
@@ -122,5 +122,5 @@ test("heroBaseMovement mirrors UNIT_TYPE_CATALOG's baseMovement for the hero's u
   assert.equal(heroBaseMovement("infantry"), 2);
   assert.equal(heroBaseMovement("archer"), 2);
   assert.equal(heroBaseMovement("cavalry"), 4);
-  assert.equal(heroBaseMovement("siege"), 1);
+  assert.equal(heroBaseMovement("strategist"), 2);
 });

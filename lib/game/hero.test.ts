@@ -38,7 +38,7 @@ function makeHeroDefinition(overrides: Partial<HeroDefinition> = {}): HeroDefini
     domesticSpecialties: { gold: "없음", food: "없음", troops: "없음", iron: "없음", recovery: "없음", defense: "없음" },
     traits: [],
     skills: [],
-    evolution: { targetUnitType: "cavalry_heavy", requiredLevel: 5, requiredItemId: "evolution-item-cavalry-heavy" },
+    evolution: { targetUnitType: "cavalry_ironclad", requiredLevel: 5, requiredItemId: "evolution-item-cavalry-ironclad" },
     ...overrides,
   };
 }
@@ -77,7 +77,7 @@ test("canEvolveHero is false without the definition having an evolution, without
   assert.equal(canEvolveHero(makeHeroDefinition({ evolution: null }), makeHero()), false);
   assert.equal(canEvolveHero(definition, makeHero({ level: 5 })), false, "missing the item");
   assert.equal(
-    canEvolveHero(definition, makeHero({ level: 1, items: [{ id: "evolution-item-cavalry-heavy", name: "", description: "" }] })),
+    canEvolveHero(definition, makeHero({ level: 1, items: [{ id: "evolution-item-cavalry-ironclad", name: "", description: "" }] })),
     false,
     "below the required level",
   );
@@ -85,17 +85,17 @@ test("canEvolveHero is false without the definition having an evolution, without
 
 test("canEvolveHero is true once level and item both meet the requirement", () => {
   const definition = makeHeroDefinition();
-  const hero = makeHero({ level: 5, items: [{ id: "evolution-item-cavalry-heavy", name: "", description: "" }] });
+  const hero = makeHero({ level: 5, items: [{ id: "evolution-item-cavalry-ironclad", name: "", description: "" }] });
   assert.equal(canEvolveHero(definition, hero), true);
 });
 
 test("evolveHero sets evolvedUnitType and consumes the evolution item", () => {
   const definition = makeHeroDefinition();
-  const hero = makeHero({ level: 5, items: [{ id: "evolution-item-cavalry-heavy", name: "", description: "" }] });
+  const hero = makeHero({ level: 5, items: [{ id: "evolution-item-cavalry-ironclad", name: "", description: "" }] });
   const evolved = evolveHero(definition, hero);
-  assert.equal(evolved.evolvedUnitType, "cavalry_heavy");
+  assert.equal(evolved.evolvedUnitType, "cavalry_ironclad");
   assert.deepEqual(evolved.items, []);
-  assert.equal(currentHeroUnitType(definition, evolved), "cavalry_heavy");
+  assert.equal(currentHeroUnitType(definition, evolved), "cavalry_ironclad");
 });
 
 test("evolveHero throws when the hero isn't eligible yet", () => {
@@ -105,7 +105,7 @@ test("evolveHero throws when the hero isn't eligible yet", () => {
 
 test("a hero can't evolve a second time", () => {
   const definition = makeHeroDefinition();
-  const alreadyEvolved = makeHero({ level: 5, evolvedUnitType: "cavalry_heavy" });
+  const alreadyEvolved = makeHero({ level: 5, evolvedUnitType: "cavalry_ironclad" });
   assert.equal(canEvolveHero(definition, alreadyEvolved), false);
 });
 
