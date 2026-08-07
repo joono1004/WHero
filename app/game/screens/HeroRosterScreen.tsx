@@ -46,13 +46,15 @@ const BAG_GRID_COLUMNS = 4;
 // 모양이 드러나면서 화면을 과하게 채우지 않는 선.
 const BAG_EMPTY_PREVIEW_ROWS = 3;
 
-// 4열 통합 화면: [영웅리스트] [영웅정보] [보물] [가방] (2026-08-07, 이전
-// 라운드의 좌우 2분할에서 재배치 - 사용자가 리스트를 왼쪽으로, 정보를 그
-// 오른쪽으로 옮기고 보물/가방 두 칸을 새로 추가하라고 요청). 영웅선택
+// 통합 화면: [영웅리스트] [영웅정보+보물] [가방] 3패널 (2026-08-07, 이전
+// 라운드의 좌우 2분할 -> 4열 재배치를 거쳐, 사용자가 "세 영역이 구분되어
+// 보였으면 좋겠다"고 요청한 이번 라운드에서 각 영역을 테두리+배경이 있는
+// 패널로 감쌈 - 영웅정보와 보물은 같은 패널 안에 나란히 묶임(보물이
+// "지금 선택된 영웅"에게 장착하는 개념이라 자연스럽게 묶임). 영웅선택
 // 화면의 정보 카드(HeroCard.tsx)를 그대로 재사용하는 것과 </> 이전/다음
-// 동작은 이전 라운드 그대로- 위치만 두 번째 칸으로 이동. `initialHeroId`
-// 는 어떤 영웅으로 열지 시드값(형식 슬롯 클릭은 해당 영웅, [영웅] 메뉴는
-// null -> 정렬 순서상 첫 항목).
+// 동작은 이전 라운드 그대로. `initialHeroId`는 어떤 영웅으로 열지
+// 시드값(형식 슬롯 클릭은 해당 영웅, [영웅] 메뉴는 null -> 정렬 순서상
+// 첫 항목).
 export function HeroRosterScreen({
   entries,
   initialHeroId,
@@ -93,8 +95,13 @@ export function HeroRosterScreen({
       }
     >
       <div className="flex h-full gap-2 py-1">
-        {/* 1. 영웅리스트: 정렬 버튼 + 목록 - 항목을 누르면 영웅정보 칸이 바뀜 */}
-        <div className="flex w-60 shrink-0 flex-col gap-1.5 overflow-hidden">
+        {/* 1. 영웅리스트 패널: 정렬 버튼 + 목록 - 항목을 누르면 영웅정보 칸이
+            바뀜. 2026-08-07: 세 영역(리스트 / 정보+보물 / 가방)이 서로
+            구분되어 보이도록 각각 테두리+배경이 있는 패널로 감쌈. */}
+        <div
+          className="flex w-60 shrink-0 flex-col gap-1.5 overflow-hidden rounded-lg p-1.5"
+          style={{ border: "1px solid #25454f", backgroundColor: "#132a32" }}
+        >
           <div className="flex shrink-0 gap-1">
             {(Object.keys(SORT_LABEL) as SortMode[]).map((mode) => (
               <button
@@ -180,49 +187,64 @@ export function HeroRosterScreen({
           </div>
         </div>
 
-        {/* 2. 영웅정보: 영웅선택 화면과 동일한 정보 카드 + </> 이전/다음 */}
-        <div className="flex flex-1 flex-col gap-1.5 overflow-hidden">
-          {selected ? (
-            <>
-              <div className="flex-1 overflow-y-auto">
-                <HeroCard hero={selected.definition} selected />
-              </div>
-              <div className="flex shrink-0 items-center justify-center gap-3">
-                <NavButton direction="prev" onClick={goPrev} disabled={activeIndex <= 0} />
-                <span className="text-[10px] text-[#8fa6a8]">
-                  {activeIndex + 1} / {sorted.length}
-                </span>
-                <NavButton direction="next" onClick={goNext} disabled={activeIndex >= sorted.length - 1} />
-              </div>
-            </>
-          ) : (
-            <p className="p-2 text-center text-[10px] text-[#8fa6a8]">표시할 영웅이 없습니다.</p>
-          )}
-        </div>
+        {/* 2. 영웅정보+보물 패널: 사용자 요청대로 두 영역을 한 그룹으로 묶음 -
+            보물은 지금의 선택된 영웅에게 장착하는 개념이라 정보 카드
+            바로 옆에 있는 게 자연스러움. */}
+        <div
+          className="flex flex-1 gap-2 overflow-hidden rounded-lg p-1.5"
+          style={{ border: "1px solid #25454f", backgroundColor: "#132a32" }}
+        >
+          {/* 2a. 영웅정보: 영웅선택 화면과 동일한 정보 카드 + </> 이전/다음 */}
+          <div className="flex flex-1 flex-col gap-1.5 overflow-hidden">
+            {selected ? (
+              <>
+                <div className="flex-1 overflow-y-auto">
+                  <HeroCard hero={selected.definition} selected />
+                </div>
+                <div className="flex shrink-0 items-center justify-center gap-3">
+                  <NavButton direction="prev" onClick={goPrev} disabled={activeIndex <= 0} />
+                  <span className="text-[10px] text-[#8fa6a8]">
+                    {activeIndex + 1} / {sorted.length}
+                  </span>
+                  <NavButton direction="next" onClick={goNext} disabled={activeIndex >= sorted.length - 1} />
+                </div>
+              </>
+            ) : (
+              <p className="p-2 text-center text-[10px] text-[#8fa6a8]">표시할 영웅이 없습니다.</p>
+            )}
+          </div>
 
-        {/* 3. 보물: 선택된 영웅에게 장착할 보물 슬롯 4개 - 특기처럼 고정 효과를
-            주는 신규 장비 시스템이지만 아직 데이터/장착 로직이 없어서 지금은
-            자리만 예약(전부 잠김 표시). */}
-        <div className="flex w-16 shrink-0 flex-col gap-1.5 overflow-hidden">
-          <p className="shrink-0 text-center text-[10px] text-[#8fa6a8]">보물</p>
-          <div className="flex flex-1 flex-col gap-1 overflow-y-auto">
-            {Array.from({ length: MAX_TREASURE_SLOTS }, (_, index) => (
-              <div
-                key={index}
-                className="flex aspect-square shrink-0 items-center justify-center rounded-md text-lg"
-                style={{ border: "1px dashed #3a4f52", color: "#5c7276" }}
-              >
-                🔒
-              </div>
-            ))}
+          {/* 2b. 보물: 선택된 영웅에게 장착할 보물 슬롯 4개 - 특기처럼 고정
+              효과를 주는 신규 장비 시스템이지만 아직 데이터/장착 로직이
+              없어서 지금은 자리만 예약(전부 잠김 표시). */}
+          <div
+            className="flex w-16 shrink-0 flex-col gap-1.5 overflow-hidden border-l pl-2"
+            style={{ borderColor: "#25454f" }}
+          >
+            <p className="shrink-0 text-center text-[10px] text-[#8fa6a8]">보물</p>
+            <div className="flex flex-1 flex-col gap-1 overflow-y-auto">
+              {Array.from({ length: MAX_TREASURE_SLOTS }, (_, index) => (
+                <div
+                  key={index}
+                  className="flex aspect-square shrink-0 items-center justify-center rounded-md text-lg"
+                  style={{ border: "1px dashed #3a4f52", color: "#5c7276" }}
+                >
+                  🔒
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
-        {/* 4. 가방: 세력이 보유한 아이템(보물 포함) 재고 - 정사각형 칸을 4열
-            그리드로 배치하고, 칸이 넘치면 세로 스크롤. 세력 단위 아이템
-            재고 데이터가 아직 없어서(Faction에 필드 없음) 지금은 항상 빈
-            상태 - 재고 시스템이 생기면 이 그리드에 실제 아이템을 채움. */}
-        <div className="flex w-40 shrink-0 flex-col gap-1.5 overflow-hidden">
+        {/* 3. 가방 패널: 세력이 보유한 아이템(보물 포함) 재고 - 정사각형 칸을
+            4열 그리드로 배치하고, 칸이 넘치면 세로 스크롤. 세력 단위
+            아이템 재고 데이터가 아직 없어서(Faction에 필드 없음) 지금은
+            항상 빈 상태 - 재고 시스템이 생기면 이 그리드에 실제 아이템을
+            채움. */}
+        <div
+          className="flex w-40 shrink-0 flex-col gap-1.5 overflow-hidden rounded-lg p-1.5"
+          style={{ border: "1px solid #25454f", backgroundColor: "#132a32" }}
+        >
           <p className="shrink-0 text-center text-[10px] text-[#8fa6a8]">가방</p>
           <div className="flex-1 overflow-y-auto">
             <div className="grid gap-0" style={{ gridTemplateColumns: `repeat(${BAG_GRID_COLUMNS}, minmax(0, 1fr))` }}>
