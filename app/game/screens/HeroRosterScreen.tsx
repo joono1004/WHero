@@ -39,6 +39,13 @@ const MAX_TREASURE_SLOTS = 4;
 // 아이템 필드 자체가 없음) 지금은 항상 빈 상태만 보여주는 placeholder.
 const BAG_GRID_COLUMNS = 4;
 
+// 빈 가방을 몇 칸(행×열)까지 미리 그려둘지 (2026-08-07, "바둑판 같은
+// 그리드로... 비어 있는것은 비어 있는채로") - "+"/"준비 중" 문구 없이
+// 그냥 빈 정사각형이 바둑판처럼 늘어선 모양만 보여주는 게 목적이라 몇
+// 칸인지 자체는 중요하지 않음. 3줄(12칸) 정도면 스크롤 없이도 그리드
+// 모양이 드러나면서 화면을 과하게 채우지 않는 선.
+const BAG_EMPTY_PREVIEW_ROWS = 3;
+
 // 4열 통합 화면: [영웅리스트] [영웅정보] [보물] [가방] (2026-08-07, 이전
 // 라운드의 좌우 2분할에서 재배치 - 사용자가 리스트를 왼쪽으로, 정보를 그
 // 오른쪽으로 옮기고 보물/가방 두 칸을 새로 추가하라고 요청). 영웅선택
@@ -76,16 +83,18 @@ export function HeroRosterScreen({
 
   return (
     <ScreenShell
-      header={<h2 className="text-base font-bold text-[#f3dfaa]">영웅</h2>}
-      footer={
-        <Button size="sm" variant="secondary" onClick={onBack}>
-          뒤로
-        </Button>
+      header={
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="secondary" onClick={onBack}>
+            뒤로
+          </Button>
+          <h2 className="text-base font-bold text-[#f3dfaa]">영웅</h2>
+        </div>
       }
     >
       <div className="flex h-full gap-2 py-1">
         {/* 1. 영웅리스트: 정렬 버튼 + 목록 - 항목을 누르면 영웅정보 칸이 바뀜 */}
-        <div className="flex w-40 shrink-0 flex-col gap-1.5 overflow-hidden">
+        <div className="flex w-60 shrink-0 flex-col gap-1.5 overflow-hidden">
           <div className="flex shrink-0 gap-1">
             {(Object.keys(SORT_LABEL) as SortMode[]).map((mode) => (
               <button
@@ -216,18 +225,26 @@ export function HeroRosterScreen({
         <div className="flex w-40 shrink-0 flex-col gap-1.5 overflow-hidden">
           <p className="shrink-0 text-center text-[10px] text-[#8fa6a8]">가방</p>
           <div className="flex-1 overflow-y-auto">
-            <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${BAG_GRID_COLUMNS}, minmax(0, 1fr))` }}>
-              {Array.from({ length: BAG_GRID_COLUMNS }, (_, index) => (
-                <div
-                  key={index}
-                  className="flex aspect-square items-center justify-center rounded text-sm"
-                  style={{ border: "1px dashed #3a4f52", color: "#5c7276" }}
-                >
-                  ➕
-                </div>
-              ))}
+            <div className="grid gap-0" style={{ gridTemplateColumns: `repeat(${BAG_GRID_COLUMNS}, minmax(0, 1fr))` }}>
+              {/* 바둑판 그리드 (2026-08-07): "+"나 안내 문구 없이 빈 칸끼리
+                  명암만 번갈아 보여줘서 실제 아이템이 채워질 슬롯 모양
+                  자체를 표현 - 비어 있는 칸은 그냥 비어 있는 채로 둠. */}
+              {Array.from({ length: BAG_GRID_COLUMNS * BAG_EMPTY_PREVIEW_ROWS }, (_, index) => {
+                const row = Math.floor(index / BAG_GRID_COLUMNS);
+                const col = index % BAG_GRID_COLUMNS;
+                const isDark = (row + col) % 2 === 0;
+                return (
+                  <div
+                    key={index}
+                    className="aspect-square"
+                    style={{
+                      border: "1px solid #23414c",
+                      backgroundColor: isDark ? "#152f37" : "#1a3941",
+                    }}
+                  />
+                );
+              })}
             </div>
-            <p className="mt-1.5 text-center text-[9px] text-[#5c7276]">보유한 아이템이 없습니다.</p>
           </div>
         </div>
       </div>
