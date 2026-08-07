@@ -383,3 +383,42 @@ import해서 쓰는 건 문제없음 - 굳이 이 함수를 별도 공용 위치
   `highlands`/`riverlands`, `lib/game/world.ts`)인지는 이미 각 카드의
   `candidate.generation.mapType`/`record.generation.mapType`으로 알 수
   있으니, 이 값에 따라 다른 아트를 매핑하면 됩니다.
+
+### 병과 진화 트리 시스템 신설 + 병사/연구 화면 분리 (2026-08-07,
+  `main`에 직접 병합함 - `d09449b`)
+
+**Codex가 알아야 할 부분만 요약** (배경/결정 과정 전체는
+`docs/SYSTEM_LAYER.md`의 "병과 진화 트리 시스템 도입" 항목 참고). 이
+작업은 위 "Claude must not... Merge directly into main" 규칙의 또 한 번의
+예외입니다 - 2026-07-30 병합 후속 메모와 같은 방식으로, 사용자가 채팅에서
+직접 "병합해줘"라고 명시 승인해서 PR #1을 만들어 바로 `main`에 병합했습니다
+(별도 조율 없이 진행 - Codex가 이 기간에 병렬로 작업 중이었다면 다음 pull/
+rebase 시 아래 변경 사항과 충돌 여부를 확인해 주세요).
+
+- **`unit-production.ts`의 `UNIT_TYPE_CATALOG`가 4개 고정 병과에서
+  `UnitTypeId`(문자열) 기반 트리로 바뀌었습니다.** 예전엔 "지형 특화
+  연구로 병과 개명(보병→산악병)"이 지형 계약 없어서 미구현이라고 이
+  문서/`SYSTEM_LAYER.md`에 적어뒀던 부분인데, 이번에 그 확장이 실제로
+  들어갔습니다 - 단 실제 지형 연동(어떤 지형에서 어떤 진화가 풀리는지)은
+  여전히 안 붙어 있고, 지금은 순수 연구/자원 기반 해금만 합니다. 지형
+  계약이 준비되면 `unit-production.ts`의 `UnitTypeUnlock`에 지형 조건
+  필드를 추가하는 식으로 얹으면 될 것 같습니다.
+- 각 트리 노드(`UnitTypeNode`)는 여전히 `baseMovement`/`range`만 갖고
+  있어서 `lib/integration`의 이동 비용 계약과는 무관합니다 - 지형 이동
+  비용 연동 시엔 노드별로(계열 하나가 아니라) 값을 확인해야 한다는 점만
+  참고해 주세요.
+- 영웅의 `unitType`(`HeroUnitTypeKind`)도 이제 이 트리의 아무 노드나 될 수
+  있습니다. 오래 미완성이었던 제갈량의 "책사" 병과가 이번에 실제 노드로
+  채워졌습니다(`strategist`, 근접 불가·원거리 전용) - `legendary-heroes.ts`
+  TODO 주석 제거함.
+- UI 쪽: 로비의 "병사" 메뉴가 이제 진짜 화면(`TroopsScreen.tsx`)으로
+  연결됩니다 - 해금된 병과 중 출전할 걸 고르는 용도. "연구" 화면
+  (`ResearchScreen.tsx`)은 레벨업/해금(진화)만 담당하도록 역할이
+  갈립니다.
+- 검증: `npx tsc --noEmit` 클린, `pnpm run build` 성공, `pnpm run
+  test:game` 340/340, 린트는 `world-prototype.tsx`/`TestHeroPanel.tsx`의
+  기존 문제 10개 제외 클린(둘 다 Codex 소유 파일, 이번 세션에서 안
+  건드림).
+- 이번 세션에서도 실제 트리 모양/밸런스 수치, 화공/수공/회복 전투 효과,
+  진화 아이템 획득 경로는 전부 미확정으로 남겨뒀습니다(사용자가 다음
+  라운드로 명시적으로 미룸) - 지형 연동과 마찬가지로 아직 열린 질문입니다.
