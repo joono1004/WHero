@@ -5,6 +5,14 @@ export function TitleScreen({ onStart }: { onStart: () => void }) {
     <div className="title-hero-screen">
         <div className="title-hero-screen__art" aria-hidden="true" />
         <div className="title-hero-screen__vignette" aria-hidden="true" />
+        <div className="title-hero-screen__mist title-hero-screen__mist--left" aria-hidden="true" />
+        <div className="title-hero-screen__mist title-hero-screen__mist--right" aria-hidden="true" />
+        <div className="title-hero-screen__feather-gust" aria-hidden="true" />
+        <div className="title-hero-screen__blink title-hero-screen__blink--zhuge" aria-hidden="true" />
+        <div className="title-hero-screen__blink title-hero-screen__blink--genghis" aria-hidden="true" />
+        <div className="title-hero-screen__dust" aria-hidden="true">
+          <i /><i /><i /><i /><i /><i />
+        </div>
 
         <div className="title-hero-screen__content">
           <h1 className="title-hero-screen__sr-only">영웅스토리</h1>
