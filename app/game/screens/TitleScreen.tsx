@@ -1,10 +1,8 @@
 import { Button } from "../Button.tsx";
-import { ScreenShell } from "../ScreenShell.tsx";
 
 export function TitleScreen({ onStart }: { onStart: () => void }) {
   return (
-    <ScreenShell>
-      <section className="title-hero-screen">
+    <div className="title-hero-screen">
         <div className="title-hero-screen__art" aria-hidden="true" />
         <div className="title-hero-screen__vignette" aria-hidden="true" />
 
@@ -22,7 +20,6 @@ export function TitleScreen({ onStart }: { onStart: () => void }) {
             시작하기
           </Button>
         </div>
-      </section>
-    </ScreenShell>
+    </div>
   );
 }
