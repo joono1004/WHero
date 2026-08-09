@@ -27,6 +27,11 @@ canvas { display:block; width:100%; height:calc(100vh - 148px); min-height:620px
 .world-3d { width:100%; height:calc(100vh - 148px); min-height:620px; overflow:hidden; background:#d8e5cf; touch-action:none; }
 .world-3d canvas { width:100%; height:100%; min-height:0; }
 .world-scene-shell { position:relative; width:100%; height:100%; }
+.game-map-viewport { position:relative; width:100%; height:100%; min-height:0; overflow:hidden; border-radius:6px; }
+.game-map-viewport .world-3d { width:100%; height:100%; min-height:0; }
+.game-map-loading { position:absolute; inset:0; z-index:20; display:grid; place-content:center; gap:6px; text-align:center; color:#e9d69e; background:rgba(12,34,41,.78); backdrop-filter:blur(5px); }
+.game-map-loading strong { font-size:13px; }
+.game-map-loading span { color:#9eb2b1; font-size:10px; }
 .world-loading {
   position:absolute;
   z-index:120;
@@ -267,6 +272,211 @@ footer span { color:#d9bd74; text-transform:uppercase; letter-spacing:.12em; }
 footer b { padding:5px 8px; border:1px solid #28434b; border-radius:4px; color:#c8d3cf; font-weight:500; }
 footer small { margin-left:auto; color:#71898b; }
 
+.title-screen {
+  position:relative;
+  min-height:100%;
+  display:grid;
+  grid-template-columns:196px minmax(0,1fr) 196px;
+  align-items:stretch;
+  gap:14px;
+  overflow:hidden;
+}
+.title-screen__backdrop,
+.title-screen__constellation {
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+}
+.title-screen__backdrop {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(215,183,101,.14), transparent 34%),
+    radial-gradient(circle at 15% 20%, rgba(99,140,152,.18), transparent 26%),
+    radial-gradient(circle at 82% 18%, rgba(117,80,58,.14), transparent 24%),
+    linear-gradient(180deg, rgba(16,39,46,.94), rgba(7,19,24,.98));
+}
+.title-screen__constellation {
+  background-image:
+    linear-gradient(115deg, rgba(255,255,255,.05) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(255,255,255,.02) 1px, transparent 1px);
+  background-size:120px 120px, 36px 36px;
+  mask-image:radial-gradient(circle at center, rgba(0,0,0,1), rgba(0,0,0,.3) 74%, transparent 100%);
+  opacity:.45;
+}
+.title-screen__hero-column,
+.title-screen__center {
+  position:relative;
+  z-index:1;
+}
+.title-screen__hero-column {
+  display:grid;
+  align-content:center;
+  gap:7px;
+  padding:16px 0;
+}
+.title-screen__center {
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:12px;
+  padding:18px 0;
+}
+.title-screen__logo-mark {
+  width:86px;
+  height:34px;
+  display:flex;
+  align-items:flex-end;
+  justify-content:center;
+  gap:7px;
+}
+.title-screen__logo-mark span {
+  width:14px;
+  border-radius:999px 999px 3px 3px;
+  background:linear-gradient(180deg, #f8e2a6, #ae8336);
+  box-shadow:0 0 18px rgba(215,183,101,.34);
+}
+.title-screen__logo-mark span:nth-child(1),
+.title-screen__logo-mark span:nth-child(3) {
+  height:20px;
+  opacity:.7;
+}
+.title-screen__logo-mark span:nth-child(2) {
+  height:30px;
+}
+.title-screen__logo-frame {
+  width:min(100%, 404px);
+  padding:20px 28px 18px;
+  text-align:center;
+  border:1px solid rgba(230,201,129,.34);
+  border-radius:18px;
+  background:linear-gradient(180deg, rgba(16,38,46,.88), rgba(9,23,29,.92));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.06),
+    0 18px 48px rgba(0,0,0,.32);
+}
+.title-screen__eyebrow {
+  margin:0 0 7px;
+  color:#91a5a7;
+  font-size:9px;
+  letter-spacing:.34em;
+}
+.title-screen__logo-stack {
+  position:relative;
+  padding:3px 0 10px;
+}
+.title-screen__logo-stack::before,
+.title-screen__logo-stack::after {
+  content:"";
+  position:absolute;
+  top:50%;
+  width:58px;
+  height:1px;
+  background:linear-gradient(90deg, transparent, rgba(215,183,101,.8), transparent);
+}
+.title-screen__logo-stack::before { left:-6px; }
+.title-screen__logo-stack::after { right:-6px; }
+.title-screen__logo-korean {
+  margin:0;
+  color:#f4dfab;
+  font-family:Georgia,"Malgun Gothic","Apple SD Gothic Neo",sans-serif;
+  font-size:42px;
+  font-weight:700;
+  letter-spacing:.1em;
+  line-height:1;
+  text-shadow:0 3px 18px rgba(0,0,0,.38);
+}
+.title-screen__logo-english {
+  margin:6px 0 0;
+  color:#cfae5a;
+  font-size:12px;
+  font-weight:700;
+  letter-spacing:.42em;
+}
+.title-screen__tagline {
+  margin:0;
+  color:#c6d0cd;
+  font-size:11px;
+  line-height:1.6;
+}
+.title-screen__start-button {
+  min-width:184px;
+  border:1px solid #d7b765 !important;
+  border-radius:999px !important;
+  padding:14px 28px !important;
+  background-image:linear-gradient(180deg, #ecd08a, #a97829) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.28),
+    0 10px 24px rgba(0,0,0,.28);
+  font-size:16px;
+  letter-spacing:.08em;
+}
+.title-screen__start-button:hover {
+  transform:translateY(-1px);
+  filter:brightness(1.04);
+}
+.title-hero {
+  min-width:0;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:6px 8px;
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:14px;
+  background:linear-gradient(180deg, rgba(23,52,62,.76), rgba(10,24,30,.88));
+  box-shadow:0 10px 24px rgba(0,0,0,.18);
+  animation:title-hero-fade .8s ease both;
+}
+.title-hero__portrait {
+  width:42px;
+  height:42px;
+  flex:0 0 auto;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  border:1px solid rgba(255,255,255,.16);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08);
+}
+.title-hero__portrait span {
+  color:#f8edd0;
+  font-size:13px;
+  font-weight:700;
+  letter-spacing:.06em;
+}
+.title-hero__body {
+  min-width:0;
+}
+.title-hero__name,
+.title-hero__epithet {
+  margin:0;
+}
+.title-hero__name {
+  color:#f2e0af;
+  font-size:11px;
+  font-weight:700;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.title-hero__epithet {
+  margin-top:2px;
+  color:#93a7a8;
+  font-size:9px;
+  letter-spacing:.16em;
+}
+.title-hero--jade .title-hero__portrait { background:radial-gradient(circle at 30% 30%, #7db9a5, #204139); }
+.title-hero--crimson .title-hero__portrait { background:radial-gradient(circle at 30% 30%, #b66256, #482523); }
+.title-hero--bronze .title-hero__portrait { background:radial-gradient(circle at 30% 30%, #b48857, #4a3521); }
+.title-hero--gold .title-hero__portrait { background:radial-gradient(circle at 30% 30%, #c9a85d, #574421); }
+.title-hero--steel .title-hero__portrait { background:radial-gradient(circle at 30% 30%, #8ea0a9, #2a3740); }
+.title-hero--navy .title-hero__portrait { background:radial-gradient(circle at 30% 30%, #5b8fb0, #223847); }
+.title-hero--ivory .title-hero__portrait { background:radial-gradient(circle at 30% 30%, #d6c8ac, #5e5445); }
+
+@keyframes title-hero-fade {
+  from { opacity:0; transform:translateY(8px); }
+  to { opacity:1; transform:translateY(0); }
+}
+
 @media (max-width:900px) {
   .game-shell {
     height:100vh;
@@ -409,6 +619,43 @@ footer small { margin-left:auto; color:#71898b; }
     width:min(310px,calc(100vw - 24px));
     max-height:calc(100dvh - 72px);
     overflow:auto;
+  }
+
+  .title-screen {
+    grid-template-columns:152px minmax(0,1fr) 152px;
+    gap:10px;
+  }
+  .title-screen__logo-frame {
+    padding:18px 18px 16px;
+  }
+  .title-screen__logo-korean {
+    font-size:34px;
+  }
+  .title-screen__logo-stack::before,
+  .title-screen__logo-stack::after {
+    width:38px;
+  }
+  .title-screen__start-button {
+    min-width:164px;
+    padding:12px 24px !important;
+    font-size:15px;
+  }
+  .title-hero {
+    gap:6px;
+    padding:5px 6px;
+  }
+  .title-hero__portrait {
+    width:36px;
+    height:36px;
+  }
+  .title-hero__portrait span {
+    font-size:11px;
+  }
+  .title-hero__name {
+    font-size:10px;
+  }
+  .title-hero__epithet {
+    font-size:8px;
   }
 }
 

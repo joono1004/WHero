@@ -1083,7 +1083,7 @@ function unitTacticalProfile(unitId: string) {
   };
 }
 
-function WorldScene({
+export function WorldScene({
   generationId,
   seed,
   mapTierId,
@@ -1092,6 +1092,9 @@ function WorldScene({
   showFog,
   onHexSelected,
   onReady,
+  externalTurnNumber,
+  onExternalEndTurn,
+  showTacticalControls = true,
 }: {
   generationId: number;
   seed: number;
@@ -1104,6 +1107,9 @@ function WorldScene({
     pointerPosition: { x: number; y: number },
   ) => void;
   onReady: (generationId: number) => void;
+  externalTurnNumber?: number;
+  onExternalEndTurn?: () => void;
+  showTacticalControls?: boolean;
 }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const tacticalPanelRef = useRef<HTMLElement>(null);
@@ -1111,6 +1117,7 @@ function WorldScene({
     () => undefined,
   );
   const endTurnRef = useRef<() => void>(() => undefined);
+  const externalEndTurnRef = useRef(onExternalEndTurn);
   const [turnNumber, setTurnNumber] = useState(1);
   const [tacticalPanel, setTacticalPanel] = useState<TacticalPanelState>(
     DEFAULT_TACTICAL_PANEL,
@@ -1119,6 +1126,10 @@ function WorldScene({
     (command: TacticalPanelCommand) => tacticalCommandRef.current(command),
     [],
   );
+
+  useEffect(() => {
+    externalEndTurnRef.current = onExternalEndTurn;
+  }, [onExternalEndTurn]);
 
   useEffect(() => {
     const host = hostRef.current;
@@ -4244,7 +4255,11 @@ function WorldScene({
         updateActorActionAppearance(visual);
       });
       clearSelection("새로운 턴입니다. 모든 아군이 다시 행동할 수 있습니다.");
-      setTurnNumber((current) => current + 1);
+      if (externalEndTurnRef.current) {
+        externalEndTurnRef.current();
+      } else {
+        setTurnNumber((current) => current + 1);
+      }
     };
     const handleOutsideInterfacePointer = (event: PointerEvent) => {
       if (!selectedActorId) return;
@@ -4445,19 +4460,23 @@ function WorldScene({
         ref={hostRef}
         aria-label="WebGL로 렌더링한 2.5D 육각형 세계 지도"
       />
-      <TacticalActionPanel
-        state={tacticalPanel}
-        onCommand={handleTacticalCommand}
-        panelRef={tacticalPanelRef}
-      />
-      <button
-        type="button"
-        className="turn-end-control"
-        onClick={() => endTurnRef.current()}
-      >
-        <small>TURN {turnNumber}</small>
-        <span>턴 종료</span>
-      </button>
+      {showTacticalControls && (
+        <>
+          <TacticalActionPanel
+            state={tacticalPanel}
+            onCommand={handleTacticalCommand}
+            panelRef={tacticalPanelRef}
+          />
+          <button
+            type="button"
+            className="turn-end-control"
+            onClick={() => endTurnRef.current()}
+          >
+            <small>TURN {externalTurnNumber ?? turnNumber}</small>
+            <span>턴 종료</span>
+          </button>
+        </>
+      )}
     </div>
   );
 }
