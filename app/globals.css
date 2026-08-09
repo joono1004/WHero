@@ -274,6 +274,7 @@ footer small { margin-left:auto; color:#71898b; }
 
 .title-hero-screen {
   position:relative;
+  height:100%;
   min-height:100%;
   overflow:hidden;
   border-radius:18px;
@@ -296,9 +297,9 @@ footer small { margin-left:auto; color:#71898b; }
     linear-gradient(180deg, rgba(24,18,14,.2), transparent 18%, transparent 82%, rgba(24,18,14,.2));
 }
 .title-hero-screen__content {
-  position:relative;
-  z-index:1;
-  min-height:100%;
+  position:absolute;
+  inset:0;
+  z-index:2;
 }
 .title-hero-screen__sr-only {
   position:absolute;
