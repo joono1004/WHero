@@ -500,7 +500,7 @@ footer small { margin-left:auto; color:#71898b; }
   text-align:center;
   text-shadow:0 1px 0 rgba(255,247,210,.72), 0 1px 2px rgba(72,40,10,.3);
 }
-.hero-appointment-card__unit-emblem { position:absolute; z-index:3; top:12%; left:12%; width:29px; height:29px; object-fit:contain; filter:drop-shadow(0 1px 1px rgba(38,18,3,.78)); }
+.hero-appointment-card__unit-emblem { position:absolute; z-index:3; top:15%; left:16%; width:24px; height:24px; object-fit:contain; filter:drop-shadow(0 1px 1px rgba(38,18,3,.78)); }
 .hero-appointment-card__name-row { position:relative; min-height:24px; padding-top:3px; }
 .hero-appointment-card__nameplate h3 { position:absolute; left:50%; margin:0; color:#1d1007; font-family:"Malgun Gothic","Noto Sans KR",sans-serif; font-size:17px; line-height:1; font-weight:900; letter-spacing:.04em; white-space:nowrap; transform:translateX(-50%); -webkit-text-stroke:.45px rgba(29,16,7,.85); text-shadow:0 1px 0 rgba(255,247,210,.86), 0 1px 2px rgba(72,40,10,.38); }
 .hero-appointment-card__grade-medal { position:absolute; top:-1px; right:-7px; display:grid; place-items:center; width:24px; height:24px; border:1.5px solid #718a9a; border-radius:4px; background:linear-gradient(145deg,#2a3c49,#101b24); box-shadow:inset 0 0 0 1px rgba(205,228,239,.15),0 1px 2px rgba(14,7,2,.72); font-family:"Malgun Gothic",sans-serif; font-size:13px; font-weight:900; line-height:1; letter-spacing:-.06em; text-shadow:0 1px 2px rgba(0,0,0,.95),0 0 5px currentColor; -webkit-text-stroke:.15px rgba(0,0,0,.65); }
