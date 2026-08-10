@@ -413,7 +413,7 @@ footer small { margin-left:auto; color:#71898b; }
 }
 .hero-select-screen__button {
   position:absolute;
-  top:4px;
+  top:7px;
   padding:0 !important;
   border:0 !important;
   border-radius:0 !important;
@@ -441,6 +441,12 @@ footer small { margin-left:auto; color:#71898b; }
   height:40px;
   font-size:15px !important;
   background:transparent url("/art/title/title-start-button-v1.png") center / 130% 130% no-repeat !important;
+}
+.hero-select-screen__button--confirm:disabled {
+  opacity:.55 !important;
+  color:#ead7a6 !important;
+  text-shadow:0 1px 2px rgba(0,0,0,.82),0 0 3px rgba(244,215,127,.2);
+  filter:brightness(1.18) saturate(.82);
 }
 .hero-select-screen__button:hover:not(:disabled) { transform:translateX(var(--hero-action-offset, 0)) translateY(-1px) scale(1.035); filter:brightness(1.16) saturate(1.07); }
 .hero-select-screen__button:active:not(:disabled) { transform:translateX(var(--hero-action-offset, 0)) translateY(2px) scale(.98); filter:brightness(.83); }
