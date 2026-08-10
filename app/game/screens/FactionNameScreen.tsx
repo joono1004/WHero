@@ -36,8 +36,7 @@ export function FactionNameScreen({
     <div className="faction-charter-screen">
       <div className="faction-charter-screen__content">
         <div className="faction-charter-screen__welcome" aria-label="게임 환영 문구">
-          <p>당신의 깃발 아래,</p>
-          <p>시대를 초월한 영웅들이 모입니다.</p>
+          <p>당신의 깃발 아래, 시대를 초월한 영웅들이 한자리에 모입니다. 그들의 힘과 지혜를 이끌어, 당신만의 위대한 역사를 시작하세요.</p>
         </div>
         <h2 className="faction-charter-screen__heading">새로운 역사를 이끌 세력의 이름을 정해주세요</h2>
         <div className="relative w-64">
