@@ -17,7 +17,7 @@ export function HeroSelectScreen({
   return (
     <div className="hero-select-screen">
       <header className="hero-select-screen__header">
-        <h2 className="text-lg font-bold text-[#f3dfaa]">영웅을 선택하세요</h2>
+        <h2 className="text-lg font-bold text-[#f3dfaa]">그대의 여정을 함께할 첫 영웅을 선택하세요</h2>
       </header>
       <div className="hero-select-screen__cards">
         {STARTING_HEROES.map((hero) => (
