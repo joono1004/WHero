@@ -290,14 +290,16 @@ footer small { margin-left:auto; color:#71898b; }
     linear-gradient(180deg, rgba(245,238,223,.1), rgba(23,18,14,.08)),
     url("/art/title/title-heroes-c-premium-v3-no-labels.png") center center / cover no-repeat;
 }
-.title-hero-screen__art::after {
-  content:"";
-  position:absolute;
-  inset:-25% -35%;
-  background:linear-gradient(108deg, transparent 42%, rgba(255,229,159,.05) 47%, rgba(255,244,205,.36) 50%, rgba(255,229,159,.05) 53%, transparent 58%);
-  mix-blend-mode:screen;
-  animation:title-light-sweep 8.5s ease-in-out infinite;
-}
+.title-hero-screen__logo-burst { position:absolute; inset:0; z-index:2; pointer-events:none; }
+.title-hero-screen__ray { position:absolute; left:50%; top:50%; width:1px; height:1px; opacity:0; background:linear-gradient(rgba(255,244,205,0), rgba(255,225,140,.9)); transform-origin:50% 100%; animation:title-ray-in 10s ease-in-out infinite; }
+.title-hero-screen__ray--top { height:38%; top:12%; transform:translateX(-50%); }
+.title-hero-screen__ray--bottom { height:28%; top:60%; transform:translateX(-50%) rotate(180deg); animation-delay:-.12s; }
+.title-hero-screen__ray--left { width:36%; height:1px; left:8%; top:50%; background:linear-gradient(90deg, rgba(255,244,205,0), rgba(255,225,140,.9)); transform:translateY(-50%); animation-delay:-.24s; }
+.title-hero-screen__ray--right { width:36%; height:1px; left:56%; top:50%; background:linear-gradient(90deg, rgba(255,225,140,.9), rgba(255,244,205,0)); transform:translateY(-50%); animation-delay:-.36s; }
+.title-hero-screen__burst-core { position:absolute; left:50%; top:50%; width:16px; height:16px; border-radius:50%; background:radial-gradient(circle, #fffdf0 0 12%, #ffe09a 27%, rgba(255,207,94,.1) 68%, transparent 72%); transform:translate(-50%,-50%) scale(.15); opacity:0; animation:title-core-flash 10s ease-in-out infinite; }
+.title-hero-screen__burst-sparks { position:absolute; left:50%; top:50%; width:1px; height:1px; }
+.title-hero-screen__burst-sparks i { position:absolute; width:4px; height:4px; border-radius:50%; background:#ffe4a1; box-shadow:0 0 8px #f7c75f; opacity:0; animation:title-spark-fall 10s ease-out infinite; }
+.title-hero-screen__burst-sparks i:nth-child(1){--x:-60px;--y:-34px;animation-delay:-.1s}.title-hero-screen__burst-sparks i:nth-child(2){--x:-33px;--y:-48px;animation-delay:-.18s}.title-hero-screen__burst-sparks i:nth-child(3){--x:28px;--y:-45px;animation-delay:-.26s}.title-hero-screen__burst-sparks i:nth-child(4){--x:60px;--y:-28px;animation-delay:-.34s}.title-hero-screen__burst-sparks i:nth-child(5){--x:-74px;--y:3px;animation-delay:-.42s}.title-hero-screen__burst-sparks i:nth-child(6){--x:74px;--y:5px;animation-delay:-.5s}.title-hero-screen__burst-sparks i:nth-child(7){--x:-22px;--y:34px;animation-delay:-.58s}.title-hero-screen__burst-sparks i:nth-child(8){--x:30px;--y:38px;animation-delay:-.66s}
 .title-hero-screen__vignette {
   z-index:1;
   background:
@@ -433,12 +435,9 @@ footer small { margin-left:auto; color:#71898b; }
   from { transform:translateX(-3%) scale(.94); }
   to { transform:translateX(7%) scale(1.08); }
 }
-@keyframes title-light-sweep {
-  0%, 22% { transform:translateX(-28%) rotate(-4deg); opacity:0; }
-  32% { opacity:1; }
-  53% { transform:translateX(28%) rotate(-4deg); opacity:.85; }
-  65%, 100% { transform:translateX(42%) rotate(-4deg); opacity:0; }
-}
+@keyframes title-ray-in { 0%,67%,100%{opacity:0} 72%{opacity:.85} 78%{opacity:0} }
+@keyframes title-core-flash { 0%,73%,100%{opacity:0;transform:translate(-50%,-50%) scale(.15)} 76%{opacity:1;transform:translate(-50%,-50%) scale(3.8)} 81%{opacity:0;transform:translate(-50%,-50%) scale(6)} }
+@keyframes title-spark-fall { 0%,76%{opacity:0;transform:translate(0,0) scale(.3)} 78%{opacity:1;transform:translate(calc(var(--x)*.55),calc(var(--y)*.55)) scale(1)} 90%{opacity:.65;transform:translate(var(--x),calc(var(--y) + 58px)) scale(.75)} 100%{opacity:0;transform:translate(var(--x),calc(var(--y) + 82px)) scale(.2)} }
 @keyframes title-feather-gust {
   0%, 66%, 100% { opacity:.08; transform:rotate(-3deg) translateX(-2%); }
   78% { opacity:.42; transform:rotate(4deg) translateX(8%); }

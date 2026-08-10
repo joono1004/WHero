@@ -5,6 +5,14 @@ export function TitleScreen({ onStart }: { onStart: () => void }) {
     <div className="title-hero-screen">
         <div className="title-hero-screen__art" aria-hidden="true" />
         <div className="title-hero-screen__vignette" aria-hidden="true" />
+        <div className="title-hero-screen__logo-burst" aria-hidden="true">
+          <i className="title-hero-screen__ray title-hero-screen__ray--top" />
+          <i className="title-hero-screen__ray title-hero-screen__ray--right" />
+          <i className="title-hero-screen__ray title-hero-screen__ray--bottom" />
+          <i className="title-hero-screen__ray title-hero-screen__ray--left" />
+          <b className="title-hero-screen__burst-core" />
+          <span className="title-hero-screen__burst-sparks"><i /><i /><i /><i /><i /><i /><i /><i /></span>
+        </div>
         <div className="title-hero-screen__hero-layer title-hero-screen__hero-layer--zhuge" aria-hidden="true" />
         <div className="title-hero-screen__hero-layer title-hero-screen__hero-layer--guan" aria-hidden="true" />
         <div className="title-hero-screen__hero-layer title-hero-screen__hero-layer--zhang" aria-hidden="true" />
