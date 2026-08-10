@@ -401,7 +401,7 @@ footer small { margin-left:auto; color:#71898b; }
 .hero-select-screen__footer {
   min-height:0;
   flex:0 0 auto;
-  padding:8px 16px 12px;
+  padding:4px 16px 7px;
   display:flex;
   justify-content:center;
   gap:12px;
@@ -424,17 +424,17 @@ footer small { margin-left:auto; color:#71898b; }
   transition:transform .2s ease,filter .15s ease,opacity .15s ease;
 }
 .hero-select-screen__button--back {
-  --hero-action-offset:81px;
+  --hero-action-offset:0px;
   width:212px;
-  height:52px;
-  font-size:16px !important;
+  height:40px;
+  font-size:15px !important;
   background:transparent url("/art/menu-war-room-button-v1.png") center / 138% 138% no-repeat !important;
 }
 .hero-select-screen__button--confirm {
-  --hero-action-offset:-112px;
+  --hero-action-offset:0px;
   width:212px;
-  height:52px;
-  font-size:16px !important;
+  height:40px;
+  font-size:15px !important;
   background:transparent url("/art/faction-create-button-v1.png") center / 126% 126% no-repeat !important;
 }
 .hero-select-screen__button:hover:not(:disabled) { transform:translateX(var(--hero-action-offset, 0)) translateY(-1px) scale(1.035); filter:brightness(1.16) saturate(1.07); }
