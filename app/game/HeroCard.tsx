@@ -60,13 +60,13 @@ export function HeroCard({
         </div>
       )}
       <div className="hero-appointment-card__portrait-shade" aria-hidden="true" />
+      {/* The class emblem belongs to the portrait, so it remains visible even when the plaque is read at a glance. */}
+      <img className="hero-appointment-card__unit-emblem" src={UNIT_EMBLEM[hero.unitType]} alt={`${UNIT_TYPE_LABEL[hero.unitType]} 병과`} />
       <div className="hero-appointment-card__frame" aria-hidden="true" />
       <div className="hero-appointment-card__nameplate">
-        {/* Local unit emblem keeps the class readable at a glance without crowding the portrait. */}
-        <img className="hero-appointment-card__unit-emblem" src={UNIT_EMBLEM[hero.unitType]} alt={`${UNIT_TYPE_LABEL[hero.unitType]} 병과`} />
         <div className="hero-appointment-card__name-row">
           <h3>{hero.name}</h3>
-          <b style={{ color: GRADE_COLOR[grade] }}>{grade}급</b>
+          <b className="hero-appointment-card__grade-medal" style={{ color: GRADE_COLOR[grade] }}>{grade}</b>
         </div>
         <p>{ARCHETYPE_LABEL[archetype]}</p>
         <button
