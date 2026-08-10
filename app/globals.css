@@ -337,12 +337,12 @@ footer small { margin-left:auto; color:#71898b; }
     url("/art/title/title-heroes-c-premium-v2-no-button.png") center center / cover no-repeat !important;
   will-change:transform;
 }
-.title-hero-screen__hero-layer--zhuge { left:0 !important; top:0 !important; mask-image:radial-gradient(ellipse 17% 35% at 8% 26%, #000 42%, transparent 100%); animation:hero-fan 6.2s ease-in-out infinite; }
-.title-hero-screen__hero-layer--guan { left:0 !important; top:0 !important; mask-image:radial-gradient(ellipse 22% 34% at 12% 64%, #000 42%, transparent 100%); animation:hero-beard 6.8s ease-in-out infinite -2s; }
-.title-hero-screen__hero-layer--zhang { left:0 !important; top:0 !important; mask-image:radial-gradient(ellipse 18% 31% at 24% 23%, #000 42%, transparent 100%); animation:hero-breath 5.3s ease-in-out infinite -1s; }
-.title-hero-screen__hero-layer--liu { left:0 !important; top:0 !important; mask-image:radial-gradient(ellipse 18% 30% at 31% 72%, #000 42%, transparent 100%); animation:hero-robe 7.1s ease-in-out infinite -3s; }
+.title-hero-screen__hero-layer--zhuge { left:0 !important; top:0 !important; mask-image:radial-gradient(ellipse 10% 24% at 10% 25%, #000 36%, transparent 100%); animation:hero-fan 6.2s ease-in-out infinite; }
+.title-hero-screen__hero-layer--guan { left:0 !important; top:0 !important; mask-image:radial-gradient(ellipse 14% 29% at 14% 65%, #000 38%, transparent 100%); animation:hero-beard 6.8s ease-in-out infinite -2s; }
+.title-hero-screen__hero-layer--zhang { left:0 !important; top:0 !important; mask-image:radial-gradient(ellipse 12% 25% at 24% 24%, #000 38%, transparent 100%); animation:hero-breath 5.3s ease-in-out infinite -1s; }
+.title-hero-screen__hero-layer--liu { left:0 !important; top:0 !important; mask-image:radial-gradient(ellipse 12% 24% at 31% 74%, #000 38%, transparent 100%); animation:hero-robe 7.1s ease-in-out infinite -3s; }
 .title-hero-screen__hero-layer--cao { display:none; }
-.title-hero-screen__hero-layer--yi { left:0 !important; top:0 !important; mask-image:radial-gradient(ellipse 15% 31% at 89% 23%, #000 42%, transparent 100%); animation:hero-armor 6.1s ease-in-out infinite -2s; }
+.title-hero-screen__hero-layer--yi { left:0 !important; top:0 !important; mask-image:radial-gradient(ellipse 10% 25% at 90% 24%, #000 38%, transparent 100%); animation:hero-armor 6.1s ease-in-out infinite -2s; }
 .title-hero-screen__hero-layer--sejong { left:0 !important; top:0 !important; mask-image:radial-gradient(ellipse 13% 28% at 76% 43%, #000 42%, transparent 100%); animation:hero-breath 7.4s ease-in-out infinite -4s; }
 .title-hero-screen__hero-layer--genghis { left:0 !important; top:0 !important; mask-image:radial-gradient(ellipse 16% 30% at 73% 22%, #000 42%, transparent 100%); animation:hero-fur 6.5s ease-in-out infinite -3s; }
 .title-hero-screen__hero-layer--napoleon { left:0 !important; top:0 !important; mask-image:radial-gradient(ellipse 15% 29% at 82% 69%, #000 42%, transparent 100%); animation:hero-cape 7s ease-in-out infinite -1s; }
@@ -417,13 +417,13 @@ footer small { margin-left:auto; color:#71898b; }
 @keyframes hero-armor { 0%,100% { transform:translateY(0); filter:sepia(.08) saturate(.88) brightness(1); } 50% { transform:translateY(-2px); filter:sepia(.08) saturate(.98) brightness(1.12); } }
 @keyframes hero-fur { 0%,100% { transform:translateX(0) rotate(0); } 50% { transform:translateX(-2px) rotate(.4deg); } }
 @keyframes hero-cape { 0%,100% { transform:translate(0,0) rotate(0); } 50% { transform:translate(2px,-2px) rotate(-.35deg); } }
-@keyframes hero-breath { 0%,100% { transform:translate3d(0,0,0); } 50% { transform:translate3d(0,-3px,0); } }
-@keyframes hero-fan { 0%,100% { transform:translate3d(0,0,0); } 50% { transform:translate3d(2px,-3px,0); } }
-@keyframes hero-beard { 0%,100% { transform:translate3d(0,0,0); } 50% { transform:translate3d(3px,-2px,0); } }
-@keyframes hero-robe { 0%,100% { transform:translate3d(0,0,0); } 50% { transform:translate3d(-2px,-3px,0); } }
-@keyframes hero-armor { 0%,100% { transform:translate3d(0,0,0); filter:brightness(1); } 50% { transform:translate3d(2px,-3px,0); filter:brightness(1.08); } }
-@keyframes hero-fur { 0%,100% { transform:translate3d(0,0,0); } 50% { transform:translate3d(-3px,-2px,0); } }
-@keyframes hero-cape { 0%,100% { transform:translate3d(0,0,0); } 50% { transform:translate3d(3px,-3px,0); } }
+@keyframes hero-breath { 0%,100% { transform:translate3d(0,0,0); } 50% { transform:translate3d(0,-5px,0); } }
+@keyframes hero-fan { 0%,100% { transform:translate3d(0,0,0); } 50% { transform:translate3d(4px,-5px,0); } }
+@keyframes hero-beard { 0%,100% { transform:translate3d(0,0,0); } 50% { transform:translate3d(5px,-4px,0); } }
+@keyframes hero-robe { 0%,100% { transform:translate3d(0,0,0); } 50% { transform:translate3d(-4px,-5px,0); } }
+@keyframes hero-armor { 0%,100% { transform:translate3d(0,0,0); filter:brightness(1); } 50% { transform:translate3d(4px,-5px,0); filter:brightness(1.08); } }
+@keyframes hero-fur { 0%,100% { transform:translate3d(0,0,0); } 50% { transform:translate3d(-5px,-4px,0); } }
+@keyframes hero-cape { 0%,100% { transform:translate3d(0,0,0); } 50% { transform:translate3d(5px,-5px,0); } }
 @keyframes title-blink {
   0%, 84%, 100% { opacity:0; transform:scaleY(.15); }
   85%, 88% { opacity:.9; transform:scaleY(1); }
