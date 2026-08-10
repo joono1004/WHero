@@ -399,9 +399,10 @@ footer small { margin-left:auto; color:#71898b; }
 .hero-select-screen__header h2 { margin:0; }
 .hero-select-screen__cards { flex:1 1 auto; min-height:0; overflow-y:auto; padding:0 16px 4px; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
 .hero-select-screen__footer {
-  min-height:0;
+  height:51px;
+  min-height:51px;
   flex:0 0 auto;
-  padding:4px 16px 7px;
+  padding:0 16px;
   display:flex;
   justify-content:center;
   gap:10px;
@@ -411,6 +412,8 @@ footer small { margin-left:auto; color:#71898b; }
   font-size:inherit;
 }
 .hero-select-screen__button {
+  position:absolute;
+  top:4px;
   padding:0 !important;
   border:0 !important;
   border-radius:0 !important;
@@ -425,17 +428,19 @@ footer small { margin-left:auto; color:#71898b; }
 }
 .hero-select-screen__button--back {
   --hero-action-offset:0px;
+  right:calc(50% + 126px);
   width:106px;
   height:40px;
   font-size:15px !important;
   background:transparent url("/art/menu-war-room-button-v1.png") center / 138% 138% no-repeat !important;
 }
 .hero-select-screen__button--confirm {
-  --hero-action-offset:0px;
+  --hero-action-offset:-50%;
+  left:50%;
   width:212px;
   height:40px;
   font-size:15px !important;
-  background:transparent url("/art/faction-create-button-v1.png") center / 126% 126% no-repeat !important;
+  background:transparent url("/art/title/title-start-button-v1.png") center / 130% 130% no-repeat !important;
 }
 .hero-select-screen__button:hover:not(:disabled) { transform:translateX(var(--hero-action-offset, 0)) translateY(-1px) scale(1.035); filter:brightness(1.16) saturate(1.07); }
 .hero-select-screen__button:active:not(:disabled) { transform:translateX(var(--hero-action-offset, 0)) translateY(2px) scale(.98); filter:brightness(.83); }
