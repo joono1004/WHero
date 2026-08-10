@@ -343,10 +343,11 @@ footer small { margin-left:auto; color:#71898b; }
   right:0;
   bottom:22px;
   left:0;
+  height:124px;
   display:flex;
   align-items:center;
   flex-direction:column;
-  justify-content:center;
+  justify-content:space-between;
   gap:0;
 }
 .faction-charter-screen__button {
