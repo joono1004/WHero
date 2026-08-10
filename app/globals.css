@@ -493,7 +493,7 @@ footer small { margin-left:auto; color:#71898b; }
   position:absolute;
   z-index:3;
   right:15%;
-  bottom:5.5%;
+  bottom:calc(5.5% + 5px);
   left:15%;
   color:#251205;
   font-family:"Malgun Gothic","Noto Sans KR",sans-serif;
