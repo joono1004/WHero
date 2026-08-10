@@ -493,7 +493,7 @@ footer small { margin-left:auto; color:#71898b; }
   position:absolute;
   z-index:3;
   right:15%;
-  bottom:5.5%;
+  bottom:1.2%;
   left:15%;
   color:#251205;
   font-family:"Nanum Myeongjo","Batang","Malgun Gothic",serif;
@@ -501,13 +501,15 @@ footer small { margin-left:auto; color:#71898b; }
   text-shadow:0 1px 0 rgba(255,247,210,.72), 0 1px 2px rgba(72,40,10,.3);
   pointer-events:none;
 }
-.hero-appointment-card__nameplate h3 { margin:0; color:#210e04; font-size:18px; line-height:1.05; font-weight:900; letter-spacing:.05em; -webkit-text-stroke:.18px rgba(33,14,4,.7); }
-.hero-appointment-card__nameplate p { margin:4px 0 0; display:flex; justify-content:center; gap:10px; font-family:"Malgun Gothic",sans-serif; font-size:11px; font-weight:800; text-shadow:0 1px 0 rgba(255,247,210,.65); }
+.hero-appointment-card__nameplate h3 { margin:0; color:#210e04; font-size:17px; line-height:1; font-weight:900; letter-spacing:.05em; -webkit-text-stroke:.22px rgba(33,14,4,.78); }
+.hero-appointment-card__nameplate p { margin:2px 0 0; display:flex; justify-content:center; gap:10px; font-family:"Malgun Gothic",sans-serif; font-size:10px; font-weight:900; text-shadow:0 1px 0 rgba(255,247,210,.72); }
 .hero-appointment-card__nameplate p span { color:#4a2a0d; }
 .hero-appointment-card__nameplate b { font-weight:900; -webkit-text-stroke:.12px rgba(43,25,7,.66); }
 .hero-appointment-card--interactive:hover { filter:brightness(1.1) drop-shadow(0 9px 16px rgba(33,16,3,.66)); }
 .hero-appointment-card--selected { filter:brightness(1.12) drop-shadow(0 0 8px rgba(248,205,88,.92)) drop-shadow(0 10px 20px rgba(47,22,4,.72)); }
 .hero-appointment-card--selected .hero-appointment-card__frame { filter:drop-shadow(0 0 7px rgba(247,204,90,.82)); }
+.hero-select-screen__cards > .hero-appointment-card:first-child { transform:translateX(18px); }
+.hero-select-screen__cards > .hero-appointment-card:last-child { transform:translateX(-18px); }
 .title-hero-screen__art,
 .title-hero-screen__vignette {
   position:absolute;
