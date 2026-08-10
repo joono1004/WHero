@@ -280,6 +280,13 @@ footer small { margin-left:auto; color:#71898b; }
   border-radius:18px;
   background:#d7cab0;
 }
+.main-menu-screen { position:relative; height:100%; overflow:hidden; background:url("/art/menu-war-room-v1.png") center / cover no-repeat; }
+.main-menu-screen::before { content:""; position:absolute; inset:0; background:radial-gradient(ellipse at 50% 47%, rgba(238,218,166,.18), rgba(20,15,10,.52) 76%); }
+.main-menu-screen__content { position:relative; z-index:1; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; }
+.main-menu-screen__content h2 { margin:0 0 8px; color:#f7df9d; letter-spacing:.2em; text-shadow:0 2px 6px #20150c; }
+.main-menu-screen__button { width:236px; min-height:47px; border:1px solid #e3bd64 !important; border-radius:8px !important; background:linear-gradient(180deg,#28545a,#102d33) !important; color:#fff0bf !important; font-size:16px !important; letter-spacing:.12em; text-shadow:0 2px 2px #081417; box-shadow:0 3px 0 #0a1b1d,0 0 0 1px rgba(255,224,139,.22) inset !important; transition:transform .14s ease,filter .14s ease; }
+.main-menu-screen__button:hover { transform:scale(1.035); filter:brightness(1.18); }
+.main-menu-screen__button:active { transform:translateY(3px) scale(.985); filter:brightness(.86); box-shadow:0 1px 0 #0a1b1d !important; }
 .title-hero-screen__art,
 .title-hero-screen__vignette {
   position:absolute;
