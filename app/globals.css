@@ -289,6 +289,7 @@ footer small { margin-left:auto; color:#71898b; }
 .main-menu-screen__button + .main-menu-screen__button { margin-top:-25px; }
 .main-menu-screen__button:hover { transform:scale(1.035); filter:brightness(1.18); }
 .main-menu-screen__button:active { transform:translateY(3px) scale(.985); filter:brightness(.86); box-shadow:0 1px 0 #0a1b1d !important; }
+.faction-charter-screen { position:relative; min-height:100%; border-radius:12px; background:linear-gradient(rgba(24,16,10,.08),rgba(24,16,10,.18)),url("/art/faction-charter-v1.png") center / cover no-repeat; }
 .title-hero-screen__art,
 .title-hero-screen__vignette {
   position:absolute;

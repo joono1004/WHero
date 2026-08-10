@@ -46,7 +46,7 @@ export function FactionNameScreen({
         </div>
       }
     >
-      <div className="flex h-full flex-col items-center justify-center gap-3">
+      <div className="faction-charter-screen flex h-full flex-col items-center justify-center gap-3">
         <h2 className="text-lg font-bold text-[#f3dfaa]">세력명을 입력하세요</h2>
         <div className="relative w-64">
           <input
