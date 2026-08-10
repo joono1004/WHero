@@ -66,7 +66,7 @@ export function HeroCard({
       <div className="hero-appointment-card__nameplate">
         <div className="hero-appointment-card__name-row">
           <h3>{hero.name}</h3>
-          <b className="hero-appointment-card__grade-medal" style={{ color: GRADE_COLOR[grade] }}>{grade}</b>
+          <b className="hero-appointment-card__grade-medal" data-grade={grade} style={{ color: GRADE_COLOR[grade] }}>{grade}</b>
         </div>
         <p>{ARCHETYPE_LABEL[archetype]}</p>
         <button
