@@ -78,7 +78,7 @@ export function HeroCard({
           }}
           aria-label={`${hero.name} 상세보기`}
         >
-          상세보기
+          <span aria-hidden="true">i</span>
         </button>
       </div>
     </div>
