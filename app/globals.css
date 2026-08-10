@@ -493,23 +493,42 @@ footer small { margin-left:auto; color:#71898b; }
   position:absolute;
   z-index:3;
   right:15%;
-  bottom:11%;
+  bottom:9.5%;
   left:15%;
   color:#251205;
   font-family:"Nanum Myeongjo","Batang","Malgun Gothic",serif;
   text-align:center;
   text-shadow:0 1px 0 rgba(255,247,210,.72), 0 1px 2px rgba(72,40,10,.3);
-  pointer-events:none;
 }
+.hero-appointment-card__unit-emblem { position:absolute; top:-4px; left:1px; width:29px; height:29px; object-fit:contain; filter:drop-shadow(0 1px 1px rgba(38,18,3,.65)); }
+.hero-appointment-card__name-row { min-height:19px; display:flex; align-items:center; justify-content:center; gap:6px; padding-left:22px; }
 .hero-appointment-card__nameplate h3 { margin:0; color:#210e04; font-size:17px; line-height:1; font-weight:900; letter-spacing:.05em; -webkit-text-stroke:.22px rgba(33,14,4,.78); }
-.hero-appointment-card__nameplate p { margin:2px 0 0; display:flex; justify-content:center; gap:10px; font-family:"Malgun Gothic",sans-serif; font-size:10px; font-weight:900; text-shadow:0 1px 0 rgba(255,247,210,.72); }
-.hero-appointment-card__nameplate p span { color:#4a2a0d; }
-.hero-appointment-card__nameplate b { font-weight:900; -webkit-text-stroke:.12px rgba(43,25,7,.66); }
+.hero-appointment-card__name-row b { font-family:"Malgun Gothic",sans-serif; font-size:10px; font-weight:900; -webkit-text-stroke:.12px rgba(43,25,7,.66); }
+.hero-appointment-card__nameplate p { margin:2px 0 0; color:#55300e; font-family:"Malgun Gothic",sans-serif; font-size:8.5px; font-weight:900; text-shadow:0 1px 0 rgba(255,247,210,.72); }
+.hero-appointment-card__details { position:relative; z-index:4; margin-top:3px; min-width:52px; min-height:15px; padding:1px 7px !important; border:1px solid rgba(91,53,13,.72) !important; border-radius:2px !important; background:linear-gradient(#805225,#48280f) !important; color:#f7dfa3 !important; font-family:"Malgun Gothic",sans-serif; font-size:8px !important; line-height:1.1; font-weight:800 !important; letter-spacing:.04em; text-shadow:0 1px #241103; box-shadow:inset 0 0 0 1px rgba(255,220,137,.22) !important; cursor:pointer; }
+.hero-appointment-card__details:hover { filter:brightness(1.2); }
+.hero-appointment-card__details:focus-visible { outline:1px solid #f7d77d; outline-offset:1px; }
 .hero-appointment-card--interactive:hover { filter:brightness(1.1) drop-shadow(0 9px 16px rgba(33,16,3,.66)); }
 .hero-appointment-card--selected { filter:brightness(1.12) drop-shadow(0 0 8px rgba(248,205,88,.92)) drop-shadow(0 10px 20px rgba(47,22,4,.72)); }
 .hero-appointment-card--selected .hero-appointment-card__frame { filter:drop-shadow(0 0 7px rgba(247,204,90,.82)); }
 .hero-select-screen__cards > .hero-appointment-card:first-child { transform:translateX(18px); }
 .hero-select-screen__cards > .hero-appointment-card:last-child { transform:translateX(-18px); }
+.hero-detail-modal { position:absolute; z-index:20; inset:0; display:grid; place-items:center; padding:12px; background:rgba(9,5,2,.7); backdrop-filter:blur(2px); }
+.hero-detail-modal__panel { position:relative; width:min(100%,480px); max-height:calc(100% - 12px); overflow:auto; padding:17px 24px 15px; border:2px solid #9d722c; border-radius:5px; background:linear-gradient(135deg,rgba(61,31,10,.98),rgba(22,12,5,.98)),url("/art/hero-select-council-v1.png") center / cover; color:#f5e2b0; box-shadow:0 0 0 3px rgba(34,18,6,.85),0 16px 35px rgba(0,0,0,.62); }
+.hero-detail-modal__panel header { padding-right:22px; text-align:left; }
+.hero-detail-modal__panel header span { display:block; color:#d7b66c; font-family:"Malgun Gothic",sans-serif; font-size:10px; font-weight:800; letter-spacing:.08em; }
+.hero-detail-modal__panel h3 { margin:1px 0 0; color:#fff0c5; font-family:"Nanum Myeongjo","Batang",serif; font-size:24px; line-height:1.1; }
+.hero-detail-modal__panel h3 b { margin-left:5px; font-family:"Malgun Gothic",sans-serif; font-size:13px; vertical-align:middle; }
+.hero-detail-modal__close { position:absolute; top:7px; right:9px; width:23px; height:23px; padding:0 !important; border:1px solid #b68a3d !important; border-radius:50% !important; background:#351a08 !important; color:#f7dda1 !important; font-size:18px !important; line-height:18px; cursor:pointer; }
+.hero-detail-modal__description { margin:8px 0; color:#e5cf9a; font-family:"Malgun Gothic",sans-serif; font-size:11px; line-height:1.5; }
+.hero-detail-modal__stats { display:flex; justify-content:space-between; gap:5px; padding:7px 9px; border-top:1px solid rgba(229,187,96,.42); border-bottom:1px solid rgba(229,187,96,.42); background:rgba(13,7,2,.42); }
+.hero-detail-modal__stats span { display:flex; flex-direction:column; align-items:center; min-width:36px; }
+.hero-detail-modal__stats small { color:#c6a262; font-family:"Malgun Gothic",sans-serif; font-size:9px; font-weight:800; }
+.hero-detail-modal__stats b { margin-top:1px; font:900 17px Georgia,serif; }
+.hero-detail-modal__info { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:9px; }
+.hero-detail-modal__info h4 { margin:0 0 3px; color:#f4d892; font-size:12px; }
+.hero-detail-modal__info p { margin:0; color:#e8d1a1; font-family:"Malgun Gothic",sans-serif; font-size:9px; line-height:1.45; }
+.hero-detail-modal__info p b { color:#fff0bc; }
 .title-hero-screen__art,
 .title-hero-screen__vignette {
   position:absolute;

@@ -1,11 +1,18 @@
 "use client";
 
 import type { KeyboardEvent } from "react";
-import { heroOverallGrade } from "../../lib/game/hero-definition.ts";
+import { heroArchetype, heroOverallGrade } from "../../lib/game/hero-definition.ts";
 import type { HeroDefinition } from "../../lib/game/hero-definition.ts";
 import { GRADE_COLOR } from "./gradeColors.ts";
-import { UNIT_TYPE_LABEL } from "./heroLabels.ts";
+import { ARCHETYPE_LABEL, UNIT_TYPE_LABEL } from "./heroLabels.ts";
 import { HERO_PORTRAIT } from "./heroPortraits.ts";
+
+const UNIT_EMBLEM: Record<HeroDefinition["unitType"], string> = {
+  cavalry: "/art/units/cavalry-emblem-v4.webp",
+  infantry: "/art/units/infantry-emblem-v4.webp",
+  archer: "/art/units/archer-emblem-v4.webp",
+  siege: "/art/units/infantry-emblem-v4.webp",
+};
 
 // New-game hero selection uses an intentionally light information footprint:
 // this is an appointment plaque, not the roster's full statistics screen.
@@ -15,12 +22,15 @@ export function HeroCard({
   hero,
   selected = false,
   onSelect,
+  onDetails,
 }: {
   hero: HeroDefinition;
   selected?: boolean;
   onSelect?: () => void;
+  onDetails?: (hero: HeroDefinition) => void;
 }) {
   const grade = heroOverallGrade(hero.attributes);
+  const archetype = heroArchetype(hero.attributes);
   const interactiveProps = onSelect
     ? {
         role: "button" as const,
@@ -52,11 +62,24 @@ export function HeroCard({
       <div className="hero-appointment-card__portrait-shade" aria-hidden="true" />
       <div className="hero-appointment-card__frame" aria-hidden="true" />
       <div className="hero-appointment-card__nameplate">
-        <h3>{hero.name}</h3>
-        <p>
-          <span>{UNIT_TYPE_LABEL[hero.unitType]}</span>
+        {/* Local unit emblem keeps the class readable at a glance without crowding the portrait. */}
+        <img className="hero-appointment-card__unit-emblem" src={UNIT_EMBLEM[hero.unitType]} alt={`${UNIT_TYPE_LABEL[hero.unitType]} 병과`} />
+        <div className="hero-appointment-card__name-row">
+          <h3>{hero.name}</h3>
           <b style={{ color: GRADE_COLOR[grade] }}>{grade}급</b>
-        </p>
+        </div>
+        <p>{ARCHETYPE_LABEL[archetype]}</p>
+        <button
+          type="button"
+          className="hero-appointment-card__details"
+          onClick={(event) => {
+            event.stopPropagation();
+            onDetails?.(hero);
+          }}
+          aria-label={`${hero.name} 상세보기`}
+        >
+          상세보기
+        </button>
       </div>
     </div>
   );
