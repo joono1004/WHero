@@ -290,7 +290,8 @@ footer small { margin-left:auto; color:#71898b; }
     linear-gradient(180deg, rgba(245,238,223,.1), rgba(23,18,14,.08)),
     url("/art/title/title-heroes-c-premium-v3-no-labels.png") center center / cover no-repeat;
 }
-.title-hero-screen__logo-burst { position:absolute; inset:0; z-index:2; pointer-events:none; }
+.title-hero-screen__logo-burst { position:absolute; inset:0; z-index:2; overflow:hidden; pointer-events:none; }
+.title-hero-screen__logo-burst::after { content:""; position:absolute; inset:0; background:radial-gradient(circle at 50% 50%, rgba(255,245,205,.92), rgba(255,222,139,.25) 32%, transparent 68%); opacity:0; animation:title-screen-flash 10s ease-out infinite; }
 .title-hero-screen__ray { position:absolute; left:50%; top:50%; width:1px; height:1px; opacity:0; background:linear-gradient(rgba(255,244,205,0), rgba(255,225,140,.9)); transform-origin:50% 100%; animation:title-ray-in 10s ease-in-out infinite; }
 .title-hero-screen__ray--top { height:38%; top:12%; transform:translateX(-50%); }
 .title-hero-screen__ray--bottom { height:28%; top:60%; transform:translateX(-50%) rotate(180deg); animation-delay:-.12s; }
@@ -298,7 +299,13 @@ footer small { margin-left:auto; color:#71898b; }
 .title-hero-screen__ray--right { width:36%; height:1px; left:56%; top:50%; background:linear-gradient(90deg, rgba(255,225,140,.9), rgba(255,244,205,0)); transform:translateY(-50%); animation-delay:-.36s; }
 .title-hero-screen__burst-core { position:absolute; left:50%; top:50%; width:16px; height:16px; border-radius:50%; background:radial-gradient(circle, #fffdf0 0 12%, #ffe09a 27%, rgba(255,207,94,.1) 68%, transparent 72%); transform:translate(-50%,-50%) scale(.15); opacity:0; animation:title-core-flash 10s ease-in-out infinite; }
 .title-hero-screen__burst-sparks { position:absolute; left:50%; top:50%; width:1px; height:1px; }
+.title-hero-screen__burst-orbs { position:absolute; inset:0; }
+.title-hero-screen__burst-orbs i { position:absolute; width:9px; height:9px; border-radius:50%; background:radial-gradient(circle, #fff7c8 0 14%, #f6c257 37%, rgba(234,164,44,.1) 72%); box-shadow:0 0 16px 4px rgba(250,198,79,.55); opacity:0; animation:title-orb-converge 10s cubic-bezier(.2,.7,.2,1) infinite; }
+.title-hero-screen__burst-orbs i:nth-child(1){--sx:-18vw;--sy:-10vh;left:8%;top:12%}.title-hero-screen__burst-orbs i:nth-child(2){--sx:19vw;--sy:-8vh;left:91%;top:15%;animation-delay:-.3s}.title-hero-screen__burst-orbs i:nth-child(3){--sx:-24vw;--sy:4vh;left:-4%;top:56%;animation-delay:-.6s}.title-hero-screen__burst-orbs i:nth-child(4){--sx:22vw;--sy:6vh;left:104%;top:55%;animation-delay:-.9s}.title-hero-screen__burst-orbs i:nth-child(5){--sx:-11vw;--sy:14vh;left:20%;top:96%;animation-delay:-1.2s}.title-hero-screen__burst-orbs i:nth-child(6){--sx:14vw;--sy:13vh;left:82%;top:94%;animation-delay:-1.5s}
 .title-hero-screen__burst-sparks i { position:absolute; width:4px; height:4px; border-radius:50%; background:#ffe4a1; box-shadow:0 0 8px #f7c75f; opacity:0; animation:title-spark-fall 10s ease-out infinite; }
+.title-hero-screen__golden-snow { position:absolute; inset:0; }
+.title-hero-screen__golden-snow i { position:absolute; top:-10px; width:3px; height:3px; border-radius:50%; background:#ffe8a4; box-shadow:0 0 7px #f1bd52; opacity:0; animation:title-golden-snow 10s linear infinite; }
+.title-hero-screen__golden-snow i:nth-child(1){left:7%;animation-delay:-.1s}.title-hero-screen__golden-snow i:nth-child(2){left:17%;animation-delay:-.7s}.title-hero-screen__golden-snow i:nth-child(3){left:29%;animation-delay:-1.3s}.title-hero-screen__golden-snow i:nth-child(4){left:39%;animation-delay:-1.9s}.title-hero-screen__golden-snow i:nth-child(5){left:51%;animation-delay:-2.5s}.title-hero-screen__golden-snow i:nth-child(6){left:63%;animation-delay:-3.1s}.title-hero-screen__golden-snow i:nth-child(7){left:73%;animation-delay:-3.7s}.title-hero-screen__golden-snow i:nth-child(8){left:83%;animation-delay:-4.3s}.title-hero-screen__golden-snow i:nth-child(9){left:92%;animation-delay:-4.9s}.title-hero-screen__golden-snow i:nth-child(10){left:46%;animation-delay:-5.5s}
 .title-hero-screen__burst-sparks i:nth-child(1){--x:-60px;--y:-34px;animation-delay:-.1s}.title-hero-screen__burst-sparks i:nth-child(2){--x:-33px;--y:-48px;animation-delay:-.18s}.title-hero-screen__burst-sparks i:nth-child(3){--x:28px;--y:-45px;animation-delay:-.26s}.title-hero-screen__burst-sparks i:nth-child(4){--x:60px;--y:-28px;animation-delay:-.34s}.title-hero-screen__burst-sparks i:nth-child(5){--x:-74px;--y:3px;animation-delay:-.42s}.title-hero-screen__burst-sparks i:nth-child(6){--x:74px;--y:5px;animation-delay:-.5s}.title-hero-screen__burst-sparks i:nth-child(7){--x:-22px;--y:34px;animation-delay:-.58s}.title-hero-screen__burst-sparks i:nth-child(8){--x:30px;--y:38px;animation-delay:-.66s}
 .title-hero-screen__vignette {
   z-index:1;
@@ -436,8 +443,11 @@ footer small { margin-left:auto; color:#71898b; }
   to { transform:translateX(7%) scale(1.08); }
 }
 @keyframes title-ray-in { 0%,67%,100%{opacity:0} 72%{opacity:.85} 78%{opacity:0} }
+@keyframes title-orb-converge { 0%,53%{opacity:0;transform:translate(var(--sx),var(--sy)) scale(.45)} 58%{opacity:.95} 75%{opacity:.9;transform:translate(0,0) scale(1.2)} 78%,100%{opacity:0;transform:translate(0,0) scale(.2)} }
 @keyframes title-core-flash { 0%,73%,100%{opacity:0;transform:translate(-50%,-50%) scale(.15)} 76%{opacity:1;transform:translate(-50%,-50%) scale(3.8)} 81%{opacity:0;transform:translate(-50%,-50%) scale(6)} }
 @keyframes title-spark-fall { 0%,76%{opacity:0;transform:translate(0,0) scale(.3)} 78%{opacity:1;transform:translate(calc(var(--x)*.55),calc(var(--y)*.55)) scale(1)} 90%{opacity:.65;transform:translate(var(--x),calc(var(--y) + 58px)) scale(.75)} 100%{opacity:0;transform:translate(var(--x),calc(var(--y) + 82px)) scale(.2)} }
+@keyframes title-screen-flash { 0%,75%,100%{opacity:0} 77%{opacity:.8} 81%{opacity:0} }
+@keyframes title-golden-snow { 0%,77%{opacity:0;transform:translate(0,-8px) scale(.5)} 80%{opacity:.9} 98%{opacity:.35;transform:translate(20px,390px) scale(1)} 100%{opacity:0;transform:translate(24px,410px) scale(.5)} }
 @keyframes title-feather-gust {
   0%, 66%, 100% { opacity:.08; transform:rotate(-3deg) translateX(-2%); }
   78% { opacity:.42; transform:rotate(4deg) translateX(8%); }

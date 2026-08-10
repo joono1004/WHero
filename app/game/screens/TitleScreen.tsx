@@ -11,7 +11,9 @@ export function TitleScreen({ onStart }: { onStart: () => void }) {
           <i className="title-hero-screen__ray title-hero-screen__ray--bottom" />
           <i className="title-hero-screen__ray title-hero-screen__ray--left" />
           <b className="title-hero-screen__burst-core" />
+          <span className="title-hero-screen__burst-orbs"><i /><i /><i /><i /><i /><i /></span>
           <span className="title-hero-screen__burst-sparks"><i /><i /><i /><i /><i /><i /><i /><i /></span>
+          <span className="title-hero-screen__golden-snow"><i /><i /><i /><i /><i /><i /><i /><i /><i /><i /></span>
         </div>
         <div className="title-hero-screen__hero-layer title-hero-screen__hero-layer--zhuge" aria-hidden="true" />
         <div className="title-hero-screen__hero-layer title-hero-screen__hero-layer--guan" aria-hidden="true" />
