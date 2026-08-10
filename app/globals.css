@@ -336,6 +336,7 @@ footer small { margin-left:auto; color:#71898b; }
     linear-gradient(180deg, rgba(245,238,223,.1), rgba(23,18,14,.08)),
     url("/art/title/title-heroes-c-premium-v3-no-labels.png") center center / cover no-repeat !important;
   will-change:transform;
+  display:none;
 }
 .title-hero-screen__hero-layer--zhuge { left:0 !important; top:0 !important; mask-image:radial-gradient(ellipse 12% 15% at 12% 48%, #000 32%, transparent 100%); animation:hero-fan 6.2s ease-in-out infinite; }
 .title-hero-screen__hero-layer--guan { left:0 !important; top:0 !important; mask-image:radial-gradient(ellipse 15% 18% at 16% 79%, #000 32%, transparent 100%); animation:hero-beard 6.8s ease-in-out infinite -2s; }
