@@ -5,8 +5,17 @@ export function TitleScreen({ onStart }: { onStart: () => void }) {
     <div className="title-hero-screen">
         <div className="title-hero-screen__art" aria-hidden="true" />
         <div className="title-hero-screen__vignette" aria-hidden="true" />
-        <div className="title-hero-screen__hero-sway title-hero-screen__hero-sway--left" aria-hidden="true" />
-        <div className="title-hero-screen__hero-sway title-hero-screen__hero-sway--right" aria-hidden="true" />
+        <div className="title-hero-screen__hero-layer title-hero-screen__hero-layer--zhuge" aria-hidden="true" />
+        <div className="title-hero-screen__hero-layer title-hero-screen__hero-layer--guan" aria-hidden="true" />
+        <div className="title-hero-screen__hero-layer title-hero-screen__hero-layer--zhang" aria-hidden="true" />
+        <div className="title-hero-screen__hero-layer title-hero-screen__hero-layer--liu" aria-hidden="true" />
+        <div className="title-hero-screen__hero-layer title-hero-screen__hero-layer--cao" aria-hidden="true" />
+        <div className="title-hero-screen__hero-layer title-hero-screen__hero-layer--yi" aria-hidden="true" />
+        <div className="title-hero-screen__hero-layer title-hero-screen__hero-layer--sejong" aria-hidden="true" />
+        <div className="title-hero-screen__hero-layer title-hero-screen__hero-layer--genghis" aria-hidden="true" />
+        <div className="title-hero-screen__hero-layer title-hero-screen__hero-layer--napoleon" aria-hidden="true" />
+        <div className="title-hero-screen__hero-layer title-hero-screen__hero-layer--joan" aria-hidden="true" />
+        <div className="title-hero-screen__hero-layer title-hero-screen__hero-layer--alexander" aria-hidden="true" />
         <div className="title-hero-screen__mist title-hero-screen__mist--left" aria-hidden="true" />
         <div className="title-hero-screen__mist title-hero-screen__mist--right" aria-hidden="true" />
         <div className="title-hero-screen__feather-gust" aria-hidden="true" />

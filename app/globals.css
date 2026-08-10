@@ -298,7 +298,6 @@ footer small { margin-left:auto; color:#71898b; }
     linear-gradient(180deg, rgba(24,18,14,.2), transparent 18%, transparent 82%, rgba(24,18,14,.2));
 }
 .title-hero-screen__mist,
-.title-hero-screen__hero-sway,
 .title-hero-screen__feather-gust,
 .title-hero-screen__blink,
 .title-hero-screen__dust {
@@ -306,22 +305,26 @@ footer small { margin-left:auto; color:#71898b; }
   z-index:1;
   pointer-events:none;
 }
-.title-hero-screen__hero-sway {
-  inset:0;
-  opacity:.98;
-  background:
-    linear-gradient(180deg, rgba(245,238,223,.1), rgba(23,18,14,.08)),
-    url("/art/title/title-heroes-c-premium-v2-no-button.png") center center / cover no-repeat;
-  transform-origin:bottom center;
-  animation:title-hero-sway 4.2s ease-in-out infinite;
+.title-hero-screen__hero-layer {
+  position:absolute;
+  z-index:1;
+  background:center bottom / contain no-repeat;
+  opacity:.16;
+  pointer-events:none;
+  transform-origin:50% 100%;
+  filter:sepia(.08) saturate(.88);
 }
-.title-hero-screen__hero-sway--left {
-  clip-path:polygon(0 0, 32% 0, 36% 38%, 33% 100%, 0 100%);
-}
-.title-hero-screen__hero-sway--right {
-  clip-path:polygon(69% 0, 100% 0, 100% 100%, 65% 100%, 68% 48%);
-  animation-delay:-2.1s;
-}
+.title-hero-screen__hero-layer--zhuge { left:0; top:1%; width:19%; height:60%; background-image:url("/art/title/heroes/zhuge-liang-v1.png"); animation:hero-fan 5.8s ease-in-out infinite; }
+.title-hero-screen__hero-layer--guan { left:0; top:29%; width:25%; height:69%; background-image:url("/art/title/heroes/guan-yu-v1.png"); animation:hero-beard 6.2s ease-in-out infinite; }
+.title-hero-screen__hero-layer--zhang { left:16%; top:1%; width:19%; height:55%; background-image:url("/art/title/heroes/zhang-fei-v1.png"); animation:hero-breath 4.6s ease-in-out infinite -1.3s; }
+.title-hero-screen__hero-layer--liu { left:20%; top:45%; width:20%; height:54%; background-image:url("/art/title/heroes/liu-bei-v1.png"); animation:hero-robe 6.8s ease-in-out infinite -2.1s; }
+.title-hero-screen__hero-layer--cao { left:30%; top:51%; width:16%; height:44%; background-image:url("/art/title/heroes/cao-cao-v1.png"); animation:hero-breath 5.4s ease-in-out infinite -3.3s; }
+.title-hero-screen__hero-layer--yi { left:79%; top:0; width:19%; height:49%; background-image:url("/art/title/heroes/yi-sun-sin-v1.png"); animation:hero-armor 5.7s ease-in-out infinite -1.1s; }
+.title-hero-screen__hero-layer--sejong { left:69%; top:27%; width:15%; height:45%; background-image:url("/art/title/heroes/king-sejong-v1.png"); animation:hero-breath 6.5s ease-in-out infinite -4.1s; }
+.title-hero-screen__hero-layer--genghis { left:64%; top:0; width:18%; height:46%; background-image:url("/art/title/heroes/genghis-khan-v1.png"); animation:hero-fur 5.2s ease-in-out infinite -2.7s; }
+.title-hero-screen__hero-layer--napoleon { left:75%; top:47%; width:17%; height:54%; background-image:url("/art/title/heroes/napoleon-v1.png"); animation:hero-cape 6.4s ease-in-out infinite -3.8s; }
+.title-hero-screen__hero-layer--joan { left:88%; top:55%; width:12%; height:45%; background-image:url("/art/title/heroes/joan-of-arc-v1.png"); animation:hero-armor 4.9s ease-in-out infinite -2.2s; }
+.title-hero-screen__hero-layer--alexander { left:61%; top:48%; width:16%; height:54%; background-image:url("/art/title/heroes/alexander-v1.png"); animation:hero-cape 5.9s ease-in-out infinite -4.4s; }
 .title-hero-screen__mist {
   top:17%;
   width:36%;
@@ -384,10 +387,13 @@ footer small { margin-left:auto; color:#71898b; }
   0%, 66%, 100% { opacity:.08; transform:rotate(-3deg) translateX(-2%); }
   78% { opacity:.42; transform:rotate(4deg) translateX(8%); }
 }
-@keyframes title-hero-sway {
-  0%, 100% { transform:translate3d(0, 0, 0) scale(1); }
-  48% { transform:translate3d(0, -2px, 0) scale(1.006); }
-}
+@keyframes hero-breath { 0%,100% { transform:translateY(0) scale(1); } 50% { transform:translateY(-2px) scale(1.012); } }
+@keyframes hero-fan { 0%,100% { transform:rotate(0deg) translateY(0); } 52% { transform:rotate(1deg) translateY(-2px); } }
+@keyframes hero-beard { 0%,100% { transform:translate(0,0) rotate(0); } 55% { transform:translate(1px,-2px) rotate(-.45deg); } }
+@keyframes hero-robe { 0%,100% { transform:translateX(0) scale(1); } 48% { transform:translateX(2px) scale(1.01); } }
+@keyframes hero-armor { 0%,100% { transform:translateY(0); filter:sepia(.08) saturate(.88) brightness(1); } 50% { transform:translateY(-2px); filter:sepia(.08) saturate(.98) brightness(1.12); } }
+@keyframes hero-fur { 0%,100% { transform:translateX(0) rotate(0); } 50% { transform:translateX(-2px) rotate(.4deg); } }
+@keyframes hero-cape { 0%,100% { transform:translate(0,0) rotate(0); } 50% { transform:translate(2px,-2px) rotate(-.35deg); } }
 @keyframes title-blink {
   0%, 84%, 100% { opacity:0; transform:scaleY(.15); }
   85%, 88% { opacity:.9; transform:scaleY(1); }
@@ -456,7 +462,7 @@ footer small { margin-left:auto; color:#71898b; }
 }
 @media (prefers-reduced-motion: reduce) {
   .title-hero-screen__mist,
-  .title-hero-screen__hero-sway,
+  .title-hero-screen__hero-layer,
   .title-hero-screen__feather-gust,
   .title-hero-screen__blink,
   .title-hero-screen__dust i,
