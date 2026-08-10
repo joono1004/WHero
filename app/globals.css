@@ -519,22 +519,27 @@ footer small { margin-left:auto; color:#71898b; }
 .hero-appointment-card--selected .hero-appointment-card__frame { filter:drop-shadow(0 0 7px rgba(247,204,90,.82)); }
 .hero-select-screen__cards > .hero-appointment-card:first-child { transform:translateX(18px); }
 .hero-select-screen__cards > .hero-appointment-card:last-child { transform:translateX(-18px); }
-.hero-detail-modal { position:absolute; z-index:20; inset:0; display:grid; place-items:center; padding:12px; background:rgba(9,5,2,.7); backdrop-filter:blur(2px); }
-.hero-detail-modal__panel { position:relative; width:min(100%,480px); max-height:calc(100% - 12px); overflow:auto; padding:17px 24px 15px; border:2px solid #9d722c; border-radius:5px; background:linear-gradient(135deg,rgba(61,31,10,.98),rgba(22,12,5,.98)),url("/art/hero-select-council-v1.png") center / cover; color:#f5e2b0; box-shadow:0 0 0 3px rgba(34,18,6,.85),0 16px 35px rgba(0,0,0,.62); }
-.hero-detail-modal__panel header { padding-right:22px; text-align:left; }
-.hero-detail-modal__panel header span { display:block; color:#d7b66c; font-family:"Malgun Gothic",sans-serif; font-size:10px; font-weight:800; letter-spacing:.08em; }
-.hero-detail-modal__panel h3 { margin:1px 0 0; color:#fff0c5; font-family:"Nanum Myeongjo","Batang",serif; font-size:24px; line-height:1.1; }
-.hero-detail-modal__panel h3 b { margin-left:5px; font-family:"Malgun Gothic",sans-serif; font-size:13px; vertical-align:middle; }
-.hero-detail-modal__close { position:absolute; top:7px; right:9px; width:23px; height:23px; padding:0 !important; border:1px solid #b68a3d !important; border-radius:50% !important; background:#351a08 !important; color:#f7dda1 !important; font-size:18px !important; line-height:18px; cursor:pointer; }
-.hero-detail-modal__description { margin:8px 0; color:#e5cf9a; font-family:"Malgun Gothic",sans-serif; font-size:11px; line-height:1.5; }
-.hero-detail-modal__stats { display:flex; justify-content:space-between; gap:5px; padding:7px 9px; border-top:1px solid rgba(229,187,96,.42); border-bottom:1px solid rgba(229,187,96,.42); background:rgba(13,7,2,.42); }
-.hero-detail-modal__stats span { display:flex; flex-direction:column; align-items:center; min-width:36px; }
-.hero-detail-modal__stats small { color:#c6a262; font-family:"Malgun Gothic",sans-serif; font-size:9px; font-weight:800; }
-.hero-detail-modal__stats b { margin-top:1px; font:900 17px Georgia,serif; }
-.hero-detail-modal__info { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:9px; }
-.hero-detail-modal__info h4 { margin:0 0 3px; color:#f4d892; font-size:12px; }
-.hero-detail-modal__info p { margin:0; color:#e8d1a1; font-family:"Malgun Gothic",sans-serif; font-size:9px; line-height:1.45; }
-.hero-detail-modal__info p b { color:#fff0bc; }
+.hero-detail-modal { position:absolute; z-index:20; inset:0; display:grid; place-items:center; padding:12px; background:radial-gradient(ellipse at center,rgba(35,20,7,.34),rgba(6,3,1,.82)); backdrop-filter:blur(4px); }
+.hero-detail-modal__panel { position:relative; width:min(100%,510px); max-height:calc(100% - 12px); overflow:auto; padding:16px 20px 17px; border:1px solid #c18a2d; border-radius:8px; background:linear-gradient(135deg,rgba(74,40,15,.98),rgba(33,17,6,.99) 54%,rgba(21,11,4,.99)); color:#f5e2b0; box-shadow:inset 0 0 0 2px rgba(255,217,130,.1),0 0 0 3px rgba(25,13,4,.9),0 20px 42px rgba(0,0,0,.7); }
+.hero-detail-modal__panel::before { content:""; position:absolute; pointer-events:none; inset:7px; border:1px solid rgba(240,190,83,.24); border-radius:4px; }
+.hero-detail-modal__panel header { position:relative; z-index:1; min-height:42px; padding:2px 42px 7px 12px; border-bottom:1px solid rgba(229,187,96,.4); text-align:left; }
+.hero-detail-modal__panel header::before { content:""; position:absolute; top:3px; bottom:8px; left:0; width:3px; border-radius:2px; background:linear-gradient(#f0ce76,#8e561e); box-shadow:0 0 8px rgba(242,200,99,.35); }
+.hero-detail-modal__panel header span { display:block; color:#e2bb63; font-family:"Malgun Gothic",sans-serif; font-size:10px; font-weight:800; letter-spacing:.1em; }
+.hero-detail-modal__panel h3 { margin:2px 0 0; color:#fff1c9; font-family:"Nanum Myeongjo","Batang",serif; font-size:25px; line-height:1; text-shadow:0 2px 2px rgba(0,0,0,.55); }
+.hero-detail-modal__panel h3 b { display:inline-block; margin-left:8px; padding:2px 6px; border:1px solid currentColor; border-radius:3px; background:rgba(8,9,12,.48); font-family:"Malgun Gothic",sans-serif; font-size:12px; line-height:1.1; vertical-align:middle; box-shadow:inset 0 0 8px rgba(255,255,255,.1); }
+.hero-detail-modal__close { position:absolute; z-index:2; top:13px; right:14px; width:25px; height:25px; padding:0 !important; border:1px solid #d3a449 !important; border-radius:50% !important; background:radial-gradient(circle at 35% 28%,#744518,#2d1606 70%) !important; color:#ffe5a5 !important; font-size:19px !important; line-height:20px; text-shadow:0 1px #1c0c02; box-shadow:inset 0 0 0 1px rgba(255,230,153,.18),0 2px 4px rgba(0,0,0,.45) !important; cursor:pointer; }
+.hero-detail-modal__close:hover { filter:brightness(1.18); transform:scale(1.06); }
+.hero-detail-modal__description { position:relative; z-index:1; margin:9px 0; padding:6px 10px; border:1px solid rgba(213,171,85,.24); border-left:3px solid rgba(230,189,100,.76); border-radius:3px; background:rgba(12,6,2,.34); color:#f0d9a5; font-family:"Malgun Gothic",sans-serif; font-size:10px; line-height:1.5; }
+.hero-detail-modal__stats { position:relative; z-index:1; display:grid; grid-template-columns:repeat(5,1fr); gap:0; padding:4px 0; border:1px solid rgba(226,181,86,.46); border-radius:4px; background:linear-gradient(180deg,rgba(10,5,1,.62),rgba(47,24,7,.5)); }
+.hero-detail-modal__stats span { position:relative; display:flex; flex-direction:column; align-items:center; min-width:0; padding:2px 3px 3px; }
+.hero-detail-modal__stats span + span::before { content:""; position:absolute; top:6px; bottom:5px; left:0; width:1px; background:rgba(226,181,86,.28); }
+.hero-detail-modal__stats small { color:#d9b76f; font-family:"Malgun Gothic",sans-serif; font-size:9px; font-weight:900; letter-spacing:.04em; }
+.hero-detail-modal__stats b { margin-top:1px; font:900 18px Georgia,serif; line-height:1; text-shadow:0 2px 2px rgba(0,0,0,.65); }
+.hero-detail-modal__info { position:relative; z-index:1; display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:9px; }
+.hero-detail-modal__info > div { min-width:0; padding:7px 9px; border:1px solid rgba(217,174,83,.28); border-radius:4px; background:linear-gradient(135deg,rgba(99,58,20,.26),rgba(12,6,2,.28)); }
+.hero-detail-modal__info h4 { margin:0 0 4px; padding-bottom:3px; border-bottom:1px solid rgba(225,181,85,.24); color:#f5d78e; font-family:"Malgun Gothic",sans-serif; font-size:11px; letter-spacing:.08em; }
+.hero-detail-modal__info p { margin:0; color:#ead3a0; font-family:"Malgun Gothic",sans-serif; font-size:9px; line-height:1.5; }
+.hero-detail-modal__info p b { color:#fff0bc; font-size:10px; }
 .title-hero-screen__art,
 .title-hero-screen__vignette {
   position:absolute;
