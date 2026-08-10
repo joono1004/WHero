@@ -3,9 +3,17 @@
 import type { KeyboardEvent } from "react";
 import { heroArchetype, heroOverallGrade } from "../../lib/game/hero-definition.ts";
 import type { HeroDefinition } from "../../lib/game/hero-definition.ts";
-import { GRADE_COLOR } from "./gradeColors.ts";
 import { ARCHETYPE_LABEL, UNIT_TYPE_LABEL } from "./heroLabels.ts";
 import { HERO_PORTRAIT } from "./heroPortraits.ts";
+
+const GRADE_BADGE: Record<ReturnType<typeof heroOverallGrade>, string> = {
+  SS: "/art/heroes/grades/grade-ss.svg",
+  S: "/art/heroes/grades/grade-s.svg",
+  A: "/art/heroes/grades/grade-a.svg",
+  B: "/art/heroes/grades/grade-b.svg",
+  C: "/art/heroes/grades/grade-c.svg",
+  D: "/art/heroes/grades/grade-d.svg",
+};
 
 const UNIT_EMBLEM: Record<HeroDefinition["unitType"], string> = {
   cavalry: "/art/units/cavalry-emblem-v4.webp",
@@ -63,10 +71,11 @@ export function HeroCard({
       {/* The class emblem belongs to the portrait, so it remains visible even when the plaque is read at a glance. */}
       <img className="hero-appointment-card__unit-emblem" src={UNIT_EMBLEM[hero.unitType]} alt={`${UNIT_TYPE_LABEL[hero.unitType]} 병과`} />
       <div className="hero-appointment-card__frame" aria-hidden="true" />
+      <div className="hero-appointment-card__grade-slot" aria-hidden="true" />
+      <img className="hero-appointment-card__grade-image" src={GRADE_BADGE[grade]} alt={`${grade}등급`} />
       <div className="hero-appointment-card__nameplate">
         <div className="hero-appointment-card__name-row">
           <h3>{hero.name}</h3>
-          <b className="hero-appointment-card__grade-medal" data-grade={grade} style={{ color: GRADE_COLOR[grade] }}>{grade}</b>
         </div>
         <p>{ARCHETYPE_LABEL[archetype]}</p>
         <button

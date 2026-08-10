@@ -413,7 +413,7 @@ footer small { margin-left:auto; color:#71898b; }
 }
 .hero-select-screen__button {
   position:absolute;
-  top:7px;
+  top:9px;
   padding:0 !important;
   border:0 !important;
   border-radius:0 !important;
@@ -509,13 +509,8 @@ footer small { margin-left:auto; color:#71898b; }
 .hero-appointment-card__unit-emblem { position:absolute; z-index:3; top:15%; left:16%; width:24px; height:24px; object-fit:contain; filter:drop-shadow(0 1px 1px rgba(38,18,3,.78)); }
 .hero-appointment-card__name-row { position:relative; min-height:24px; padding-top:3px; }
 .hero-appointment-card__nameplate h3 { position:absolute; left:50%; margin:0; color:#1d1007; font-family:"Malgun Gothic","Noto Sans KR",sans-serif; font-size:17px; line-height:1; font-weight:900; letter-spacing:.04em; white-space:nowrap; transform:translateX(-50%); -webkit-text-stroke:.45px rgba(29,16,7,.85); text-shadow:0 1px 0 rgba(255,247,210,.86), 0 1px 2px rgba(72,40,10,.38); }
-.hero-appointment-card__grade-medal { position:absolute; top:-13px; right:-4px; display:grid; place-items:center; width:24px; height:24px; border:1.5px solid #718a9a; border-radius:4px; background:linear-gradient(145deg,#2a3c49,#101b24); box-shadow:inset 0 0 0 1px rgba(205,228,239,.15),0 1px 2px rgba(14,7,2,.72); font-family:"Malgun Gothic",sans-serif; font-size:13px; font-weight:900; line-height:1; letter-spacing:-.06em; text-shadow:0 1px 2px rgba(0,0,0,.95),0 0 5px currentColor; -webkit-text-stroke:.15px rgba(0,0,0,.65); }
-.hero-appointment-card__grade-medal[data-grade="D"] { border-color:#9aa5a3; }
-.hero-appointment-card__grade-medal[data-grade="C"] { border-color:#7bc47f; }
-.hero-appointment-card__grade-medal[data-grade="B"] { border-color:#6ea8e0; }
-.hero-appointment-card__grade-medal[data-grade="A"] { border-color:#b98cf0; }
-.hero-appointment-card__grade-medal[data-grade="S"] { border-color:#f0c419; }
-.hero-appointment-card__grade-medal[data-grade="SS"] { border-color:#ff6b57; }
+.hero-appointment-card__grade-slot { position:absolute; z-index:3; top:10.5%; right:9.5%; width:33px; height:43px; background:url("/art/heroes/hero-grade-slot-v1.png") center / 112% 112% no-repeat; filter:drop-shadow(0 1px 1px rgba(27,12,2,.76)); pointer-events:none; }
+.hero-appointment-card__grade-image { position:absolute; z-index:4; top:13.4%; right:12.8%; width:22px; height:25px; object-fit:contain; filter:drop-shadow(0 1px 1px rgba(0,0,0,.72)); pointer-events:none; }
 .hero-appointment-card__nameplate p { margin:3px 0 0; color:#70441a; font-family:"Malgun Gothic",sans-serif; font-size:10px; font-weight:900; letter-spacing:.025em; text-shadow:0 1px 0 rgba(255,247,210,.8); }
 .hero-appointment-card__details { position:absolute; z-index:4; right:-1px; bottom:-3px; display:grid; place-items:center; width:24px; height:24px; padding:0 !important; border:1px solid rgba(80,50,17,.78) !important; border-radius:50% !important; background:linear-gradient(145deg,#72502b,#30200f) !important; color:#f9df9b !important; font-family:Georgia,"Malgun Gothic",serif; font-size:14px !important; line-height:1; font-weight:900 !important; text-shadow:0 1px #241103; box-shadow:inset 0 0 0 1px rgba(255,220,137,.23),0 1px 1px rgba(42,20,3,.45) !important; cursor:pointer; }
 .hero-appointment-card__details:hover { filter:brightness(1.2); }
