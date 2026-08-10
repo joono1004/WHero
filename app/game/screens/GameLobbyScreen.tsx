@@ -123,6 +123,7 @@ export function GameLobbyScreen({
   const [heroScreenInitialId, setHeroScreenInitialId] = useState<string | null>(null);
   const [showResearch, setShowResearch] = useState(false);
   const [showTroops, setShowTroops] = useState(false);
+  const [systemMenuOpen, setSystemMenuOpen] = useState(false);
   const railRef = useRef<HTMLDivElement>(null);
 
   const playerFaction = save.factions[PLAYER_FACTION_ID];
@@ -260,13 +261,7 @@ export function GameLobbyScreen({
     <ScreenShell
       className="game-lobby-shell"
       header={
-        <div
-          className="grid grid-cols-[auto_1fr_auto] items-center gap-2 rounded-md p-1.5"
-          style={{
-            border: "1px solid rgba(215,183,101,0.3)",
-            backgroundImage: "linear-gradient(180deg, rgba(215,183,101,0.14), rgba(215,183,101,0.02))",
-          }}
-        >
+        <div className="lobby-header grid grid-cols-[auto_1fr_auto] items-center gap-2">
           {/* 세력명 블록 (2026-08-06 재배치): 대표 영웅 초상 + 이름/정복세계
               뱃지 + 칭호 3줄. 대표 영웅은 지금은 항상 heroes[0](최초 선택한
               영웅, entries가 save.heroes 순서를 그대로 보존하므로 안전) -
@@ -274,11 +269,11 @@ export function GameLobbyScreen({
               보여줄 영웅 + 테두리를 직접 고르는 시스템을 만들 예정(아직
               미착수, 지금은 클릭해도 안내만 뜸). 칭호도 마찬가지로 아직
               실제 시스템은 없는 placeholder. */}
-          <div className="flex shrink-0 items-center gap-1.5">
+          <div className="lobby-header__faction flex shrink-0 items-center gap-1.5">
             <button
               onClick={() => window.alert("아직 준비 중인 기능입니다.")}
               aria-label="대표 영웅 초상 선택"
-              className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full text-base"
+              className="lobby-header__representative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden text-base"
               style={{ border: "2px solid #d7b765", backgroundColor: "#0b2028", backgroundImage: "none", padding: 0, cursor: "pointer" }}
             >
               {representativePortraitUrl ? (
@@ -304,16 +299,15 @@ export function GameLobbyScreen({
             </div>
           </div>
 
-          <span className="justify-self-center text-base font-bold tracking-wide whitespace-nowrap text-[#f3dfaa]">
-            Hero Story
-          </span>
+          {/* eslint-disable-next-line @next/next/no-img-element -- cropped local title artwork */}
+          <img className="lobby-header__logo justify-self-center" src="/art/lobby/title-logo-v1.png" alt="영웅스토리" />
 
           {/* 자원 줄 (2026-08-06 재배치): 가로 폭을 넓게 써서 목재/철광/
               금화/보석 순으로 펼쳐 보여주고, 보석 옆에 구매용 [+] -
               실제 상점/과금 연동은 미구현이라 눌러도 안내만 뜸. 오른쪽
               끝에 우편/알림(둘 다 신규 개념, 시스템 없음)·설정·닫기. */}
-          <div className="flex items-center justify-self-end gap-2">
-            <div className="flex items-center gap-1">
+          <div className="lobby-header__right flex items-center justify-self-end gap-2">
+            <div className="lobby-header__resources flex items-center gap-1">
               {RESOURCE_CHIPS.map(({ key, icon, tint }) => (
                 <span
                   key={key}
@@ -338,7 +332,25 @@ export function GameLobbyScreen({
                 +
               </button>
             </div>
-            <div className="flex shrink-0 gap-1">
+            <div className="lobby-header__utility flex shrink-0 gap-1">
+              <div className="lobby-system-menu">
+                <button
+                  type="button"
+                  className="lobby-system-menu__trigger"
+                  onClick={() => setSystemMenuOpen((open) => !open)}
+                  aria-label="시스템 메뉴"
+                  aria-expanded={systemMenuOpen}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element -- local generated UI artwork */}
+                  <img src="/art/lobby/system-menu-icon-v1.png" alt="" />
+                </button>
+                {systemMenuOpen ? (
+                  <div className="lobby-system-menu__popup">
+                    <button type="button" onClick={() => { setSystemMenuOpen(false); onSettings(); }}>설정</button>
+                    <button type="button" className="lobby-system-menu__exit" onClick={onExitToMenu}>나가기</button>
+                  </div>
+                ) : null}
+              </div>
               <Button size="sm" variant="secondary" onClick={() => window.alert("아직 준비 중인 기능입니다.")}>
                 ✉️
               </Button>
