@@ -298,12 +298,29 @@ footer small { margin-left:auto; color:#71898b; }
     linear-gradient(180deg, rgba(24,18,14,.2), transparent 18%, transparent 82%, rgba(24,18,14,.2));
 }
 .title-hero-screen__mist,
+.title-hero-screen__hero-sway,
 .title-hero-screen__feather-gust,
 .title-hero-screen__blink,
 .title-hero-screen__dust {
   position:absolute;
   z-index:1;
   pointer-events:none;
+}
+.title-hero-screen__hero-sway {
+  inset:0;
+  opacity:.98;
+  background:
+    linear-gradient(180deg, rgba(245,238,223,.1), rgba(23,18,14,.08)),
+    url("/art/title/title-heroes-c-premium-v2-no-button.png") center center / cover no-repeat;
+  transform-origin:bottom center;
+  animation:title-hero-sway 4.2s ease-in-out infinite;
+}
+.title-hero-screen__hero-sway--left {
+  clip-path:polygon(0 0, 32% 0, 36% 38%, 33% 100%, 0 100%);
+}
+.title-hero-screen__hero-sway--right {
+  clip-path:polygon(69% 0, 100% 0, 100% 100%, 65% 100%, 68% 48%);
+  animation-delay:-2.1s;
 }
 .title-hero-screen__mist {
   top:17%;
@@ -337,8 +354,8 @@ footer small { margin-left:auto; color:#71898b; }
   transform:scaleY(.15);
   animation:title-blink 7.8s steps(1,end) infinite;
 }
-.title-hero-screen__blink--zhuge { left:6.7%; top:14.9%; }
-.title-hero-screen__blink--genghis { left:72.6%; top:13.4%; animation-delay:-3.1s; }
+.title-hero-screen__blink--zhuge { left:7%; top:16.5%; }
+.title-hero-screen__blink--genghis { left:77.7%; top:19%; animation-delay:-1.7s; }
 .title-hero-screen__dust {
   inset:0;
   overflow:hidden;
@@ -367,9 +384,13 @@ footer small { margin-left:auto; color:#71898b; }
   0%, 66%, 100% { opacity:.08; transform:rotate(-3deg) translateX(-2%); }
   78% { opacity:.42; transform:rotate(4deg) translateX(8%); }
 }
+@keyframes title-hero-sway {
+  0%, 100% { transform:translate3d(0, 0, 0) scale(1); }
+  48% { transform:translate3d(0, -2px, 0) scale(1.006); }
+}
 @keyframes title-blink {
-  0%, 93%, 100% { opacity:0; transform:scaleY(.15); }
-  94%, 96% { opacity:.9; transform:scaleY(1); }
+  0%, 84%, 100% { opacity:0; transform:scaleY(.15); }
+  85%, 88% { opacity:.9; transform:scaleY(1); }
 }
 @keyframes title-dust-rise {
   0% { opacity:0; transform:translate3d(0, 10px, 0) scale(.6); }
@@ -435,6 +456,7 @@ footer small { margin-left:auto; color:#71898b; }
 }
 @media (prefers-reduced-motion: reduce) {
   .title-hero-screen__mist,
+  .title-hero-screen__hero-sway,
   .title-hero-screen__feather-gust,
   .title-hero-screen__blink,
   .title-hero-screen__dust i,
