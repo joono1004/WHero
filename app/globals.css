@@ -348,6 +348,24 @@ footer small { margin-left:auto; color:#71898b; }
 .title-hero-screen__hero-layer--napoleon { left:0 !important; top:0 !important; mask-image:radial-gradient(ellipse 15% 29% at 82% 69%, #000 42%, transparent 100%); animation:hero-cape 7s ease-in-out infinite -1s; }
 .title-hero-screen__hero-layer--joan { left:0 !important; top:0 !important; mask-image:radial-gradient(ellipse 12% 28% at 94% 72%, #000 42%, transparent 100%); animation:hero-armor 6.3s ease-in-out infinite -5s; }
 .title-hero-screen__hero-layer--alexander { left:0 !important; top:0 !important; mask-image:radial-gradient(ellipse 15% 29% at 70% 70%, #000 42%, transparent 100%); animation:hero-cape 6.7s ease-in-out infinite -4s; }
+.title-hero-screen__nameplates {
+  position:absolute;
+  inset:0;
+  z-index:2;
+  pointer-events:none;
+  background:url("/art/title/title-heroes-c-premium-v2-no-button.png") center center / cover no-repeat;
+  mask-image:
+    radial-gradient(ellipse 2.8% 8% at 3% 17%, #000 62%, transparent 100%),
+    radial-gradient(ellipse 2.8% 8% at 28% 17%, #000 62%, transparent 100%),
+    radial-gradient(ellipse 2.8% 8% at 5% 52%, #000 62%, transparent 100%),
+    radial-gradient(ellipse 2.8% 8% at 23% 75%, #000 62%, transparent 100%),
+    radial-gradient(ellipse 2.8% 8% at 79% 16%, #000 62%, transparent 100%),
+    radial-gradient(ellipse 2.8% 8% at 95% 17%, #000 62%, transparent 100%),
+    radial-gradient(ellipse 2.8% 8% at 80% 42%, #000 62%, transparent 100%),
+    radial-gradient(ellipse 2.8% 8% at 72% 81%, #000 62%, transparent 100%),
+    radial-gradient(ellipse 2.8% 8% at 79% 73%, #000 62%, transparent 100%),
+    radial-gradient(ellipse 2.8% 8% at 95% 80%, #000 62%, transparent 100%);
+}
 .title-hero-screen__mist {
   top:17%;
   width:36%;
