@@ -57,10 +57,10 @@ const MAP_TYPE_TINT: Record<MapTypeId, string> = {
 // bar instead of a plain text line. Order (목재/광석/금화/보석) matches the
 // user's most recent header spec, not the FactionResources field order.
 const RESOURCE_CHIPS: { key: "wood" | "iron" | "gold" | "gem"; icon: string; label: string; tint: string }[] = [
-  { key: "wood", icon: "🪵", label: "목재", tint: "#a97c50" },
-  { key: "iron", icon: "⛏️", label: "철광", tint: "#9aa5a3" },
-  { key: "gold", icon: "🪙", label: "금화", tint: "#d7b765" },
-  { key: "gem", icon: "💎", label: "보석", tint: "#c17be0" },
+  { key: "wood", icon: "/art/lobby/resources/wood-v1.png", label: "목재", tint: "#a97c50" },
+  { key: "iron", icon: "/art/lobby/resources/iron-v1.png", label: "철광", tint: "#9aa5a3" },
+  { key: "gold", icon: "/art/lobby/resources/gold-v1.png", label: "금화", tint: "#d7b765" },
+  { key: "gem", icon: "/art/lobby/resources/gem-v1.png", label: "보석", tint: "#c17be0" },
 ];
 
 // "458.6K" style compact formatting for the header resource bar (2026-08-06
@@ -308,19 +308,15 @@ export function GameLobbyScreen({
               끝에 우편/알림(둘 다 신규 개념, 시스템 없음)·설정·닫기. */}
           <div className="lobby-header__right flex items-center justify-self-end gap-2">
             <div className="lobby-header__resources flex items-center gap-1">
-              {RESOURCE_CHIPS.map(({ key, icon, tint }) => (
+              {RESOURCE_CHIPS.map(({ key, icon, label, tint }) => (
                 <span
                   key={key}
-                  className="flex items-center gap-1 rounded-full py-0.5 pr-1.5 pl-0.5 text-[9px] font-bold"
+                  className="lobby-header__resource flex items-center gap-1 rounded-full py-0.5 pr-1.5 pl-0.5 text-[9px] font-bold"
                   style={{ border: `1px solid ${tint}66`, backgroundColor: `${tint}14`, color: tint }}
                 >
-                  <span
-                    className="flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full text-[9px]"
-                    style={{ backgroundColor: `${tint}33`, border: `1px solid ${tint}` }}
-                  >
-                    {icon}
-                  </span>
-                  <span className="whitespace-nowrap">{formatResourceAmount(resources?.[key] ?? 0)}</span>
+                  {/* eslint-disable-next-line @next/next/no-img-element -- local generated resource artwork */}
+                  <img className="lobby-header__resource-icon" src={icon} alt={`${label} 아이콘`} />
+                  <span className="lobby-header__resource-amount">{formatResourceAmount(resources?.[key] ?? 0)}</span>
                 </span>
               ))}
               <button
