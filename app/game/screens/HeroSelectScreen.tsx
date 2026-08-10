@@ -4,7 +4,6 @@ import { useState } from "react";
 import { STARTING_HEROES } from "../../../lib/game/starting-heroes.ts";
 import { Button } from "../Button.tsx";
 import { HeroCard } from "../HeroCard.tsx";
-import { ScreenShell } from "../ScreenShell.tsx";
 
 export function HeroSelectScreen({
   onConfirm,
@@ -16,20 +15,11 @@ export function HeroSelectScreen({
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   return (
-    <ScreenShell
-      header={<h2 className="text-lg font-bold text-[#f3dfaa]">영웅을 선택하세요</h2>}
-      footer={
-        <div className="flex justify-center gap-3">
-          <Button variant="secondary" size="sm" onClick={onBack}>
-            뒤로
-          </Button>
-          <Button size="sm" onClick={() => selectedId && onConfirm(selectedId)} disabled={!selectedId}>
-            이 영웅으로 시작
-          </Button>
-        </div>
-      }
-    >
-      <div className="grid grid-cols-3 gap-2 pb-1">
+    <div className="hero-select-screen">
+      <header className="hero-select-screen__header">
+        <h2 className="text-lg font-bold text-[#f3dfaa]">영웅을 선택하세요</h2>
+      </header>
+      <div className="hero-select-screen__cards">
         {STARTING_HEROES.map((hero) => (
           <HeroCard
             key={hero.id}
@@ -39,6 +29,14 @@ export function HeroSelectScreen({
           />
         ))}
       </div>
-    </ScreenShell>
+      <footer className="hero-select-screen__footer">
+        <Button variant="secondary" size="sm" onClick={onBack}>
+          뒤로
+        </Button>
+        <Button size="sm" onClick={() => selectedId && onConfirm(selectedId)} disabled={!selectedId}>
+          이 영웅으로 시작
+        </Button>
+      </footer>
+    </div>
   );
 }
