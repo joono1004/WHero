@@ -18,11 +18,11 @@ export function MainMenuScreen({
       <div className="main-menu-screen__content">
         <h2 className="mb-2 text-lg font-bold text-[#f3dfaa]">메인 메뉴</h2>
         {hasSave ? (
-          <Button className="main-menu-screen__button" size="sm" onClick={onContinue}>
+          <Button className="main-menu-screen__button main-menu-screen__button--primary" size="sm" onClick={onContinue}>
             이어하기
           </Button>
         ) : (
-          <Button className="main-menu-screen__button" size="sm" onClick={onNewGame}>
+          <Button className="main-menu-screen__button main-menu-screen__button--primary" size="sm" onClick={onNewGame}>
             새 게임
           </Button>
         )}
