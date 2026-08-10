@@ -404,7 +404,7 @@ footer small { margin-left:auto; color:#71898b; }
   padding:4px 16px 7px;
   display:flex;
   justify-content:center;
-  gap:12px;
+  gap:10px;
   border:0;
   background:transparent;
   color:inherit;
@@ -425,7 +425,7 @@ footer small { margin-left:auto; color:#71898b; }
 }
 .hero-select-screen__button--back {
   --hero-action-offset:0px;
-  width:212px;
+  width:106px;
   height:40px;
   font-size:15px !important;
   background:transparent url("/art/menu-war-room-button-v1.png") center / 138% 138% no-repeat !important;
@@ -441,8 +441,9 @@ footer small { margin-left:auto; color:#71898b; }
 .hero-select-screen__button:active:not(:disabled) { transform:translateX(var(--hero-action-offset, 0)) translateY(2px) scale(.98); filter:brightness(.83); }
 .hero-select-screen__button:focus-visible { outline:2px solid #f4d77f; outline-offset:2px; }
 .hero-select-card { will-change:transform; }
-.hero-select-card:hover { transform:translateY(-2px); filter:brightness(1.08); }
-.hero-select-card--selected:hover { transform:translateY(-5px) scale(1.012) !important; }
+.hero-select-card:hover { filter:brightness(1.08); }
+.hero-select-card--selected,
+.hero-select-card--selected:hover { transform:none !important; }
 .hero-select-screen .hero-select-card .text-\[\#8fa6a8\] { color:#b9a98e; }
 .hero-select-screen .hero-select-card .text-\[\#c0cbc7\] { color:#dfd0b3; }
 .title-hero-screen__art,

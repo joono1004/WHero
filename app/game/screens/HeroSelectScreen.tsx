@@ -30,15 +30,12 @@ export function HeroSelectScreen({
         ))}
       </div>
       <footer className="hero-select-screen__footer">
-        {selectedId ? (
-          <Button className="hero-select-screen__button hero-select-screen__button--confirm" size="sm" onClick={() => onConfirm(selectedId)}>
-            이 영웅으로 시작
-          </Button>
-        ) : (
-          <Button className="hero-select-screen__button hero-select-screen__button--back" variant="secondary" size="sm" onClick={onBack}>
-            뒤로
-          </Button>
-        )}
+        <Button className="hero-select-screen__button hero-select-screen__button--back" variant="secondary" size="sm" onClick={onBack}>
+          뒤로
+        </Button>
+        <Button className="hero-select-screen__button hero-select-screen__button--confirm" size="sm" onClick={() => selectedId && onConfirm(selectedId)} disabled={!selectedId}>
+          이 영웅으로 시작
+        </Button>
       </footer>
     </div>
   );
