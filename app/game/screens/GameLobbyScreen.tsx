@@ -258,6 +258,7 @@ export function GameLobbyScreen({
 
   return (
     <ScreenShell
+      className="game-lobby-shell"
       header={
         <div
           className="grid grid-cols-[auto_1fr_auto] items-center gap-2 rounded-md p-1.5"

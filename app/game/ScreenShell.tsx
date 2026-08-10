@@ -12,13 +12,15 @@ export function ScreenShell({
   header,
   footer,
   children,
+  className = "",
 }: {
   header?: ReactNode;
   footer?: ReactNode;
   children: ReactNode;
+  className?: string;
 }) {
   return (
-    <div className="flex h-full flex-col bg-[#10272e] text-[#f2ead9]">
+    <div className={`flex h-full flex-col bg-[#10272e] text-[#f2ead9] ${className}`}>
       {header && <div className="shrink-0 px-4 pt-3 pb-2 text-center">{header}</div>}
       <div className="flex-1 overflow-y-auto px-4">{children}</div>
       {footer && <div className="shrink-0 px-4 py-3">{footer}</div>}

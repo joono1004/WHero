@@ -540,6 +540,8 @@ footer small { margin-left:auto; color:#71898b; }
 .hero-detail-modal__info h4 { margin:0 0 4px; padding-bottom:3px; border-bottom:1px solid rgba(225,181,85,.24); color:#f5d78e; font-family:"Malgun Gothic",sans-serif; font-size:11px; letter-spacing:.08em; }
 .hero-detail-modal__info p { margin:0; color:#ead3a0; font-family:"Malgun Gothic",sans-serif; font-size:9px; line-height:1.5; }
 .hero-detail-modal__info p b { color:#fff0bc; font-size:10px; }
+.game-lobby-shell { position:relative; isolation:isolate; background:url("/art/lobby-campaign-table-v1.png") center / cover no-repeat !important; }
+.game-lobby-shell > * { position:relative; z-index:1; }
 .title-hero-screen__art,
 .title-hero-screen__vignette {
   position:absolute;
