@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Button } from "../Button.tsx";
-import { ScreenShell } from "../ScreenShell.tsx";
 
 const MIN_LENGTH = 2;
 const MAX_LENGTH = 12;
@@ -34,19 +33,8 @@ export function FactionNameScreen({
   const isValid = trimmed.length >= MIN_LENGTH && trimmed.length <= MAX_LENGTH;
 
   return (
-    <ScreenShell
-      footer={
-        <div className="flex justify-center gap-3">
-          <Button variant="secondary" onClick={onBack}>
-            뒤로
-          </Button>
-          <Button onClick={() => isValid && onSubmit(trimmed)} disabled={!isValid}>
-            다음
-          </Button>
-        </div>
-      }
-    >
-      <div className="faction-charter-screen flex h-full flex-col items-center justify-center gap-3">
+    <div className="faction-charter-screen">
+      <div className="faction-charter-screen__content">
         <h2 className="text-lg font-bold text-[#f3dfaa]">세력명을 입력하세요</h2>
         <div className="relative w-64">
           <input
@@ -93,6 +81,22 @@ export function FactionNameScreen({
           {name.length > 0 && !isValid ? `${MIN_LENGTH}~${MAX_LENGTH}자로 입력해주세요` : ""}
         </p>
       </div>
-    </ScreenShell>
+      <div className="faction-charter-screen__actions">
+        <Button
+          className="faction-charter-screen__button faction-charter-screen__button--back"
+          variant="secondary"
+          onClick={onBack}
+        >
+          이전
+        </Button>
+        <Button
+          className="faction-charter-screen__button faction-charter-screen__button--create"
+          onClick={() => isValid && onSubmit(trimmed)}
+          disabled={!isValid}
+        >
+          세력 생성
+        </Button>
+      </div>
+    </div>
   );
 }
