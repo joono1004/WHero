@@ -288,7 +288,7 @@ footer small { margin-left:auto; color:#71898b; }
 .title-hero-screen__art {
   background:
     linear-gradient(180deg, rgba(245,238,223,.1), rgba(23,18,14,.08)),
-    url("/art/title/title-heroes-c-premium-v2-no-button.png") center center / cover no-repeat;
+    url("/art/title/title-heroes-c-premium-v3-no-labels.png") center center / cover no-repeat;
 }
 .title-hero-screen__vignette {
   z-index:1;
@@ -334,7 +334,7 @@ footer small { margin-left:auto; color:#71898b; }
   opacity:1;
   background:
     linear-gradient(180deg, rgba(245,238,223,.1), rgba(23,18,14,.08)),
-    url("/art/title/title-heroes-c-premium-v2-no-button.png") center center / cover no-repeat !important;
+    url("/art/title/title-heroes-c-premium-v3-no-labels.png") center center / cover no-repeat !important;
   will-change:transform;
 }
 .title-hero-screen__hero-layer--zhuge { left:0 !important; top:0 !important; mask-image:radial-gradient(ellipse 10% 24% at 10% 25%, #000 36%, transparent 100%); animation:hero-fan 6.2s ease-in-out infinite; }

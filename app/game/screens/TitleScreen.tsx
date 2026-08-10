@@ -16,7 +16,6 @@ export function TitleScreen({ onStart }: { onStart: () => void }) {
         <div className="title-hero-screen__hero-layer title-hero-screen__hero-layer--napoleon" aria-hidden="true" />
         <div className="title-hero-screen__hero-layer title-hero-screen__hero-layer--joan" aria-hidden="true" />
         <div className="title-hero-screen__hero-layer title-hero-screen__hero-layer--alexander" aria-hidden="true" />
-        <div className="title-hero-screen__nameplates" aria-hidden="true" />
         <div className="title-hero-screen__mist title-hero-screen__mist--left" aria-hidden="true" />
         <div className="title-hero-screen__mist title-hero-screen__mist--right" aria-hidden="true" />
         <div className="title-hero-screen__feather-gust" aria-hidden="true" />
