@@ -301,7 +301,7 @@ footer small { margin-left:auto; color:#71898b; }
   position:relative;
   z-index:1;
   height:100%;
-  padding:42px 16px 70px;
+  padding:34px 16px 136px;
   display:flex;
   flex-direction:column;
   align-items:center;
@@ -311,9 +311,10 @@ footer small { margin-left:auto; color:#71898b; }
 .faction-charter-screen__welcome {
   width:min(430px,72%);
   margin:0;
-  color:#634323;
+  color:#3f2412;
   font-family:Georgia,"Nanum Myeongjo","Malgun Gothic",serif;
   font-size:14px;
+  font-weight:700;
   line-height:1.62;
   letter-spacing:.035em;
   text-align:center;
@@ -323,10 +324,10 @@ footer small { margin-left:auto; color:#71898b; }
 .faction-charter-screen__heading {
   max-width:500px;
   margin:9px 0 3px;
-  color:#442714;
+  color:#2e170a;
   font-family:Georgia,"Nanum Myeongjo","Malgun Gothic",serif;
   font-size:19px;
-  font-weight:700;
+  font-weight:800;
   letter-spacing:.035em;
   line-height:1.35;
   text-align:center;
@@ -337,12 +338,13 @@ footer small { margin-left:auto; color:#71898b; }
   position:absolute;
   z-index:2;
   right:0;
-  bottom:20px;
+  bottom:12px;
   left:0;
   display:flex;
   align-items:center;
+  flex-direction:column;
   justify-content:center;
-  gap:18px;
+  gap:0;
 }
 .faction-charter-screen__button {
   height:52px;
@@ -359,11 +361,14 @@ footer small { margin-left:auto; color:#71898b; }
   transition:transform .15s ease,filter .15s ease,opacity .15s ease;
 }
 .faction-charter-screen__button--back {
-  width:156px;
-  background:transparent url("/art/title/title-start-button-v1.png") center / 132% 132% no-repeat !important;
+  width:178px;
+  height:44px;
+  font-size:14px !important;
+  background:transparent url("/art/menu-war-room-button-v1.png") center / 138% 138% no-repeat !important;
 }
 .faction-charter-screen__button--create {
-  width:198px;
+  width:204px;
+  height:52px;
   background:transparent url("/art/faction-create-button-v1.png") center / 126% 126% no-repeat !important;
 }
 .faction-charter-screen__button:hover:not(:disabled) { transform:translateY(-1px) scale(1.035); filter:brightness(1.16) saturate(1.08); }
