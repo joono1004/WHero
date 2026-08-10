@@ -282,10 +282,10 @@ footer small { margin-left:auto; color:#71898b; }
 }
 .main-menu-screen { position:relative; height:100%; overflow:hidden; background:url("/art/menu-war-room-v1.png") center / cover no-repeat; }
 .main-menu-screen::before { content:""; position:absolute; inset:0; background:radial-gradient(ellipse at 50% 47%, rgba(238,218,166,.18), rgba(20,15,10,.52) 76%); }
-.main-menu-screen__content { position:relative; z-index:1; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0; transform:translateY(4px); }
+.main-menu-screen__content { position:relative; z-index:1; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0; transform:translateY(30px); }
 .main-menu-screen__content h2 { display:none; }
 .main-menu-screen__button { width:246px; min-height:52px; border:none !important; border-radius:0 !important; background:url("/art/menu-war-room-button-v1.png") center / 138% 138% no-repeat !important; color:#f7e1ad !important; font-size:16px !important; letter-spacing:.12em; text-shadow:0 2px 2px #25170d; box-shadow:none !important; transition:transform .14s ease,filter .14s ease; }
-.main-menu-screen__button--primary { min-height:68px; font-size:18px !important; background-size:138% 138% !important; }
+.main-menu-screen__button--primary { min-height:102px; font-size:19px !important; background-size:138% 138% !important; }
 .main-menu-screen__button + .main-menu-screen__button { margin-top:-10px; }
 .main-menu-screen__button:hover { transform:scale(1.035); filter:brightness(1.18); }
 .main-menu-screen__button:active { transform:translateY(3px) scale(.985); filter:brightness(.86); box-shadow:0 1px 0 #0a1b1d !important; }
