@@ -33,7 +33,6 @@ import { MainMenuScreen } from "./screens/MainMenuScreen.tsx";
 import { MapPlayScreen } from "./screens/MapPlayScreen.tsx";
 import { SettingsScreen } from "./screens/SettingsScreen.tsx";
 import { TitleScreen } from "./screens/TitleScreen.tsx";
-import { WorldGeneratingScreen } from "./screens/WorldGeneratingScreen.tsx";
 
 // The game only ever tracks one faction at a time (see MainMenuScreen's
 // 새 게임/이어하기 toggle) - there's no save-slot picker, so "settings"
@@ -45,12 +44,9 @@ type Screen =
   | { name: "settings"; returnTo: Screen }
   | { name: "faction-name" }
   | { name: "hero-select"; factionName: string }
-  | { name: "generating"; factionName: string; heroId: string }
   | { name: "main"; slotId: string; save: SaveGame };
 
 const AUTO_BACKUP_KEY = "whero:auto-backup";
-
-const GENERATING_DELAY_MS = 600;
 
 export function GameEntry() {
   const [screen, setScreen] = useState<Screen>({ name: "title" });
@@ -97,22 +93,18 @@ export function GameEntry() {
     storage?.setItem(AUTO_BACKUP_KEY, "true");
   }
 
-  useEffect(() => {
-    if (screen.name !== "generating" || !storage) return;
-    const { factionName, heroId } = screen;
-    const timeout = setTimeout(() => {
-      const save = createNewSaveGame({
-        factionName,
-        heroId,
-        seed: Math.floor(Math.random() * 99999999),
-        now: new Date().toISOString(),
-      });
-      const slotId = `slot-${Date.now()}`;
-      writeSaveGame(storage, slotId, save);
-      setScreen({ name: "main", slotId, save });
-    }, GENERATING_DELAY_MS);
-    return () => clearTimeout(timeout);
-  }, [screen, storage]);
+  function startNewGame(factionName: string, heroId: string) {
+    if (!storage) return;
+    const save = createNewSaveGame({
+      factionName,
+      heroId,
+      seed: Math.floor(Math.random() * 99999999),
+      now: new Date().toISOString(),
+    });
+    const slotId = `slot-${Date.now()}`;
+    writeSaveGame(storage, slotId, save);
+    setScreen({ name: "main", slotId, save });
+  }
 
   // Catches errors outside the render tree (event handlers, timeouts,
   // rejected promises) that GameErrorBoundary below can't see - it only
@@ -249,12 +241,9 @@ export function GameEntry() {
         return (
           <HeroSelectScreen
             onBack={() => setScreen({ name: "faction-name" })}
-            onConfirm={(heroId) => setScreen({ name: "generating", factionName: screen.factionName, heroId })}
+            onConfirm={(heroId) => startNewGame(screen.factionName, heroId)}
           />
         );
-
-      case "generating":
-        return <WorldGeneratingScreen />;
 
       case "main": {
         const slotId = screen.slotId;
