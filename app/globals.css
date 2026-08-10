@@ -308,7 +308,28 @@ footer small { margin-left:auto; color:#71898b; }
   justify-content:center;
   gap:12px;
 }
-.faction-charter-screen__content h2 { margin:0; text-shadow:0 2px 2px rgba(47,27,11,.68); }
+.faction-charter-screen__welcome {
+  margin:0;
+  color:#634323;
+  font-family:Georgia,"Nanum Myeongjo","Malgun Gothic",serif;
+  font-size:14px;
+  line-height:1.55;
+  letter-spacing:.035em;
+  text-align:center;
+  text-shadow:0 1px 0 rgba(255,246,213,.5);
+}
+.faction-charter-screen__welcome p { margin:0; }
+.faction-charter-screen__heading {
+  margin:8px 0 0;
+  color:#442714;
+  font-family:Georgia,"Nanum Myeongjo","Malgun Gothic",serif;
+  font-size:20px;
+  font-weight:700;
+  letter-spacing:.035em;
+  line-height:1.35;
+  text-align:center;
+  text-shadow:0 1px 0 rgba(255,245,207,.7), 0 2px 3px rgba(69,38,17,.22);
+}
 .faction-charter-screen__content input { box-shadow:0 5px 16px rgba(47,27,11,.32); }
 .faction-charter-screen__actions {
   position:absolute;

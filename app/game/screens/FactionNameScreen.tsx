@@ -35,7 +35,11 @@ export function FactionNameScreen({
   return (
     <div className="faction-charter-screen">
       <div className="faction-charter-screen__content">
-        <h2 className="text-lg font-bold text-[#f3dfaa]">세력명을 입력하세요</h2>
+        <div className="faction-charter-screen__welcome" aria-label="게임 환영 문구">
+          <p>당신의 깃발 아래,</p>
+          <p>시대를 초월한 영웅들이 모입니다.</p>
+        </div>
+        <h2 className="faction-charter-screen__heading">새로운 역사를 이끌 세력의 이름을 정해주세요</h2>
         <div className="relative w-64">
           <input
             value={name}
