@@ -461,10 +461,10 @@ footer small { margin-left:auto; color:#71898b; }
   z-index:0;
   top:11.5%;
   right:12.5%;
-  bottom:16.5%;
+  bottom:27.5%;
   left:12.5%;
   width:75%;
-  height:72%;
+  height:61%;
   object-fit:cover;
   object-position:center 20%;
   border-radius:12px;
@@ -476,7 +476,7 @@ footer small { margin-left:auto; color:#71898b; }
   z-index:1;
   top:11.5%;
   right:12.5%;
-  bottom:16.5%;
+  bottom:27.5%;
   left:12.5%;
   border-radius:12px;
   background:linear-gradient(180deg,rgba(15,9,4,.05) 42%,rgba(18,10,3,.7) 100%);
@@ -487,13 +487,13 @@ footer small { margin-left:auto; color:#71898b; }
   z-index:2;
   inset:0;
   pointer-events:none;
-  background:url("/art/heroes/hero-appointment-frame-v1.png") center / 100% 100% no-repeat;
+  background:url("/art/heroes/hero-appointment-frame-v2.png") center / 100% 100% no-repeat;
 }
 .hero-appointment-card__nameplate {
   position:absolute;
   z-index:3;
   right:15%;
-  bottom:1.2%;
+  bottom:11%;
   left:15%;
   color:#251205;
   font-family:"Nanum Myeongjo","Batang","Malgun Gothic",serif;
