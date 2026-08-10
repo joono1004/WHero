@@ -7,7 +7,9 @@ import type { HeroId } from "../../lib/game/ids.ts";
 // HeroRosterScreen (list-row avatar) - all need the same source image,
 // just displayed at different frame sizes.
 export const HERO_PORTRAIT: Partial<Record<HeroId, string>> = {
-  "wei-yan": "/art/heroes/wei-yan-classic-portrait-v3.webp",
+  "zhang-bao": "/art/heroes/zhang-bao-council-portrait-v1.png",
+  "wei-yan": "/art/heroes/wei-yan-council-portrait-v1.png",
+  "xu-shu": "/art/heroes/xu-shu-council-portrait-v1.png",
 };
 
 // 영웅 초상 아트 스펙 (2026-08-xx 작성, 2026-08-07 갱신 - Codex 참고용):

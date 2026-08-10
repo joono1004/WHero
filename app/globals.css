@@ -399,6 +399,11 @@ footer small { margin-left:auto; color:#71898b; }
 .hero-select-screen__header h2 { margin:0; }
 .hero-select-screen__cards { flex:1 1 auto; overflow-y:auto; padding:0 16px 4px; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
 .hero-select-screen__footer { flex:0 0 auto; padding:8px 16px 12px; display:flex; justify-content:center; gap:12px; }
+.hero-select-card { will-change:transform; }
+.hero-select-card:hover { transform:translateY(-2px); filter:brightness(1.08); }
+.hero-select-card--selected:hover { transform:translateY(-5px) scale(1.012) !important; }
+.hero-select-screen .hero-select-card .text-\[\#8fa6a8\] { color:#b9a98e; }
+.hero-select-screen .hero-select-card .text-\[\#c0cbc7\] { color:#dfd0b3; }
 .title-hero-screen__art,
 .title-hero-screen__vignette {
   position:absolute;

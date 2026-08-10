@@ -42,9 +42,9 @@ export function HeroCard({
             onSelect();
           }
         },
-        className: "cursor-pointer text-left transition-colors",
+        className: `hero-select-card cursor-pointer text-left transition-all${selected ? " hero-select-card--selected" : ""}`,
       }
-    : { className: "text-left" };
+    : { className: "hero-select-card text-left" };
 
   return (
     // Was a <button> - switched to a div (role="button" for the same a11y
@@ -55,10 +55,14 @@ export function HeroCard({
       {...interactiveProps}
       style={{
         borderRadius: 8,
-        border: `1px solid ${selected ? "#d7b765" : "#43606a"}`,
-        backgroundColor: selected ? "#1c3b44" : "#17343e",
+        border: `1px solid ${selected ? "#f0cf72" : "rgba(166,126,71,.76)"}`,
+        backgroundColor: selected ? "rgba(63,45,24,.97)" : "rgba(31,24,17,.92)",
         padding: "0.45rem 0.7rem 0.55rem",
         color: "inherit",
+        boxShadow: selected
+          ? "0 0 0 2px rgba(245,210,111,.38), 0 10px 24px rgba(42,22,5,.48), inset 0 1px 0 rgba(255,237,181,.22)"
+          : "0 6px 16px rgba(22,12,5,.38), inset 0 1px 0 rgba(249,223,163,.08)",
+        transform: selected ? "translateY(-4px) scale(1.012)" : undefined,
       }}
     >
       <div className="flex items-center justify-between gap-1">
@@ -96,8 +100,9 @@ export function HeroCard({
           style={{
             width: HERO_PORTRAIT_FRAME_PX,
             height: HERO_PORTRAIT_FRAME_PX,
-            border: "1px solid #43606a",
-            backgroundColor: "#0b2028",
+            border: `1px solid ${selected ? "#e5bd62" : "#8c6b3e"}`,
+            backgroundColor: "#1a120a",
+            boxShadow: selected ? "0 0 15px rgba(238,193,84,.42)" : undefined,
           }}
         >
           {HERO_PORTRAIT[hero.id] ? (
