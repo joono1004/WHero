@@ -300,7 +300,7 @@ export function GameLobbyScreen({
           </div>
 
           {/* eslint-disable-next-line @next/next/no-img-element -- cropped local title artwork */}
-          <img className="lobby-header__logo justify-self-center" src="/art/lobby/title-logo-v2.png" alt="영웅스토리" />
+          <img className="lobby-header__logo justify-self-center" src="/art/lobby/title-logo-v3.png" alt="영웅스토리" />
 
           {/* 자원 줄 (2026-08-06 재배치): 가로 폭을 넓게 써서 목재/철광/
               금화/보석 순으로 펼쳐 보여주고, 보석 옆에 구매용 [+] -
