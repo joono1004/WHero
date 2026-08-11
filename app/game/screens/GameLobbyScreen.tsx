@@ -407,7 +407,7 @@ export function GameLobbyScreen({
             채팅창. 메뉴는 항목이 계속 늘 수 있어 overflow-y-auto - 가로
             메뉴 바 때와 같은 이유(그때는 overflow-x-auto)로 고정 개수를
             가정하지 않음. */}
-        <div className="flex w-48 shrink-0 flex-col gap-1.5">
+        <div className="flex w-72 shrink-0 flex-col gap-1.5">
           <div className="flex w-24 shrink-0 flex-col gap-1">
             {MENU_ITEMS.map((item) => (
               <MenuBarButton
