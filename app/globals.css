@@ -600,6 +600,18 @@ footer small { margin-left:auto; color:#71898b; }
 .lobby-sortie-button { width:104px; min-height:54px; border:1px solid #d1a64e !important; border-radius:5px !important; background:linear-gradient(180deg,#2c6a63,#123b38) !important; color:#ffedbb !important; font-size:13px; font-weight:900; letter-spacing:.08em; text-shadow:0 1px 2px #0b211e; box-shadow:inset 0 1px rgba(255,247,195,.24),0 2px 4px rgba(0,0,0,.42); transition:transform .14s ease,filter .14s ease; }
 .lobby-sortie-button:hover { filter:brightness(1.15); transform:translateY(-1px); }
 .lobby-sortie-button:active { transform:translateY(1px) scale(.98); filter:brightness(.86); }
+.lobby-recent-chat { display:flex; width:192px; min-height:43px; padding:3px 4px 3px 7px; align-items:center; gap:4px; border:1px solid rgba(175,128,53,.48); border-radius:4px; background:linear-gradient(90deg,rgba(28,16,6,.76),rgba(40,28,12,.47)); box-shadow:inset 0 1px rgba(255,229,161,.08); }
+.lobby-recent-chat__messages { flex:1; min-width:0; overflow:hidden; color:#c0ad82; font-size:8px; line-height:1.65; }
+.lobby-recent-chat__messages p { overflow:hidden; margin:0; text-overflow:ellipsis; white-space:nowrap; }
+.lobby-recent-chat__messages b { margin-right:3px; color:#f0cd7e; font-weight:900; }
+.lobby-recent-chat__launch { display:grid; width:26px; height:26px; padding:0; flex:0 0 26px; place-items:center; border:1px solid #b68b40 !important; border-radius:50% !important; background:linear-gradient(#315f5a,#173a37) !important; color:#f8e3a6 !important; font-size:13px; line-height:1; box-shadow:inset 0 1px rgba(255,255,235,.18); transition:filter .14s ease,transform .14s ease; }
+.lobby-recent-chat__launch:hover { filter:brightness(1.16); transform:translateY(-1px); }
+.lobby-recent-chat__launch:active { transform:translateY(1px) scale(.94); }
+.lobby-formation-footer { min-height:39px; padding:2px 4px; border-top:1px solid rgba(189,142,65,.5); background:linear-gradient(90deg,rgba(40,23,8,.25),rgba(40,23,8,.62)); }
+.lobby-formation-footer .lobby-formation-bar { min-height:34px; padding:0 3px; border-right:0; }
+.lobby-formation-footer .lobby-formation-bar > button > span:last-child { display:none; }
+.lobby-formation-footer .lobby-formation-bar > button { gap:0 !important; }
+.lobby-formation-footer .lobby-sortie-button { width:90px; min-height:34px; font-size:11px; }
 .title-hero-screen__art,
 .title-hero-screen__vignette {
   position:absolute;
