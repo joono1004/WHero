@@ -153,6 +153,7 @@ export function GameLobbyScreen({
   const [systemGearSpin, setSystemGearSpin] = useState(0);
   const [activeMenuKey, setActiveMenuKey] = useState<MenuItemKey | null>(null);
   const [tutorialIslandSelected, setTutorialIslandSelected] = useState(false);
+  const [showWorldMap, setShowWorldMap] = useState(false);
   // Message data will later supply these values; conditional badges are ready now.
   const unreadMailCount = 0;
   const unreadNoticeCount = 0;
@@ -454,13 +455,18 @@ export function GameLobbyScreen({
           <div className="flex flex-1 flex-col gap-1 overflow-hidden">
             <div className="flex flex-1 items-stretch gap-1 overflow-hidden">
               {clearedWorlds.length === 0 && save.nextMapCandidates.length === 1 ? (
-                <TutorialIslandCandidate
-                  candidate={save.nextMapCandidates[0]}
-                  isSelected={tutorialIslandSelected}
-                  onSelect={() => setTutorialIslandSelected((selected) => !selected)}
-                  availableHeroCount={entries.length}
-                  onBattle={() => setEnlistingCandidateIndex(0)}
-                />
+                showWorldMap ? (
+                  <TutorialWorldMap onReturn={() => setShowWorldMap(false)} />
+                ) : (
+                  <TutorialIslandCandidate
+                    candidate={save.nextMapCandidates[0]}
+                    isSelected={tutorialIslandSelected}
+                    onSelect={() => setTutorialIslandSelected((selected) => !selected)}
+                    availableHeroCount={entries.length}
+                    onBattle={() => setEnlistingCandidateIndex(0)}
+                    onOpenWorldMap={() => setShowWorldMap(true)}
+                  />
+                )
               ) : (
                 <>
                   <RailArrowButton direction="left" onClick={() => scrollRail(-1)} />
@@ -783,12 +789,14 @@ function TutorialIslandCandidate({
   onSelect,
   availableHeroCount,
   onBattle,
+  onOpenWorldMap,
 }: {
   candidate: MapCandidate;
   isSelected: boolean;
   onSelect: () => void;
   availableHeroCount: number;
   onBattle: () => void;
+  onOpenWorldMap: () => void;
 }) {
   const name = countryMapName(candidate);
   return (
@@ -807,6 +815,7 @@ function TutorialIslandCandidate({
       >
         {name}
       </p>
+      <WorldMapToggleButton onClick={onOpenWorldMap} label="세계 지도" />
       <button
         type="button"
         aria-label="작은 섬의 적 성 선택"
@@ -849,6 +858,45 @@ function TutorialIslandCandidate({
         </button>
       ) : null}
     </div>
+  );
+}
+
+function TutorialWorldMap({ onReturn }: { onReturn: () => void }) {
+  return (
+    <div className="relative flex flex-1 overflow-hidden">
+      {/* eslint-disable-next-line @next/next/no-img-element -- local painted world map */}
+      <img src="/art/lobby/world-map-v1.png" alt="세계 지도" className="pointer-events-none absolute inset-0 h-full w-full object-contain" />
+      <p
+        className="absolute left-1/2 top-2 -translate-x-1/2 rounded-full px-3 py-0.5 text-[12px] font-bold text-[#5b351a]"
+        style={{ borderBottom: "1px solid rgba(139, 94, 39, 0.55)", background: "rgba(250, 227, 172, 0.42)", textShadow: "0 1px 0 rgba(255, 239, 185, 0.8)" }}
+      >
+        세계 지도
+      </p>
+      <WorldMapToggleButton onClick={onReturn} label="나라 지도" />
+    </div>
+  );
+}
+
+function WorldMapToggleButton({ onClick, label }: { onClick: () => void; label: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="absolute bottom-2 left-2 flex h-[30px] items-center gap-1 rounded-[4px] px-1.5 active:translate-y-px"
+      style={{
+        border: "1px solid rgba(109, 69, 30, 0.88)",
+        background: "linear-gradient(135deg, rgba(67, 38, 18, 0.92), rgba(115, 74, 36, 0.88))",
+        boxShadow: "0 1px 3px rgba(40, 19, 6, 0.48), inset 0 0 0 1px rgba(231, 191, 107, 0.2)",
+        color: "#f5dfaa",
+        cursor: "pointer",
+        textShadow: "0 1px 1px #2b1609",
+      }}
+      aria-label={label}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element -- local generated world-map navigation icon */}
+      <img src="/art/lobby/world-map-button-v1.png" alt="" className="h-[24px] w-[30px] object-contain" />
+      <span className="text-[9px] font-bold">{label}</span>
+    </button>
   );
 }
 
