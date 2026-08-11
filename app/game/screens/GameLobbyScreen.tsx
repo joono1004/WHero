@@ -432,24 +432,33 @@ export function GameLobbyScreen({
           <div className="flex flex-1 flex-col gap-1 overflow-hidden">
             <p className="shrink-0 text-[10px] text-[#8fa6a8]">공략할 세계를 선택하세요</p>
             <div className="flex flex-1 items-stretch gap-1 overflow-hidden">
-              <RailArrowButton direction="left" onClick={() => scrollRail(-1)} />
-              <div ref={railRef} className="flex flex-1 items-stretch gap-2 overflow-x-auto scroll-smooth pb-1">
-                {clearedWorlds.map((record) => (
-                  <ClearedWorldChip
-                    key={record.id}
-                    record={record}
-                    onAppointGovernor={() => setAppointingWorldId(record.id)}
-                  />
-                ))}
-                {save.nextMapCandidates.map((candidate, index) => (
-                  <MapCandidateCard
-                    key={`${candidate.worldIndex}-${candidate.generation.mapType}-${index}`}
-                    candidate={candidate}
-                    onEnter={() => setEnlistingCandidateIndex(index)}
-                  />
-                ))}
-              </div>
-              <RailArrowButton direction="right" onClick={() => scrollRail(1)} />
+              {clearedWorlds.length === 0 && save.nextMapCandidates.length === 1 ? (
+                <TutorialIslandCandidate
+                  candidate={save.nextMapCandidates[0]}
+                  onEnter={() => setEnlistingCandidateIndex(0)}
+                />
+              ) : (
+                <>
+                  <RailArrowButton direction="left" onClick={() => scrollRail(-1)} />
+                  <div ref={railRef} className="flex flex-1 items-stretch gap-2 overflow-x-auto scroll-smooth pb-1">
+                    {clearedWorlds.map((record) => (
+                      <ClearedWorldChip
+                        key={record.id}
+                        record={record}
+                        onAppointGovernor={() => setAppointingWorldId(record.id)}
+                      />
+                    ))}
+                    {save.nextMapCandidates.map((candidate, index) => (
+                      <MapCandidateCard
+                        key={`${candidate.worldIndex}-${candidate.generation.mapType}-${index}`}
+                        candidate={candidate}
+                        onEnter={() => setEnlistingCandidateIndex(index)}
+                      />
+                    ))}
+                  </div>
+                  <RailArrowButton direction="right" onClick={() => scrollRail(1)} />
+                </>
+              )}
             </div>
           </div>
 
@@ -734,6 +743,44 @@ function MapCandidateCard({ candidate, onEnter }: { candidate: MapCandidate; onE
         </Button>
       </div>
     </WorldCardShell>
+  );
+}
+
+// The first world is deliberately presented as a single, readable practice
+// island instead of a generic card.  The candidate remains the same rules
+// object; only its lobby presentation changes.  After this first conquest,
+// the regular rail returns until the world-map reveal screen is introduced.
+function TutorialIslandCandidate({ candidate, onEnter }: { candidate: MapCandidate; onEnter: () => void }) {
+  const tierInfo = MAP_TIER_INFO[candidate.generation.mapTier];
+  return (
+    <div
+      className="relative flex flex-1 overflow-hidden rounded-md"
+      style={{
+        border: "1px solid #9e7c3d",
+        background: "#d7b879 url('/art/lobby/tutorial-island-map-v1.png') center / cover no-repeat",
+        boxShadow: "inset 0 0 18px rgba(61, 35, 14, 0.36)",
+      }}
+    >
+      <div
+        className="absolute left-1/2 top-[44%] -translate-x-1/2 -translate-y-1/2"
+        style={{ filter: "drop-shadow(0 4px 3px rgba(30, 16, 8, 0.55))" }}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element -- local transparent tutorial map object */}
+        <img src="/art/lobby/tutorial-castle-unconquered-v1.png" alt="정복할 첫 성" className="h-[108px] w-[108px] object-contain" />
+      </div>
+      <div
+        className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 px-2 py-1.5"
+        style={{ background: "linear-gradient(transparent, rgba(38, 23, 11, 0.9) 30%)" }}
+      >
+        <div className="text-[#fff0ba]" style={{ textShadow: "0 1px 2px #201106" }}>
+          <p className="text-xs font-bold">첫 관문 · 작은 섬</p>
+          <p className="text-[9px] text-[#e3d19c]">{tierInfo.label} · 정복할 성 1개</p>
+        </div>
+        <Button size="sm" onClick={onEnter}>
+          성 정복하기
+        </Button>
+      </div>
+    </div>
   );
 }
 
