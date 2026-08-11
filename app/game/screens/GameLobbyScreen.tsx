@@ -794,7 +794,7 @@ function TutorialIslandCandidate({
       <img
         src="/art/lobby/tutorial-island-map-v1.png"
         alt="작은 섬 지도"
-        className="pointer-events-none absolute inset-0 m-auto h-[58%] w-[58%] object-contain"
+        className="pointer-events-none absolute inset-0 h-full w-full object-contain"
       />
       <p
         className="absolute left-1/2 top-2 -translate-x-1/2 whitespace-nowrap text-center text-[13px] font-bold text-[#5b351a]"
