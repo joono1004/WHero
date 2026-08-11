@@ -771,7 +771,7 @@ function TutorialIslandCandidate({
       <img
         src="/art/lobby/tutorial-island-map-v1.png"
         alt="작은 섬 지도"
-        className="pointer-events-none absolute inset-0 h-full w-full object-contain"
+        className="pointer-events-none absolute inset-0 m-auto h-[76%] w-[76%] object-contain"
       />
       <button
         type="button"
@@ -790,11 +790,11 @@ function TutorialIslandCandidate({
         }}
       >
         {/* eslint-disable-next-line @next/next/no-img-element -- local transparent tutorial map object */}
-        <img src="/art/lobby/tutorial-castle-unconquered-v1.png" alt="정복할 첫 성" className="h-[108px] w-[108px] object-contain" />
+        <img src="/art/lobby/tutorial-castle-unconquered-v1.png" alt="정복할 첫 성" className="h-[54px] w-[54px] object-contain" />
       </button>
       {isSelected ? (
         <div
-          className="absolute left-1/2 top-[calc(44%+60px)] -translate-x-1/2 text-center text-[#fff0ba]"
+          className="absolute left-1/2 top-[calc(44%+38px)] -translate-x-1/2 text-center text-[#fff0ba]"
           style={{ minWidth: 96, textShadow: "0 1px 2px #201106" }}
         >
           <p className="text-[11px] font-bold">작은 섬</p>
