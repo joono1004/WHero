@@ -90,12 +90,12 @@ function formatResourceAmount(value: number): string {
 type MenuItemKey = "heroes" | "troops" | "bag" | "research" | "ranking" | "alliance";
 
 const MENU_ITEMS: { key: MenuItemKey; icon: string; label: string }[] = [
-  { key: "heroes", icon: "🛡️", label: "영웅" },
-  { key: "troops", icon: "⚔️", label: "병사" },
-  { key: "bag", icon: "🎒", label: "가방" },
-  { key: "research", icon: "📜", label: "연구" },
-  { key: "ranking", icon: "🏆", label: "순위" },
-  { key: "alliance", icon: "🤝", label: "연맹(예정)" },
+  { key: "heroes", icon: "/art/lobby/sidebar-icons/heroes-v1.png", label: "영웅" },
+  { key: "troops", icon: "/art/lobby/sidebar-icons/troops-v1.png", label: "병사" },
+  { key: "bag", icon: "/art/lobby/sidebar-icons/bag-v1.png", label: "가방" },
+  { key: "research", icon: "/art/lobby/sidebar-icons/research-v1.png", label: "연구" },
+  { key: "ranking", icon: "/art/lobby/sidebar-icons/ranking-v1.png", label: "순위" },
+  { key: "alliance", icon: "/art/lobby/sidebar-icons/alliance-v1.png", label: "연맹(예정)" },
 ];
 
 // A cleared world's display name - the player-given one (governor.ts's
@@ -502,20 +502,21 @@ function MenuBarButton({ icon, label, onClick }: { icon: string; label: string; 
   return (
     <button
       onClick={onClick}
-      className="flex w-full shrink-0 items-center gap-1 text-left"
+      className="lobby-sidebar__menu-button flex w-full shrink-0 items-center gap-1 text-left"
       style={{
-        border: "1px solid #bd9b4c",
-        borderRadius: 6,
-        padding: "4px 6px",
-        backgroundImage: "linear-gradient(160deg, #2c4a40, #16302b)",
-        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.08)",
-        color: "#c0cbc7",
+        border: "none",
+        borderRadius: 0,
+        padding: "0 7px",
+        backgroundImage: "none",
+        boxShadow: "none",
+        color: "#f4e1af",
         fontWeight: 400,
         cursor: "pointer",
       }}
     >
-      <span className="shrink-0 text-xs">{icon}</span>
-      <span className="truncate text-[9px] font-bold">{label}</span>
+      {/* eslint-disable-next-line @next/next/no-img-element -- local generated HUD icon */}
+      <img src={icon} alt="" className="lobby-sidebar__menu-icon shrink-0" />
+      <span className="lobby-sidebar__menu-label truncate text-[9px] font-bold">{label}</span>
     </button>
   );
 }

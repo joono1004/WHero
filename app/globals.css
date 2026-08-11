@@ -580,6 +580,13 @@ footer small { margin-left:auto; color:#71898b; }
 .lobby-system-menu__popup button { display:block; width:100%; min-height:27px; padding:4px 7px; border:0 !important; border-radius:3px !important; background:transparent !important; color:#f8dfaa !important; font-family:"Malgun Gothic",sans-serif; font-size:11px; font-weight:800; text-align:left; cursor:pointer; }
 .lobby-system-menu__popup button:hover { background:rgba(244,204,113,.15) !important; }
 .lobby-system-menu__popup .lobby-system-menu__exit { color:#e7ab83 !important; }
+.lobby-sidebar__menu-button { position:relative; isolation:isolate; min-height:33px; background:url("/art/lobby/sidebar-plaque-v1.png") center / 100% 100% no-repeat !important; text-shadow:0 1px 2px #170b03; transition:transform .13s ease,filter .13s ease; }
+.lobby-sidebar__menu-button::after { content:""; position:absolute; z-index:-1; inset:2px 5px; border-radius:7px; opacity:0; background:radial-gradient(ellipse at center,rgba(255,229,146,.45),rgba(255,210,79,0) 68%); transition:opacity .15s ease; }
+.lobby-sidebar__menu-button:hover,.lobby-sidebar__menu-button:focus-visible { filter:brightness(1.15); outline:none; }
+.lobby-sidebar__menu-button:hover::after,.lobby-sidebar__menu-button:focus-visible::after { opacity:1; }
+.lobby-sidebar__menu-button:active { transform:translateY(1px) scale(.985); filter:brightness(.88); }
+.lobby-sidebar__menu-icon { width:24px; height:24px; object-fit:contain; filter:drop-shadow(0 1px 1px rgba(0,0,0,.7)); }
+.lobby-sidebar__menu-label { letter-spacing:.04em; }
 .title-hero-screen__art,
 .title-hero-screen__vignette {
   position:absolute;
