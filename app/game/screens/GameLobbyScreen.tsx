@@ -408,7 +408,7 @@ export function GameLobbyScreen({
             메뉴 바 때와 같은 이유(그때는 overflow-x-auto)로 고정 개수를
             가정하지 않음. */}
         <div className="flex w-48 shrink-0 flex-col gap-1.5">
-          <div className="flex w-24 flex-1 flex-col gap-1 overflow-y-auto">
+          <div className="flex w-24 shrink-0 flex-col gap-1">
             {MENU_ITEMS.map((item) => (
               <MenuBarButton
                 key={item.key}
@@ -537,7 +537,7 @@ function AdBannerPlaceholder() {
   return (
     <button
       onClick={() => window.alert("아직 준비 중인 기능입니다.")}
-      className="flex h-5 w-24 shrink-0 items-center justify-center rounded-md text-[8px]"
+      className="lobby-ad-banner flex w-24 shrink-0 items-center justify-center rounded-md text-[8px]"
       style={{
         border: "1px dashed #43606a",
         background: "none",
@@ -570,7 +570,8 @@ function ChatPlaceholder() {
         aria-label="채팅 열기"
         onClick={() => window.alert("사용자 간 채팅 창은 준비 중입니다.")}
       >
-        💬
+        {/* eslint-disable-next-line @next/next/no-img-element -- local generated chat HUD icon */}
+        <img src="/art/lobby/chat-launch-v1.png" alt="" />
       </button>
     </div>
   );
@@ -581,7 +582,7 @@ function ChatPlaceholder() {
 // a hover title.
 function FormationSlot({ entry, onClick }: { entry: HeroListEntry; onClick: () => void }) {
   const grade = heroOverallGrade(entry.definition.attributes);
-  const portraitUrl = HERO_PORTRAIT[entry.definition.id];
+  const portraitUrl = LOBBY_REPRESENTATIVE_FACE[entry.definition.id] ?? HERO_PORTRAIT[entry.definition.id];
   return (
     <button
       onClick={onClick}
