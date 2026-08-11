@@ -456,6 +456,7 @@ export function GameLobbyScreen({
                   candidate={save.nextMapCandidates[0]}
                   isSelected={tutorialIslandSelected}
                   onSelect={() => setTutorialIslandSelected(true)}
+                  availableHeroCount={entries.length}
                 />
               ) : (
                 <>
@@ -780,10 +781,12 @@ function TutorialIslandCandidate({
   candidate,
   isSelected,
   onSelect,
+  availableHeroCount,
 }: {
   candidate: MapCandidate;
   isSelected: boolean;
   onSelect: () => void;
+  availableHeroCount: number;
 }) {
   const name = countryMapName(candidate);
   return (
@@ -822,14 +825,33 @@ function TutorialIslandCandidate({
         <img src="/art/lobby/tutorial-castle-unconquered-v1.png" alt="정복할 첫 성" className="h-[54px] w-[54px] object-contain" />
       </button>
       {isSelected ? (
-        <div
-          className="absolute left-1/2 top-[calc(44%+38px)] -translate-x-1/2 text-center text-[#fff0ba]"
-          style={{ minWidth: 96, textShadow: "0 1px 2px #201106" }}
-        >
-          <p className="text-[11px] font-bold">작은 섬</p>
-          <p className="text-[9px] text-[#e3d19c]">적 세력 1개</p>
-        </div>
+        <CastleConquestBriefing availableHeroCount={availableHeroCount} />
       ) : null}
+    </div>
+  );
+}
+
+function CastleConquestBriefing({ availableHeroCount }: { availableHeroCount: number }) {
+  const items = [
+    { icon: "/art/lobby/castle-briefing-enemy-v1.png", label: "적 세력", value: 1, color: "#f1bd9b" },
+    { icon: "/art/lobby/castle-briefing-hero-v1.png", label: "출전 영웅", value: availableHeroCount, color: "#b7e2e3" },
+    { icon: "/art/lobby/castle-briefing-event-v1.png", label: "이벤트", value: 0, color: "#f0d398" },
+  ];
+  return (
+    <div
+      className="absolute left-1/2 top-[calc(44%+36px)] h-[46px] w-[156px] -translate-x-1/2"
+      style={{ background: "url('/art/lobby/castle-briefing-panel-v1.png') center / 100% 100% no-repeat" }}
+    >
+      <div className="grid h-full grid-cols-3 px-[13px] pb-[4px] pt-[5px]">
+        {items.map((item) => (
+          <div key={item.label} className="flex min-w-0 flex-col items-center justify-center leading-none">
+            {/* eslint-disable-next-line @next/next/no-img-element -- local generated briefing icon */}
+            <img src={item.icon} alt="" className="h-[15px] w-[15px] object-contain" />
+            <span className="mt-px whitespace-nowrap text-[7px] font-bold" style={{ color: item.color }}>{item.label}</span>
+            <strong className="mt-px text-[10px] leading-none text-[#fff0bd]">{item.value}</strong>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
