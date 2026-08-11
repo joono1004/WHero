@@ -804,22 +804,17 @@ function TutorialIslandCandidate({
       >
         {name}
       </p>
-      {isSelected ? (
-        <span
-          className="pointer-events-none absolute left-1/2 top-[calc(44%+18px)] h-[16px] w-[70px] -translate-x-1/2 rounded-[50%]"
-          style={{ border: "1px solid rgba(247, 207, 103, 0.94)", boxShadow: "0 0 9px rgba(245, 195, 72, 0.7), inset 0 0 5px rgba(255, 237, 152, 0.45)" }}
-        />
-      ) : null}
       <button
         type="button"
         aria-label="작은 섬의 적 성 선택"
         onClick={onSelect}
         className="absolute left-1/2 top-[44%] -translate-x-1/2 -translate-y-1/2"
         style={{
-          border: "2px solid transparent",
+          border: isSelected ? "2px solid rgba(247, 207, 103, 0.96)" : "2px solid transparent",
           borderRadius: 8,
           background: "transparent",
           padding: 2,
+          boxShadow: isSelected ? "0 0 8px rgba(247, 207, 103, 0.68), inset 0 0 6px rgba(247, 207, 103, 0.22)" : "none",
           filter: isSelected
             ? "drop-shadow(0 0 5px rgba(255, 217, 102, 0.72)) drop-shadow(0 4px 3px rgba(30, 16, 8, 0.55))"
             : "drop-shadow(0 4px 3px rgba(30, 16, 8, 0.55))",
