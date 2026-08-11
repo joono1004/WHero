@@ -15,7 +15,7 @@ import type { MapCandidate } from "../../../lib/game/map-candidates.ts";
 import { upgradeResearch } from "../../../lib/game/research.ts";
 import type { EconomyResearchKind } from "../../../lib/game/research.ts";
 import type { SaveGame } from "../../../lib/game/save.ts";
-import type { UnitTypeId } from "../../../lib/game/ids.ts";
+import type { HeroId, UnitTypeId } from "../../../lib/game/ids.ts";
 import { evolveUnitType, setActiveEvolution, upgradeTroopLevel } from "../../../lib/game/unit-evolution.ts";
 import type { TroopLine } from "../../../lib/game/unit-production.ts";
 import { MAX_ENLISTED_HEROES } from "../../../lib/game/world-entry.ts";
@@ -62,6 +62,13 @@ const RESOURCE_CHIPS: { key: "wood" | "iron" | "gold" | "gem"; icon: string; lab
   { key: "gold", icon: "/art/lobby/resources/gold-v1.png", label: "금화", tint: "#d7b765" },
   { key: "gem", icon: "/art/lobby/resources/gem-v1.png", label: "보석", tint: "#c17be0" },
 ];
+
+// Face-focused derivatives keep the representative hero readable in the compact HUD.
+const LOBBY_REPRESENTATIVE_FACE: Partial<Record<HeroId, string>> = {
+  "zhang-bao": "/art/heroes/zhang-bao-lobby-face-v1.png",
+  "wei-yan": "/art/heroes/wei-yan-lobby-face-v1.png",
+  "xu-shu": "/art/heroes/xu-shu-lobby-face-v1.png",
+};
 
 // "458.6K" style compact formatting for the header resource bar (2026-08-06
 // direction) - real production isn't wired up yet so every value is 0
@@ -124,6 +131,9 @@ export function GameLobbyScreen({
   const [showResearch, setShowResearch] = useState(false);
   const [showTroops, setShowTroops] = useState(false);
   const [systemMenuOpen, setSystemMenuOpen] = useState(false);
+  // Message data will later supply these values; conditional badges are ready now.
+  const unreadMailCount = 0;
+  const unreadNoticeCount = 0;
   const railRef = useRef<HTMLDivElement>(null);
 
   const playerFaction = save.factions[PLAYER_FACTION_ID];
@@ -255,7 +265,9 @@ export function GameLobbyScreen({
   // "최초 선택한 영웅"을 가리킴). 나중에 영웅을 더 모으면 직접 다른
   // 영웅으로 바꾸고 테두리도 고를 수 있게 할 예정 - 그 선택 상태를 저장할
   // 필드가 아직 SaveGame에 없어서, 지금은 이 파생값 하나로 충분.
-  const representativePortraitUrl = entries[0] ? HERO_PORTRAIT[entries[0].definition.id] : undefined;
+  const representativePortraitUrl = entries[0]
+    ? (LOBBY_REPRESENTATIVE_FACE[entries[0].definition.id] ?? HERO_PORTRAIT[entries[0].definition.id])
+    : undefined;
 
   return (
     <ScreenShell
@@ -273,7 +285,7 @@ export function GameLobbyScreen({
             <button
               onClick={() => window.alert("아직 준비 중인 기능입니다.")}
               aria-label="대표 영웅 초상 선택"
-              className="lobby-header__representative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden text-base"
+              className="lobby-header__representative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden text-base"
               style={{ border: "2px solid #d7b765", backgroundColor: "#0b2028", backgroundImage: "none", padding: 0, cursor: "pointer" }}
             >
               {representativePortraitUrl ? (
@@ -349,7 +361,7 @@ export function GameLobbyScreen({
                   aria-expanded={systemMenuOpen}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element -- local generated UI artwork */}
-                  <img src="/art/lobby/system-menu-icon-v3.png" alt="" />
+                  <img src="/art/lobby/system-settings-gear-v1.png" alt="" />
                 </button>
                 {systemMenuOpen ? (
                   <div className="lobby-system-menu__popup">
@@ -358,10 +370,10 @@ export function GameLobbyScreen({
                   </div>
                 ) : null}
               </div>
-              <Button size="sm" variant="secondary" onClick={() => window.alert("아직 준비 중인 기능입니다.")}>
+              <Button size="sm" variant="secondary" className="lobby-header__utility-button lobby-header__utility-button--mail" data-unread={unreadMailCount || undefined} aria-label={unreadMailCount ? `읽지 않은 우편 ${unreadMailCount}개` : "우편"} onClick={() => window.alert("아직 준비 중인 기능입니다.")}>
                 ✉️
               </Button>
-              <Button size="sm" variant="secondary" onClick={() => window.alert("아직 준비 중인 기능입니다.")}>
+              <Button size="sm" variant="secondary" className="lobby-header__utility-button lobby-header__utility-button--notice" data-unread={unreadNoticeCount || undefined} aria-label={unreadNoticeCount ? `읽지 않은 공지 ${unreadNoticeCount}개` : "공지 알림"} onClick={() => window.alert("아직 준비 중인 기능입니다.")}>
                 🔔
               </Button>
               <Button size="sm" variant="secondary" onClick={onSettings}>
