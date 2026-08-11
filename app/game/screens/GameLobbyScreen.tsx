@@ -537,7 +537,7 @@ function AdBannerPlaceholder() {
   return (
     <button
       onClick={() => window.alert("아직 준비 중인 기능입니다.")}
-      className="flex h-8 w-24 shrink-0 items-center justify-center rounded-md text-[9px]"
+      className="flex h-5 w-24 shrink-0 items-center justify-center rounded-md text-[8px]"
       style={{
         border: "1px dashed #43606a",
         background: "none",
