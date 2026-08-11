@@ -458,7 +458,7 @@ export function GameLobbyScreen({
                   candidate={save.nextMapCandidates[0]}
                   isSelected={tutorialIslandSelected}
                   onSelect={() => setTutorialIslandSelected(true)}
-                  onBattle={() => setEnlistingCandidateIndex(0)}
+                  availableHeroCount={entries.length}
                 />
               ) : (
                 <>
@@ -518,6 +518,23 @@ export function GameLobbyScreen({
               ),
             )}
           </div>
+          <button
+            type="button"
+            disabled={!tutorialIslandSelected || clearedWorlds.length > 0}
+            onClick={() => setEnlistingCandidateIndex(0)}
+            className="relative flex h-8 w-[94px] shrink-0 items-center justify-center gap-1 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-45"
+            style={{
+              border: "none",
+              background: "url('/art/lobby/castle-battle-button-v1.png') center / 100% 100% no-repeat",
+              color: "#fff0bf",
+              cursor: tutorialIslandSelected && clearedWorlds.length === 0 ? "pointer" : "default",
+              textShadow: "0 1px 2px #251208",
+            }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element -- local generated combat icon */}
+            <img src="/art/lobby/castle-attack-marker-v1.png" alt="" className="h-[15px] w-[15px] object-contain" />
+            <span className="text-[11px] font-bold">전투</span>
+          </button>
         </div>
         </div>
         <ChatPlaceholder />
@@ -780,12 +797,12 @@ function TutorialIslandCandidate({
   candidate,
   isSelected,
   onSelect,
-  onBattle,
+  availableHeroCount,
 }: {
   candidate: MapCandidate;
   isSelected: boolean;
   onSelect: () => void;
-  onBattle: () => void;
+  availableHeroCount: number;
 }) {
   const name = countryMapName(candidate);
   return (
@@ -831,51 +848,43 @@ function TutorialIslandCandidate({
         ) : null}
       </button>
       {isSelected ? (
-        <CastleConquestBriefing onBattle={onBattle} />
+        <CastleScoutPopup candidate={candidate} availableHeroCount={availableHeroCount} />
       ) : null}
     </div>
   );
 }
 
-function CastleConquestBriefing({ onBattle }: { onBattle: () => void }) {
+function CastleScoutPopup({ candidate, availableHeroCount }: { candidate: MapCandidate; availableHeroCount: number }) {
   const enemyFactionColors = ["#bf4d43"];
-  const items = [
-    { icon: "/art/lobby/castle-briefing-enemy-v1.png", value: enemyFactionColors.length, colors: enemyFactionColors },
-    { icon: "/art/lobby/castle-briefing-event-v1.png", value: 0 },
-  ];
+  const size = MAP_TIER_INFO[candidate.generation.mapTier];
   return (
-    <div className="absolute left-1/2 top-[calc(44%+36px)] w-[132px] -translate-x-1/2">
-      <div
-        className="h-[38px] w-full"
-        style={{ background: "url('/art/lobby/castle-tactical-strip-two-v1.png') center / 100% 100% no-repeat" }}
-      >
-      <div className="grid h-full grid-cols-2 px-[11px] py-[5px]">
-        {items.map((item) => (
-          <div key={item.icon} className="flex min-w-0 items-center justify-center gap-1 leading-none">
-            {/* eslint-disable-next-line @next/next/no-img-element -- local generated briefing icon */}
-            <div className="relative h-[18px] w-[20px]">
-              <img src={item.icon} alt="" className="h-[18px] w-[18px] object-contain" />
-              {item.colors ? (
-                <span className="absolute -right-0.5 bottom-0 flex gap-px">
-                  {item.colors.slice(0, 3).map((color, index) => <i key={`${color}-${index}`} className="h-[5px] w-[5px] rounded-full" style={{ backgroundColor: color, boxShadow: "0 0 0 1px #12272b" }} />)}
-                </span>
-              ) : null}
-            </div>
-            <strong className="text-[13px] leading-none text-[#fff0bd]">{item.value}</strong>
-          </div>
-        ))}
+    <div
+      className="absolute left-[calc(50%+38px)] top-[calc(44%-35px)] w-[152px] rounded-[3px] px-2 py-1.5 text-[#4d2b15]"
+      style={{
+        border: "1px solid rgba(105, 65, 29, 0.72)",
+        background: "linear-gradient(135deg, rgba(255, 240, 198, 0.96), rgba(230, 197, 132, 0.95))",
+        boxShadow: "0 2px 6px rgba(57, 31, 14, 0.28), inset 0 0 0 1px rgba(255, 249, 214, 0.5)",
+      }}
+    >
+      <div className="flex items-baseline justify-between border-b border-[#a77a45]/45 pb-0.5">
+        <strong className="text-[10px]">{countryMapName(candidate)}</strong>
+        <span className="text-[8px] text-[#76502b]">{size.columns} × {size.rows}</span>
       </div>
+      <p className="mt-0.5 truncate text-[8px] text-[#75502b]">한 개의 섬으로 이루어진 나라</p>
+      <div className="mt-1 flex items-center justify-between text-[8px] leading-none">
+        <span className="flex items-center gap-1">
+          {/* eslint-disable-next-line @next/next/no-img-element -- local faction marker */}
+          <img src="/art/lobby/castle-briefing-enemy-v1.png" alt="적 세력" className="h-[12px] w-[12px] object-contain" />
+          <span className="flex gap-0.5">{enemyFactionColors.map((color) => <i key={color} className="h-[6px] w-[6px] rounded-sm" style={{ backgroundColor: color, boxShadow: "0 0 0 1px rgba(74, 35, 19, 0.55)" }} />)}</span>
+          <b>{enemyFactionColors.length}</b>
+        </span>
+        <span>출전 가능 <b>{availableHeroCount}</b></span>
       </div>
-      <button
-        type="button"
-        onClick={onBattle}
-        className="relative mx-auto mt-1.5 flex h-[30px] w-[94px] items-center justify-center gap-1 active:translate-y-px"
-        style={{ border: "none", background: "url('/art/lobby/castle-battle-button-v1.png') center / 100% 100% no-repeat", color: "#fff0bf", cursor: "pointer", textShadow: "0 1px 2px #251208" }}
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element -- local generated combat icon */}
-        <img src="/art/lobby/castle-attack-marker-v1.png" alt="" className="h-[15px] w-[15px] object-contain" />
-        <span className="text-[11px] font-bold">전투</span>
-      </button>
+      <div className="mt-1 flex items-center gap-1 border-t border-[#a77a45]/30 pt-1 text-[8px] leading-none text-[#6f4b2a]">
+        {/* eslint-disable-next-line @next/next/no-img-element -- local event marker */}
+        <img src="/art/lobby/castle-briefing-event-v1.png" alt="이벤트" className="h-[12px] w-[12px] object-contain opacity-80" />
+        <span>발견 이벤트 없음</span>
+      </div>
     </div>
   );
 }
