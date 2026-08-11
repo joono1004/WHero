@@ -402,12 +402,12 @@ export function GameLobbyScreen({
           (ScreenShell은 footer를 안 넘기면 그 영역을 렌더링하지 않으므로
           별도 처리 불필요). 출전 영웅 5슬롯도 순서상 세계 영역 위에서
           아래로 옮김. */}
-      <div className="flex h-full gap-2 py-1">
+      <div className="relative flex h-full gap-2 py-1">
         {/* 왼쪽 열: 세로 메뉴(영웅/병사/가방/연구/순위/연맹) + 광고배너 +
             채팅창. 메뉴는 항목이 계속 늘 수 있어 overflow-y-auto - 가로
             메뉴 바 때와 같은 이유(그때는 overflow-x-auto)로 고정 개수를
             가정하지 않음. */}
-        <div className="flex w-72 shrink-0 flex-col gap-1.5">
+        <div className="flex w-24 shrink-0 flex-col gap-1.5">
           <div className="flex w-24 shrink-0 flex-col gap-1">
             {MENU_ITEMS.map((item) => (
               <MenuBarButton
@@ -424,7 +424,6 @@ export function GameLobbyScreen({
             ))}
           </div>
           <AdBannerPlaceholder />
-          <ChatPlaceholder />
         </div>
 
         {/* 오른쪽 열: 세계 선택 레일(기존 그대로, 더 크게) + 출전 영웅
@@ -496,6 +495,7 @@ export function GameLobbyScreen({
           </button>
         </div>
         </div>
+        <ChatPlaceholder />
       </div>
     </ScreenShell>
   );
