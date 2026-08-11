@@ -131,6 +131,7 @@ export function GameLobbyScreen({
   const [showResearch, setShowResearch] = useState(false);
   const [showTroops, setShowTroops] = useState(false);
   const [systemMenuOpen, setSystemMenuOpen] = useState(false);
+  const [systemGearSpin, setSystemGearSpin] = useState(0);
   // Message data will later supply these values; conditional badges are ready now.
   const unreadMailCount = 0;
   const unreadNoticeCount = 0;
@@ -356,12 +357,19 @@ export function GameLobbyScreen({
                 <button
                   type="button"
                   className="lobby-system-menu__trigger"
-                  onClick={() => setSystemMenuOpen((open) => !open)}
+                  onClick={() => {
+                    setSystemMenuOpen((open) => !open);
+                    setSystemGearSpin((spin) => spin + 1);
+                  }}
                   aria-label="시스템 메뉴"
                   aria-expanded={systemMenuOpen}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element -- local generated UI artwork */}
-                  <img src="/art/lobby/system-settings-gear-v1.png" alt="" />
+                  <img
+                    className={systemGearSpin ? `lobby-system-menu__gear lobby-system-menu__gear--spin-${systemGearSpin % 2}` : "lobby-system-menu__gear"}
+                    src="/art/lobby/system-settings-gear-v1.png"
+                    alt=""
+                  />
                 </button>
                 {systemMenuOpen ? (
                   <div className="lobby-system-menu__popup">
