@@ -571,8 +571,11 @@ footer small { margin-left:auto; color:#71898b; }
 .lobby-system-menu__trigger:hover { filter:brightness(1.16); transform:translateY(-1px); }
 .lobby-system-menu__trigger:active { transform:translateY(1px) scale(.96); filter:brightness(.86); }
 .lobby-system-menu__trigger img { width:auto; height:24px; object-fit:contain; }
-.lobby-system-menu__gear--spin-0,.lobby-system-menu__gear--spin-1 { animation:lobby-system-gear-spin .46s cubic-bezier(.24,.78,.25,1); }
+.lobby-system-menu__gear--spin-0 { animation:lobby-system-gear-spin-a .46s cubic-bezier(.24,.78,.25,1); }
+.lobby-system-menu__gear--spin-1 { animation:lobby-system-gear-spin-b .46s cubic-bezier(.24,.78,.25,1); }
 @keyframes lobby-system-gear-spin { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
+@keyframes lobby-system-gear-spin-a { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
+@keyframes lobby-system-gear-spin-b { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
 .lobby-system-menu__popup { position:absolute; z-index:30; top:calc(100% + 5px); right:0; width:92px; padding:5px; border:1px solid #bc8431; border-radius:5px; background:linear-gradient(145deg,#5b3514,#281508); box-shadow:0 8px 18px rgba(0,0,0,.52); }
 .lobby-system-menu__popup button { display:block; width:100%; min-height:27px; padding:4px 7px; border:0 !important; border-radius:3px !important; background:transparent !important; color:#f8dfaa !important; font-family:"Malgun Gothic",sans-serif; font-size:11px; font-weight:800; text-align:left; cursor:pointer; }
 .lobby-system-menu__popup button:hover { background:rgba(244,204,113,.15) !important; }
