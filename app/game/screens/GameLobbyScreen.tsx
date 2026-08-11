@@ -324,7 +324,8 @@ export function GameLobbyScreen({
                       onClick={() => window.alert("보석 구매 기능은 준비 중입니다.")}
                       aria-label="보석 구매"
                     >
-                      +
+                      {/* eslint-disable-next-line @next/next/no-img-element -- local generated UI artwork */}
+                      <img src="/art/lobby/gem-plus-v1.png" alt="" />
                     </button>
                   ) : null}
                 </span>
@@ -348,7 +349,7 @@ export function GameLobbyScreen({
                   aria-expanded={systemMenuOpen}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element -- local generated UI artwork */}
-                  <img src="/art/lobby/system-menu-icon-v2.png" alt="" />
+                  <img src="/art/lobby/system-menu-icon-v3.png" alt="" />
                 </button>
                 {systemMenuOpen ? (
                   <div className="lobby-system-menu__popup">
