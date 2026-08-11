@@ -311,12 +311,22 @@ export function GameLobbyScreen({
               {RESOURCE_CHIPS.map(({ key, icon, label, tint }) => (
                 <span
                   key={key}
-                  className="lobby-header__resource flex items-center gap-1 rounded-full py-0.5 pr-1.5 pl-0.5 text-[9px] font-bold"
+                  className={`lobby-header__resource${key === "gem" ? " lobby-header__resource--gem" : ""} flex items-center gap-1 rounded-full py-0.5 pr-1.5 pl-0.5 text-[9px] font-bold`}
                   style={{ border: `1px solid ${tint}66`, backgroundColor: `${tint}14`, color: tint }}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element -- local generated resource artwork */}
                   <img className="lobby-header__resource-icon" src={icon} alt={`${label} 아이콘`} />
                   <span className="lobby-header__resource-amount">{formatResourceAmount(resources?.[key] ?? 0)}</span>
+                  {key === "gem" ? (
+                    <button
+                      type="button"
+                      className="lobby-header__gem-plus"
+                      onClick={() => window.alert("보석 구매 기능은 준비 중입니다.")}
+                      aria-label="보석 구매"
+                    >
+                      +
+                    </button>
+                  ) : null}
                 </span>
               ))}
               <button
