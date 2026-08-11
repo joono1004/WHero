@@ -19,7 +19,7 @@ import type { HeroId, UnitTypeId } from "../../../lib/game/ids.ts";
 import { evolveUnitType, setActiveEvolution, upgradeTroopLevel } from "../../../lib/game/unit-evolution.ts";
 import type { TroopLine } from "../../../lib/game/unit-production.ts";
 import { MAX_ENLISTED_HEROES } from "../../../lib/game/world-entry.ts";
-import type { MapTypeId } from "../../../lib/game/world.ts";
+import type { MapTierId, MapTypeId } from "../../../lib/game/world.ts";
 import { MAP_TIER_INFO, MAP_TYPE_INFO } from "../../../lib/game/world.ts";
 import { Button } from "../Button.tsx";
 import { GRADE_COLOR } from "../gradeColors.ts";
@@ -69,6 +69,25 @@ const LOBBY_REPRESENTATIVE_FACE: Partial<Record<HeroId, string>> = {
   "wei-yan": "/art/heroes/wei-yan-lobby-face-v1.png",
   "xu-shu": "/art/heroes/xu-shu-lobby-face-v1.png",
 };
+
+// Country-map size names are intentionally different from the engine IDs.
+// They are player-facing terms used together with terrain, e.g. "거대 군도 나라".
+const COUNTRY_SIZE_LABEL: Record<MapTierId, string> = {
+  mini: "매우 작은",
+  small: "작은",
+  medium: "중형",
+  large: "큰",
+  huge: "거대",
+  colossal: "초거대",
+  world: "광대한",
+};
+
+function countryMapName(candidate: MapCandidate): string {
+  // The first fixed tutorial map is an island regardless of the internally
+  // seeded terrain candidate; its label should match the artwork players see.
+  if (candidate.worldIndex === 1) return "매우 작은 섬 나라";
+  return `${COUNTRY_SIZE_LABEL[candidate.generation.mapTier]} ${MAP_TYPE_INFO[candidate.generation.mapType].label} 나라`;
+}
 
 // "458.6K" style compact formatting for the header resource bar (2026-08-06
 // direction) - real production isn't wired up yet so every value is 0
@@ -434,6 +453,7 @@ export function GameLobbyScreen({
             <div className="flex flex-1 items-stretch gap-1 overflow-hidden">
               {clearedWorlds.length === 0 && save.nextMapCandidates.length === 1 ? (
                 <TutorialIslandCandidate
+                  candidate={save.nextMapCandidates[0]}
                   isSelected={tutorialIslandSelected}
                   onSelect={() => setTutorialIslandSelected(true)}
                 />
@@ -757,12 +777,15 @@ function MapCandidateCard({ candidate, onEnter }: { candidate: MapCandidate; onE
 // object; only its lobby presentation changes.  After this first conquest,
 // the regular rail returns until the world-map reveal screen is introduced.
 function TutorialIslandCandidate({
+  candidate,
   isSelected,
   onSelect,
 }: {
+  candidate: MapCandidate;
   isSelected: boolean;
   onSelect: () => void;
 }) {
+  const name = countryMapName(candidate);
   return (
     <div className="relative flex flex-1 overflow-hidden">
       {/* The island is a transparent overlay, so the campaign parchment beneath
@@ -773,6 +796,12 @@ function TutorialIslandCandidate({
         alt="작은 섬 지도"
         className="pointer-events-none absolute inset-0 m-auto h-[58%] w-[58%] object-contain"
       />
+      <p
+        className="absolute left-1/2 top-2 -translate-x-1/2 whitespace-nowrap text-center text-[13px] font-bold text-[#5b351a]"
+        style={{ textShadow: "0 1px 0 rgba(255, 239, 185, 0.8), 0 2px 3px rgba(92, 53, 25, 0.18)" }}
+      >
+        {name}
+      </p>
       <button
         type="button"
         aria-label="작은 섬의 적 성 선택"
