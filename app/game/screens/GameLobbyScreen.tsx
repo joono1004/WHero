@@ -132,6 +132,7 @@ export function GameLobbyScreen({
   const [showTroops, setShowTroops] = useState(false);
   const [systemMenuOpen, setSystemMenuOpen] = useState(false);
   const [systemGearSpin, setSystemGearSpin] = useState(0);
+  const [tutorialIslandSelected, setTutorialIslandSelected] = useState(false);
   // Message data will later supply these values; conditional badges are ready now.
   const unreadMailCount = 0;
   const unreadNoticeCount = 0;
@@ -430,12 +431,11 @@ export function GameLobbyScreen({
             5슬롯(기존 그대로, 위치만 아래로). */}
         <div className="flex flex-1 flex-col gap-1.5 overflow-hidden">
           <div className="flex flex-1 flex-col gap-1 overflow-hidden">
-            <p className="shrink-0 text-[10px] text-[#8fa6a8]">공략할 세계를 선택하세요</p>
             <div className="flex flex-1 items-stretch gap-1 overflow-hidden">
               {clearedWorlds.length === 0 && save.nextMapCandidates.length === 1 ? (
                 <TutorialIslandCandidate
-                  candidate={save.nextMapCandidates[0]}
-                  onEnter={() => setEnlistingCandidateIndex(0)}
+                  isSelected={tutorialIslandSelected}
+                  onSelect={() => setTutorialIslandSelected(true)}
                 />
               ) : (
                 <>
@@ -498,7 +498,13 @@ export function GameLobbyScreen({
           <button
             type="button"
             className="lobby-sortie-button shrink-0"
-            onClick={() => window.alert("먼저 공략할 세계를 선택하세요.")}
+            onClick={() => {
+              if (clearedWorlds.length === 0 && save.nextMapCandidates.length === 1 && tutorialIslandSelected) {
+                setEnlistingCandidateIndex(0);
+                return;
+              }
+              window.alert("먼저 공략할 세계를 선택하세요.");
+            }}
           >
             출정 시작
           </button>
@@ -750,36 +756,48 @@ function MapCandidateCard({ candidate, onEnter }: { candidate: MapCandidate; onE
 // island instead of a generic card.  The candidate remains the same rules
 // object; only its lobby presentation changes.  After this first conquest,
 // the regular rail returns until the world-map reveal screen is introduced.
-function TutorialIslandCandidate({ candidate, onEnter }: { candidate: MapCandidate; onEnter: () => void }) {
-  const tierInfo = MAP_TIER_INFO[candidate.generation.mapTier];
+function TutorialIslandCandidate({
+  isSelected,
+  onSelect,
+}: {
+  isSelected: boolean;
+  onSelect: () => void;
+}) {
   return (
     <div
       className="relative flex flex-1 overflow-hidden rounded-md"
       style={{
-        border: "1px solid #9e7c3d",
         background: "#d7b879 url('/art/lobby/tutorial-island-map-v1.png') center / cover no-repeat",
-        boxShadow: "inset 0 0 18px rgba(61, 35, 14, 0.36)",
       }}
     >
-      <div
+      <button
+        type="button"
+        aria-label="작은 섬의 적 성 선택"
+        onClick={onSelect}
         className="absolute left-1/2 top-[44%] -translate-x-1/2 -translate-y-1/2"
-        style={{ filter: "drop-shadow(0 4px 3px rgba(30, 16, 8, 0.55))" }}
+        style={{
+          border: isSelected ? "2px solid #f2cf68" : "2px solid transparent",
+          borderRadius: 8,
+          background: "transparent",
+          padding: 2,
+          filter: isSelected
+            ? "drop-shadow(0 0 8px rgba(255, 217, 102, 0.95)) drop-shadow(0 4px 3px rgba(30, 16, 8, 0.55))"
+            : "drop-shadow(0 4px 3px rgba(30, 16, 8, 0.55))",
+          cursor: "pointer",
+        }}
       >
         {/* eslint-disable-next-line @next/next/no-img-element -- local transparent tutorial map object */}
         <img src="/art/lobby/tutorial-castle-unconquered-v1.png" alt="정복할 첫 성" className="h-[108px] w-[108px] object-contain" />
-      </div>
-      <div
-        className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 px-2 py-1.5"
-        style={{ background: "linear-gradient(transparent, rgba(38, 23, 11, 0.9) 30%)" }}
-      >
-        <div className="text-[#fff0ba]" style={{ textShadow: "0 1px 2px #201106" }}>
-          <p className="text-xs font-bold">첫 관문 · 작은 섬</p>
-          <p className="text-[9px] text-[#e3d19c]">{tierInfo.label} · 정복할 성 1개</p>
+      </button>
+      {isSelected ? (
+        <div
+          className="absolute left-1/2 top-[calc(44%+60px)] -translate-x-1/2 text-center text-[#fff0ba]"
+          style={{ minWidth: 96, textShadow: "0 1px 2px #201106" }}
+        >
+          <p className="text-[11px] font-bold">작은 섬</p>
+          <p className="text-[9px] text-[#e3d19c]">적 세력 1개</p>
         </div>
-        <Button size="sm" onClick={onEnter}>
-          성 정복하기
-        </Button>
-      </div>
+      ) : null}
     </div>
   );
 }
