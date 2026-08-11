@@ -813,13 +813,13 @@ function TutorialIslandCandidate({
       >
         {/* eslint-disable-next-line @next/next/no-img-element -- local transparent tutorial map object */}
         <img src="/art/lobby/tutorial-castle-unconquered-v1.png" alt="정복할 첫 성" className="h-[54px] w-[54px] object-contain" />
+        {!isSelected ? (
+          <span className="pointer-events-none absolute bottom-[7px] left-1/2 -translate-x-1/2">
+            {/* eslint-disable-next-line @next/next/no-img-element -- local generated attackable-target marker */}
+            <img src="/art/lobby/castle-attack-marker-v1.png" alt="" className="h-[20px] w-[20px] object-contain" />
+          </span>
+        ) : null}
       </button>
-      {!isSelected ? (
-        <span className="pointer-events-none absolute left-[calc(50%+26px)] top-[calc(44%-34px)]">
-          {/* eslint-disable-next-line @next/next/no-img-element -- local generated attackable-target marker */}
-          <img src="/art/lobby/castle-attack-marker-v1.png" alt="" className="h-[30px] w-[30px] object-contain" />
-        </span>
-      ) : null}
       {isSelected ? (
         <CastleConquestBriefing availableHeroCount={availableHeroCount} onBattle={onBattle} />
       ) : null}
