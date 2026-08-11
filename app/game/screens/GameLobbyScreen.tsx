@@ -764,12 +764,15 @@ function TutorialIslandCandidate({
   onSelect: () => void;
 }) {
   return (
-    <div
-      className="relative flex flex-1 overflow-hidden rounded-md"
-      style={{
-        background: "#d7b879 url('/art/lobby/tutorial-island-map-v1.png') center / cover no-repeat",
-      }}
-    >
+    <div className="relative flex flex-1 overflow-hidden">
+      {/* The island is a transparent overlay, so the campaign parchment beneath
+          remains visible around its organic coastline instead of becoming a card. */}
+      {/* eslint-disable-next-line @next/next/no-img-element -- local transparent map artwork */}
+      <img
+        src="/art/lobby/tutorial-island-map-v1.png"
+        alt="작은 섬 지도"
+        className="pointer-events-none absolute inset-0 h-full w-full object-contain"
+      />
       <button
         type="button"
         aria-label="작은 섬의 적 성 선택"
