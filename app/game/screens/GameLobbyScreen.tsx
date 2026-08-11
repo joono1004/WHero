@@ -459,6 +459,7 @@ export function GameLobbyScreen({
                   isSelected={tutorialIslandSelected}
                   onSelect={() => setTutorialIslandSelected(true)}
                   availableHeroCount={entries.length}
+                  onBattle={() => setEnlistingCandidateIndex(0)}
                 />
               ) : (
                 <>
@@ -518,23 +519,6 @@ export function GameLobbyScreen({
               ),
             )}
           </div>
-          <button
-            type="button"
-            disabled={!tutorialIslandSelected || clearedWorlds.length > 0}
-            onClick={() => setEnlistingCandidateIndex(0)}
-            className="relative flex h-8 w-[94px] shrink-0 items-center justify-center gap-1 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-45"
-            style={{
-              border: "none",
-              background: "url('/art/lobby/castle-battle-button-v1.png') center / 100% 100% no-repeat",
-              color: "#fff0bf",
-              cursor: tutorialIslandSelected && clearedWorlds.length === 0 ? "pointer" : "default",
-              textShadow: "0 1px 2px #251208",
-            }}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element -- local generated combat icon */}
-            <img src="/art/lobby/castle-attack-marker-v1.png" alt="" className="h-[15px] w-[15px] object-contain" />
-            <span className="text-[11px] font-bold">전투</span>
-          </button>
         </div>
         </div>
         <ChatPlaceholder />
@@ -798,11 +782,13 @@ function TutorialIslandCandidate({
   isSelected,
   onSelect,
   availableHeroCount,
+  onBattle,
 }: {
   candidate: MapCandidate;
   isSelected: boolean;
   onSelect: () => void;
   availableHeroCount: number;
+  onBattle: () => void;
 }) {
   const name = countryMapName(candidate);
   return (
@@ -850,16 +836,30 @@ function TutorialIslandCandidate({
       {isSelected ? (
         <CastleScoutPopup candidate={candidate} availableHeroCount={availableHeroCount} />
       ) : null}
+      {isSelected ? (
+        <button
+          type="button"
+          onClick={onBattle}
+          className="absolute left-1/2 top-[calc(44%+34px)] flex h-[28px] w-[92px] -translate-x-1/2 items-center justify-center gap-1 active:translate-y-px"
+          style={{ border: "none", background: "url('/art/lobby/castle-battle-button-v1.png') center / 100% 100% no-repeat", color: "#fff0bf", cursor: "pointer", textShadow: "0 1px 2px #251208" }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element -- local generated combat icon */}
+          <img src="/art/lobby/castle-attack-marker-v1.png" alt="" className="h-[14px] w-[14px] object-contain" />
+          <span className="text-[10px] font-bold">전투</span>
+        </button>
+      ) : null}
     </div>
   );
 }
 
 function CastleScoutPopup({ candidate, availableHeroCount }: { candidate: MapCandidate; availableHeroCount: number }) {
-  const enemyFactionColors = ["#bf4d43"];
+  // Blue is reserved for the player's allied/friendly faction.  The remaining
+  // seven hues keep rivals distinct when a larger country has many factions.
+  const enemyFactionColors = ["#bd4c42"];
   const size = MAP_TIER_INFO[candidate.generation.mapTier];
   return (
     <div
-      className="absolute left-[calc(50%+38px)] top-[calc(44%-35px)] w-[152px] rounded-[3px] px-2 py-1.5 text-[#4d2b15]"
+      className="absolute left-[calc(50%+50px)] top-[calc(44%-35px)] w-[152px] rounded-[3px] px-2 py-1.5 text-[#4d2b15]"
       style={{
         border: "1px solid rgba(105, 65, 29, 0.72)",
         background: "linear-gradient(135deg, rgba(255, 240, 198, 0.96), rgba(230, 197, 132, 0.95))",
@@ -872,11 +872,10 @@ function CastleScoutPopup({ candidate, availableHeroCount }: { candidate: MapCan
       </div>
       <p className="mt-0.5 truncate text-[8px] text-[#75502b]">한 개의 섬으로 이루어진 나라</p>
       <div className="mt-1 flex items-center justify-between text-[8px] leading-none">
-        <span className="flex items-center gap-1">
-          {/* eslint-disable-next-line @next/next/no-img-element -- local faction marker */}
-          <img src="/art/lobby/castle-briefing-enemy-v1.png" alt="적 세력" className="h-[12px] w-[12px] object-contain" />
-          <span className="flex gap-0.5">{enemyFactionColors.map((color) => <i key={color} className="h-[6px] w-[6px] rounded-sm" style={{ backgroundColor: color, boxShadow: "0 0 0 1px rgba(74, 35, 19, 0.55)" }} />)}</span>
-          <b>{enemyFactionColors.length}</b>
+        <span className="flex items-center gap-1" aria-label={`적 세력 ${enemyFactionColors.length}개`}>
+          {/* eslint-disable-next-line @next/next/no-img-element -- local attack marker */}
+          <img src="/art/lobby/castle-attack-marker-v1.png" alt="" className="h-[12px] w-[12px] object-contain" />
+          <span className="flex items-center gap-1">{enemyFactionColors.map((color, index) => <FactionFlag key={`${color}-${index}`} color={color} />)}</span>
         </span>
         <span>출전 가능 <b>{availableHeroCount}</b></span>
       </div>
@@ -886,6 +885,25 @@ function CastleScoutPopup({ candidate, availableHeroCount }: { candidate: MapCan
         <span>발견 이벤트 없음</span>
       </div>
     </div>
+  );
+}
+
+function FactionFlag({ color }: { color: string }) {
+  return (
+    <i
+      aria-hidden="true"
+      className="relative block h-[11px] w-[10px]"
+      style={{ borderLeft: "2px solid #56331b" }}
+    >
+      <i
+        className="absolute left-[1px] top-[1px] h-[7px] w-[7px]"
+        style={{
+          background: color,
+          clipPath: "polygon(0 0, 100% 18%, 72% 50%, 100% 84%, 0 100%)",
+          boxShadow: "0 0 0 1px rgba(58, 31, 15, 0.5)",
+        }}
+      />
+    </i>
   );
 }
 
