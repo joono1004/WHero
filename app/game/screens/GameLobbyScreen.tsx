@@ -456,7 +456,6 @@ export function GameLobbyScreen({
                   candidate={save.nextMapCandidates[0]}
                   isSelected={tutorialIslandSelected}
                   onSelect={() => setTutorialIslandSelected(true)}
-                  availableHeroCount={entries.length}
                   onBattle={() => setEnlistingCandidateIndex(0)}
                 />
               ) : (
@@ -769,13 +768,11 @@ function TutorialIslandCandidate({
   candidate,
   isSelected,
   onSelect,
-  availableHeroCount,
   onBattle,
 }: {
   candidate: MapCandidate;
   isSelected: boolean;
   onSelect: () => void;
-  availableHeroCount: number;
   onBattle: () => void;
 }) {
   const name = countryMapName(candidate);
@@ -821,39 +818,37 @@ function TutorialIslandCandidate({
         ) : null}
       </button>
       {isSelected ? (
-        <CastleConquestBriefing availableHeroCount={availableHeroCount} onBattle={onBattle} />
+        <CastleConquestBriefing onBattle={onBattle} />
       ) : null}
     </div>
   );
 }
 
-function CastleConquestBriefing({ availableHeroCount, onBattle }: { availableHeroCount: number; onBattle: () => void }) {
+function CastleConquestBriefing({ onBattle }: { onBattle: () => void }) {
   const enemyFactionColors = ["#bf4d43"];
   const items = [
-    { icon: "/art/lobby/castle-briefing-enemy-v1.png", label: "적 세력", value: enemyFactionColors.length, color: "#f1bd9b", colors: enemyFactionColors },
-    { icon: "/art/lobby/castle-briefing-hero-v1.png", label: "출전 영웅", value: availableHeroCount, color: "#b7e2e3" },
-    { icon: "/art/lobby/castle-briefing-event-v1.png", label: "이벤트", value: 0, color: "#f0d398" },
+    { icon: "/art/lobby/castle-briefing-enemy-v1.png", value: enemyFactionColors.length, colors: enemyFactionColors },
+    { icon: "/art/lobby/castle-briefing-event-v1.png", value: 0 },
   ];
   return (
-    <div className="absolute left-1/2 top-[calc(44%+36px)] w-[192px] -translate-x-1/2">
+    <div className="absolute left-1/2 top-[calc(44%+36px)] w-[132px] -translate-x-1/2">
       <div
-        className="h-[44px] w-full"
-        style={{ background: "url('/art/lobby/castle-tactical-strip-v1.png') center / 100% 100% no-repeat" }}
+        className="h-[38px] w-full"
+        style={{ background: "url('/art/lobby/castle-tactical-strip-two-v1.png') center / 100% 100% no-repeat" }}
       >
-      <div className="grid h-full grid-cols-3 px-[9px] pb-[3px] pt-[4px]">
+      <div className="grid h-full grid-cols-2 px-[11px] py-[5px]">
         {items.map((item) => (
-          <div key={item.label} className="flex min-w-0 flex-col items-center justify-center leading-none">
+          <div key={item.icon} className="flex min-w-0 items-center justify-center gap-1 leading-none">
             {/* eslint-disable-next-line @next/next/no-img-element -- local generated briefing icon */}
-            <div className="relative h-[14px] w-[17px]">
-              <img src={item.icon} alt="" className="h-[14px] w-[14px] object-contain" />
+            <div className="relative h-[18px] w-[20px]">
+              <img src={item.icon} alt="" className="h-[18px] w-[18px] object-contain" />
               {item.colors ? (
                 <span className="absolute -right-0.5 bottom-0 flex gap-px">
-                  {item.colors.slice(0, 3).map((color, index) => <i key={`${color}-${index}`} className="h-[4px] w-[4px] rounded-full" style={{ backgroundColor: color, boxShadow: "0 0 0 1px #12272b" }} />)}
+                  {item.colors.slice(0, 3).map((color, index) => <i key={`${color}-${index}`} className="h-[5px] w-[5px] rounded-full" style={{ backgroundColor: color, boxShadow: "0 0 0 1px #12272b" }} />)}
                 </span>
               ) : null}
             </div>
-            <span className="mt-px whitespace-nowrap text-[7px] font-bold" style={{ color: item.color }}>{item.label}</span>
-            <strong className="mt-px text-[10px] leading-none text-[#fff0bd]">{item.value}</strong>
+            <strong className="text-[13px] leading-none text-[#fff0bd]">{item.value}</strong>
           </div>
         ))}
       </div>
