@@ -446,7 +446,6 @@ export function GameLobbyScreen({
               />
             ))}
           </div>
-          <AdBannerPlaceholder />
         </div>
 
         {/* 오른쪽 열: 세계 선택 레일(기존 그대로, 더 크게) + 출전 영웅
@@ -800,23 +799,29 @@ function TutorialIslandCandidate({
         className="pointer-events-none absolute inset-0 h-full w-full object-contain"
       />
       <p
-        className="absolute left-1/2 top-2 -translate-x-1/2 whitespace-nowrap text-center text-[13px] font-bold text-[#5b351a]"
-        style={{ textShadow: "0 1px 0 rgba(255, 239, 185, 0.8), 0 2px 3px rgba(92, 53, 25, 0.18)" }}
+        className="absolute left-1/2 top-2 -translate-x-1/2 whitespace-nowrap rounded-full px-3 py-0.5 text-center text-[12px] font-bold text-[#5b351a]"
+        style={{ borderBottom: "1px solid rgba(139, 94, 39, 0.55)", background: "rgba(250, 227, 172, 0.42)", textShadow: "0 1px 0 rgba(255, 239, 185, 0.8), 0 2px 3px rgba(92, 53, 25, 0.18)" }}
       >
         {name}
       </p>
+      {isSelected ? (
+        <span
+          className="pointer-events-none absolute left-1/2 top-[calc(44%+18px)] h-[16px] w-[70px] -translate-x-1/2 rounded-[50%]"
+          style={{ border: "1px solid rgba(247, 207, 103, 0.94)", boxShadow: "0 0 9px rgba(245, 195, 72, 0.7), inset 0 0 5px rgba(255, 237, 152, 0.45)" }}
+        />
+      ) : null}
       <button
         type="button"
         aria-label="작은 섬의 적 성 선택"
         onClick={onSelect}
         className="absolute left-1/2 top-[44%] -translate-x-1/2 -translate-y-1/2"
         style={{
-          border: isSelected ? "2px solid #f2cf68" : "2px solid transparent",
+          border: "2px solid transparent",
           borderRadius: 8,
           background: "transparent",
           padding: 2,
           filter: isSelected
-            ? "drop-shadow(0 0 8px rgba(255, 217, 102, 0.95)) drop-shadow(0 4px 3px rgba(30, 16, 8, 0.55))"
+            ? "drop-shadow(0 0 5px rgba(255, 217, 102, 0.72)) drop-shadow(0 4px 3px rgba(30, 16, 8, 0.55))"
             : "drop-shadow(0 4px 3px rgba(30, 16, 8, 0.55))",
           cursor: "pointer",
         }}
@@ -869,7 +874,7 @@ function CastleConquestBriefing({ onBattle }: { onBattle: () => void }) {
       <button
         type="button"
         onClick={onBattle}
-        className="relative mx-auto mt-0.5 flex h-[30px] w-[94px] items-center justify-center gap-1 active:translate-y-px"
+        className="relative mx-auto mt-1.5 flex h-[30px] w-[94px] items-center justify-center gap-1 active:translate-y-px"
         style={{ border: "none", background: "url('/art/lobby/castle-battle-button-v1.png') center / 100% 100% no-repeat", color: "#fff0bf", cursor: "pointer", textShadow: "0 1px 2px #251208" }}
       >
         {/* eslint-disable-next-line @next/next/no-img-element -- local generated combat icon */}
