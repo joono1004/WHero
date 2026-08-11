@@ -151,6 +151,7 @@ export function GameLobbyScreen({
   const [showTroops, setShowTroops] = useState(false);
   const [systemMenuOpen, setSystemMenuOpen] = useState(false);
   const [systemGearSpin, setSystemGearSpin] = useState(0);
+  const [activeMenuKey, setActiveMenuKey] = useState<MenuItemKey | null>(null);
   const [tutorialIslandSelected, setTutorialIslandSelected] = useState(false);
   // Message data will later supply these values; conditional badges are ready now.
   const unreadMailCount = 0;
@@ -434,7 +435,9 @@ export function GameLobbyScreen({
                 key={item.key}
                 icon={item.icon}
                 label={item.label}
+                isActive={activeMenuKey === item.key}
                 onClick={() => {
+                  setActiveMenuKey(item.key);
                   if (item.key === "research") setShowResearch(true);
                   else if (item.key === "troops") setShowTroops(true);
                   else if (item.key === "heroes") openHeroScreen(null);
@@ -530,11 +533,21 @@ export function GameLobbyScreen({
 // sidebar's available height before needing a scroll. A single-line row
 // fits all 6 comfortably while still leaving room to grow further (scrolls
 // via the parent's overflow-y-auto once it doesn't).
-function MenuBarButton({ icon, label, onClick }: { icon: string; label: string; onClick: () => void }) {
+function MenuBarButton({
+  icon,
+  label,
+  isActive,
+  onClick,
+}: {
+  icon: string;
+  label: string;
+  isActive: boolean;
+  onClick: () => void;
+}) {
   return (
     <button
       onClick={onClick}
-      className="lobby-sidebar__menu-button flex w-full shrink-0 items-center gap-1 text-left"
+      className={`lobby-sidebar__menu-button${isActive ? " is-active" : ""} flex w-full shrink-0 items-center gap-1 text-left`}
       style={{
         border: "none",
         borderRadius: 0,
