@@ -587,6 +587,19 @@ footer small { margin-left:auto; color:#71898b; }
 .lobby-sidebar__menu-button:active { transform:translateY(1px) scale(.985); filter:brightness(.88); }
 .lobby-sidebar__menu-icon { width:24px; height:24px; object-fit:contain; filter:drop-shadow(0 1px 1px rgba(0,0,0,.7)); }
 .lobby-sidebar__menu-label { letter-spacing:.04em; }
+.lobby-operations-bar { min-height:66px; padding:4px 6px; border:1px solid rgba(183,132,49,.58); border-radius:5px; background:linear-gradient(180deg,rgba(38,22,8,.78),rgba(18,11,5,.82)); box-shadow:inset 0 1px rgba(255,225,160,.1),0 2px 5px rgba(0,0,0,.34); }
+.lobby-message-panel { width:248px; min-width:248px; padding:3px 5px; border-right:1px solid rgba(196,148,66,.38); }
+.lobby-message-panel__tabs { height:14px; margin-bottom:2px; }
+.lobby-message-panel__tab { padding:1px 6px; border-radius:3px 3px 0 0; color:#967c55; font-size:8px; font-weight:700; }
+.lobby-message-panel__tab--active { background:rgba(186,137,51,.24); color:#f2d596; }
+.lobby-message-panel__log { flex:1; min-height:29px; overflow:hidden; color:#a99a7b; font-size:8px; line-height:1.55; }
+.lobby-message-panel__log b { color:#e3bd70; font-weight:800; }
+.lobby-message-panel__input { height:16px; border:1px solid rgba(119,91,48,.7) !important; border-radius:3px; background:rgba(6,13,12,.56) !important; color:#947d59 !important; }
+.lobby-message-panel__input::placeholder { color:#76664e; }
+.lobby-formation-bar { padding:2px 4px; border-right:1px solid rgba(196,148,66,.3); }
+.lobby-sortie-button { width:104px; min-height:54px; border:1px solid #d1a64e !important; border-radius:5px !important; background:linear-gradient(180deg,#2c6a63,#123b38) !important; color:#ffedbb !important; font-size:13px; font-weight:900; letter-spacing:.08em; text-shadow:0 1px 2px #0b211e; box-shadow:inset 0 1px rgba(255,247,195,.24),0 2px 4px rgba(0,0,0,.42); transition:transform .14s ease,filter .14s ease; }
+.lobby-sortie-button:hover { filter:brightness(1.15); transform:translateY(-1px); }
+.lobby-sortie-button:active { transform:translateY(1px) scale(.98); filter:brightness(.86); }
 .title-hero-screen__art,
 .title-hero-screen__vignette {
   position:absolute;

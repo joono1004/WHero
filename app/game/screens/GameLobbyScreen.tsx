@@ -402,11 +402,12 @@ export function GameLobbyScreen({
           (ScreenShell은 footer를 안 넘기면 그 영역을 렌더링하지 않으므로
           별도 처리 불필요). 출전 영웅 5슬롯도 순서상 세계 영역 위에서
           아래로 옮김. */}
-      <div className="flex h-full gap-2 py-1">
+      <div className="flex h-full flex-col gap-1 py-1">
         {/* 왼쪽 열: 세로 메뉴(영웅/병사/가방/연구/순위/연맹) + 광고배너 +
             채팅창. 메뉴는 항목이 계속 늘 수 있어 overflow-y-auto - 가로
             메뉴 바 때와 같은 이유(그때는 overflow-x-auto)로 고정 개수를
             가정하지 않음. */}
+        <div className="flex min-h-0 flex-1 gap-2">
         <div className="flex w-24 shrink-0 flex-col gap-1.5">
           <div className="flex flex-1 flex-col gap-1 overflow-y-auto">
             {MENU_ITEMS.map((item) => (
@@ -424,7 +425,6 @@ export function GameLobbyScreen({
             ))}
           </div>
           <AdBannerPlaceholder />
-          <ChatPlaceholder />
         </div>
 
         {/* 오른쪽 열: 세계 선택 레일(기존 그대로, 더 크게) + 출전 영웅
@@ -454,14 +454,18 @@ export function GameLobbyScreen({
             </div>
           </div>
 
+        </div>
+        </div>
+        <div className="lobby-operations-bar flex shrink-0 items-stretch gap-2">
+          <ChatPlaceholder />
           {/* 출전 영웅 5슬롯: ★로 표시된(deploymentPriority) 영웅을 우선순위
               순으로 채움 - 세계 진입 시 실제로 어떤 5명이 나가는지와는
               별개로(그건 HeroEnlistScreen에서 그때그때 고름), "다음에
               출전시킬 생각인 주전"을 로비에서 한눈에 보여주는 용도. 빈
               슬롯은 ➕로 표시되고 누르면 전체 로스터(HeroRosterScreen)로
               이동해서 별을 찍을 수 있음. */}
-          <div className="flex shrink-0 items-center gap-1.5">
-            <span className="text-[10px] text-[#8fa6a8]">출전 영웅</span>
+          <div className="lobby-formation-bar flex min-w-0 flex-1 items-center gap-1.5">
+            <span className="shrink-0 text-[10px] text-[#8fa6a8]">출전 영웅</span>
             {Array.from({ length: MAX_ENLISTED_HEROES }, (_, index) =>
               entries.filter((entry) => entry.state.deploymentPriority)[index],
             ).map((entry, index) =>
@@ -486,6 +490,13 @@ export function GameLobbyScreen({
               ),
             )}
           </div>
+          <button
+            type="button"
+            className="lobby-sortie-button shrink-0"
+            onClick={() => window.alert("먼저 공략할 세계를 선택하세요.")}
+          >
+            출정 시작
+          </button>
         </div>
       </div>
     </ScreenShell>
@@ -550,14 +561,19 @@ function AdBannerPlaceholder() {
 // disabled input line) for Codex/a later networking pass to wire up.
 function ChatPlaceholder() {
   return (
-    <div className="flex shrink-0 flex-col gap-0.5">
-      <p className="truncate text-[8px] text-[#5c7276]">[공지] 채팅 기능은 준비 중입니다.</p>
-      <p className="truncate text-[8px] text-[#5c7276]">아직 메시지를 보낼 수 없어요.</p>
+    <div className="lobby-message-panel flex shrink-0 flex-col">
+      <div className="lobby-message-panel__tabs flex items-center gap-1">
+        <span className="lobby-message-panel__tab lobby-message-panel__tab--active">시스템</span>
+        <span className="lobby-message-panel__tab">채팅</span>
+      </div>
+      <div className="lobby-message-panel__log">
+        <p><b>[알림]</b> 영웅스토리에 오신 것을 환영합니다.</p>
+        <p><b>[시스템]</b> 출전 영웅을 편성하고 공략할 세계를 선택하세요.</p>
+      </div>
       <input
         disabled
-        placeholder="채팅 입력 (준비 중)"
-        className="w-full rounded px-1.5 py-0.5 text-[8px]"
-        style={{ border: "1px solid #3a4f52", backgroundColor: "rgba(11,32,40,0.5)", color: "#5c7276" }}
+        placeholder="채팅 입력 (사용자 간 채팅은 준비 중)"
+        className="lobby-message-panel__input w-full px-1.5 py-0.5 text-[8px]"
       />
     </div>
   );
