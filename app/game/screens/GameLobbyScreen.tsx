@@ -457,7 +457,7 @@ export function GameLobbyScreen({
                 <TutorialIslandCandidate
                   candidate={save.nextMapCandidates[0]}
                   isSelected={tutorialIslandSelected}
-                  onSelect={() => setTutorialIslandSelected(true)}
+                  onSelect={() => setTutorialIslandSelected((selected) => !selected)}
                   availableHeroCount={entries.length}
                   onBattle={() => setEnlistingCandidateIndex(0)}
                 />
