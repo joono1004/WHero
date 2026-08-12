@@ -885,7 +885,7 @@ function WorldMapToggleButton({ onClick, label }: { onClick: () => void; label: 
     <button
       type="button"
       onClick={onClick}
-      className="absolute bottom-1 left-1 flex h-[66px] w-[84px] flex-col items-center justify-center gap-0.5 active:scale-95"
+      className="absolute bottom-1 left-1 flex h-[60px] w-[84px] items-center justify-center active:scale-95"
       style={{
         border: "none",
         background: "transparent",
@@ -898,10 +898,10 @@ function WorldMapToggleButton({ onClick, label }: { onClick: () => void; label: 
       <img
         src="/art/lobby/world-map-button-v1.png"
         alt=""
-        className="h-[50px] w-[80px] object-contain"
+        className="h-[58px] w-[80px] object-contain"
         style={{ filter: "contrast(1.3) saturate(1.08) drop-shadow(0 1px 1px rgba(51, 28, 10, 0.72))" }}
       />
-      <span className="relative -mt-1 whitespace-nowrap text-[8px] font-bold text-[#5a3519]" style={{ textShadow: "0 1px 0 rgba(255, 233, 169, 0.78)" }}>
+      <span className="absolute bottom-[5px] whitespace-nowrap text-[9px] font-black text-[#43240f]" style={{ textShadow: "0 1px 0 rgba(255, 235, 173, 0.9), 0 0 2px rgba(255, 225, 152, 0.72)" }}>
         세계 지도
       </span>
     </button>
