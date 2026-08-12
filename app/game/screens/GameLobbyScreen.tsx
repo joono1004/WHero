@@ -438,17 +438,15 @@ export function GameLobbyScreen({
                 </button>
                 {systemMenuOpen ? (
                   <div className="lobby-system-menu__popup">
-                    <button type="button" onClick={() => { setSystemMenuOpen(false); onSettings(); }}>설정</button>
+                    <button type="button" onClick={() => { setSystemMenuOpen(false); onSettings(); }}><span>설정</span></button>
                     <button
                       type="button"
                       onClick={() => {
                         setDeveloperMode((enabled) => !enabled);
                         setSystemMenuOpen(false);
                       }}
-                    >
-                      {developerMode ? "개발자 모드 해제" : "개발자 모드"}
-                    </button>
-                    <button type="button" className="lobby-system-menu__exit" onClick={onExitToMenu}>나가기</button>
+                    ><span>{developerMode ? "개발자 모드 해제" : "개발자 모드"}</span></button>
+                    <button type="button" className="lobby-system-menu__exit" onClick={onExitToMenu}><span>나가기</span></button>
                   </div>
                 ) : null}
               </div>

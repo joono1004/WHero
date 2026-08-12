@@ -580,6 +580,7 @@ footer small { margin-left:auto; color:#71898b; }
 .lobby-system-menu__popup button { position:relative; z-index:1; display:block; width:100%; min-height:27px; margin:1px 0; padding:4px 7px; border:1px solid rgba(226,177,77,.22) !important; border-radius:3px !important; background:rgba(26,13,5,.38) !important; color:#fff0bf !important; font-family:"Malgun Gothic",sans-serif; font-size:11px !important; font-weight:800; line-height:18px; text-align:left; text-shadow:0 1px 1px #1b0b02; cursor:pointer; }
 .lobby-system-menu__popup button:hover { background:rgba(244,204,113,.18) !important; }
 .lobby-system-menu__popup .lobby-system-menu__exit { color:#e7ab83 !important; }
+.lobby-system-menu__popup button > span { display:block; position:relative; z-index:2; color:inherit !important; font:inherit; line-height:inherit; visibility:visible !important; opacity:1 !important; }
 .developer-mode-toolbar { position:absolute; z-index:45; right:12px; bottom:8px; display:flex; align-items:center; gap:5px; padding:5px 7px; border:1px solid #d6ff31; border-radius:5px; background:rgba(18,25,12,.88); box-shadow:0 2px 8px rgba(0,0,0,.5); color:#d6ff31; font-family:"Malgun Gothic",sans-serif; font-size:10px; font-weight:900; }
 .developer-mode-toolbar button { min-height:25px; padding:3px 8px; border:1px solid rgba(214,255,49,.75); border-radius:3px; background:rgba(71,88,19,.78); color:#f2ff9e; font-family:inherit; font-size:10px; font-weight:900; cursor:pointer; }
 .developer-mode-toolbar button:active { transform:translateY(1px); }
