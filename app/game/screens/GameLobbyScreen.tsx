@@ -123,6 +123,7 @@ const COUNTRY_CONNECTIONS: Record<number, number[]> = {
 // The stored coordinate marks the flag artwork's centre.  Route lines need
 // to meet the circular ground base, which sits lower than that centre.
 const WORLD_FLAG_BASE_OFFSET_Y = 5.2;
+const WORLD_ROUTE_BASE_EDGE_INSET = 2.3;
 
 const DEVELOPER_FLAGS_STORAGE_KEY = "world-in-hero:world-map-developer-flags";
 const WORLD_COUNTRY_LAYOUT_STORAGE_KEY = "world-in-hero:world-map-country-layout";
@@ -1097,14 +1098,21 @@ function TutorialWorldMap({
           if (!source || !target) return null;
           const sourceY = Math.min(100, source.y + WORLD_FLAG_BASE_OFFSET_Y);
           const targetY = Math.min(100, target.y + WORLD_FLAG_BASE_OFFSET_Y);
-          const controlX = (source.x + target.x) / 2;
-          const controlY = (sourceY + targetY) / 2 - 1.4;
-          const path = `M ${source.x} ${sourceY} Q ${controlX} ${controlY} ${target.x} ${targetY}`;
+          const deltaX = target.x - source.x;
+          const deltaY = targetY - sourceY;
+          const distance = Math.max(0.01, Math.hypot(deltaX, deltaY));
+          const startX = source.x + (deltaX / distance) * WORLD_ROUTE_BASE_EDGE_INSET;
+          const startY = sourceY + (deltaY / distance) * WORLD_ROUTE_BASE_EDGE_INSET;
+          const endX = target.x - (deltaX / distance) * WORLD_ROUTE_BASE_EDGE_INSET;
+          const endY = targetY - (deltaY / distance) * WORLD_ROUTE_BASE_EDGE_INSET;
+          const controlX = (startX + endX) / 2;
+          const controlY = (startY + endY) / 2 - 0.7;
+          const path = `M ${startX} ${startY} Q ${controlX} ${controlY} ${endX} ${endY}`;
           return (
             <g key={`${sourceId}-${targetId}`}>
-              <path d={path} fill="none" stroke="rgba(24, 45, 57, 0.92)" strokeWidth="1.7" strokeLinecap="round" />
-              <path d={path} fill="none" stroke="#b99650" strokeWidth="1.05" strokeLinecap="round" opacity="0.94" />
-              <path d={path} fill="none" stroke="url(#world-route-core)" strokeWidth="0.55" strokeLinecap="round" />
+              <path d={path} fill="none" stroke="rgba(24, 45, 57, 0.9)" strokeWidth="0.86" strokeLinecap="round" />
+              <path d={path} fill="none" stroke="#b99650" strokeWidth="0.5" strokeLinecap="round" opacity="0.92" />
+              <path d={path} fill="none" stroke="url(#world-route-core)" strokeWidth="0.24" strokeLinecap="round" />
             </g>
           );
         }))}
