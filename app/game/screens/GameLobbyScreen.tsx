@@ -165,6 +165,8 @@ export function GameLobbyScreen({
   const [developerMode, setDeveloperMode] = useState(false);
   const [developerFlags, setDeveloperFlags] = useState<DeveloperFlag[]>([]);
   const [developerFlagsLoaded, setDeveloperFlagsLoaded] = useState(false);
+  const [showDeveloperExport, setShowDeveloperExport] = useState(false);
+  const [developerCopied, setDeveloperCopied] = useState(false);
   // Message data will later supply these values; conditional badges are ready now.
   const unreadMailCount = 0;
   const unreadNoticeCount = 0;
@@ -188,6 +190,16 @@ export function GameLobbyScreen({
 
   const saveDeveloperFlags = () => {
     window.localStorage.setItem(DEVELOPER_FLAGS_STORAGE_KEY, JSON.stringify(developerFlags));
+  };
+
+  const developerExportText = developerFlags
+    .map((flag, index) => `깃발 ${index + 1}: x ${flag.x.toFixed(1)} / y ${flag.y.toFixed(1)}`)
+    .join("\n");
+
+  const copyDeveloperCoordinates = async () => {
+    await navigator.clipboard.writeText(developerExportText || "추가한 깃발이 없습니다.");
+    setDeveloperCopied(true);
+    window.setTimeout(() => setDeveloperCopied(false), 1600);
   };
 
   const playerFaction = save.factions[PLAYER_FACTION_ID];
@@ -540,6 +552,20 @@ export function GameLobbyScreen({
           <span>개발자 모드</span>
           <button type="button" onClick={addDeveloperFlag}>깃발 추가</button>
           <button type="button" onClick={saveDeveloperFlags}>저장</button>
+          <button type="button" onClick={() => setShowDeveloperExport(true)}>좌표 내보내기</button>
+        </div>
+      ) : null}
+      {showDeveloperExport ? (
+        <div className="developer-export-backdrop" role="dialog" aria-modal="true" aria-label="깃발 좌표 내보내기">
+          <div className="developer-export-dialog">
+            <strong>깃발 좌표</strong>
+            <p>아래 내용을 복사해 Codex에게 보내주세요.</p>
+            <pre>{developerExportText || "추가한 깃발이 없습니다."}</pre>
+            <div>
+              <button type="button" onClick={() => void copyDeveloperCoordinates()}>{developerCopied ? "복사됨" : "복사"}</button>
+              <button type="button" onClick={() => setShowDeveloperExport(false)}>닫기</button>
+            </div>
+          </div>
         </div>
       ) : null}
 
