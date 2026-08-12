@@ -885,7 +885,7 @@ function WorldMapToggleButton({ onClick, label }: { onClick: () => void; label: 
     <button
       type="button"
       onClick={onClick}
-      className="absolute bottom-2 left-2 flex h-[30px] w-[38px] items-center justify-center active:scale-95"
+      className="absolute bottom-1.5 left-1.5 flex h-[46px] w-[58px] items-center justify-center active:scale-95"
       style={{
         border: "none",
         background: "transparent",
@@ -898,7 +898,7 @@ function WorldMapToggleButton({ onClick, label }: { onClick: () => void; label: 
       <img
         src="/art/lobby/world-map-button-v1.png"
         alt=""
-        className="h-[28px] w-[36px] object-contain"
+        className="h-[44px] w-[56px] object-contain"
         style={{ filter: "contrast(1.3) saturate(1.08) drop-shadow(0 1px 1px rgba(51, 28, 10, 0.72))" }}
       />
     </button>
