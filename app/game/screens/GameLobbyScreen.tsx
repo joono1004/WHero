@@ -124,6 +124,9 @@ const COUNTRY_CONNECTIONS: Record<number, number[]> = {
 // to meet the circular ground base, which sits lower than that centre.
 const WORLD_FLAG_BASE_OFFSET_Y = 5.2;
 const WORLD_ROUTE_BASE_EDGE_INSET = 2.3;
+// The painted flag base sits slightly left of the marker element's stored
+// horizontal centre. Routes use this visual base centre without moving flags.
+const WORLD_FLAG_BASE_OFFSET_X = -0.55;
 
 const DEVELOPER_FLAGS_STORAGE_KEY = "world-in-hero:world-map-developer-flags";
 const WORLD_COUNTRY_LAYOUT_STORAGE_KEY = "world-in-hero:world-map-country-layout";
@@ -1098,12 +1101,14 @@ function TutorialWorldMap({
           if (!source || !target) return null;
           const sourceY = Math.min(100, source.y + WORLD_FLAG_BASE_OFFSET_Y);
           const targetY = Math.min(100, target.y + WORLD_FLAG_BASE_OFFSET_Y);
-          const deltaX = target.x - source.x;
+          const sourceX = source.x + WORLD_FLAG_BASE_OFFSET_X;
+          const targetX = target.x + WORLD_FLAG_BASE_OFFSET_X;
+          const deltaX = targetX - sourceX;
           const deltaY = targetY - sourceY;
           const distance = Math.max(0.01, Math.hypot(deltaX, deltaY));
-          const startX = source.x + (deltaX / distance) * WORLD_ROUTE_BASE_EDGE_INSET;
+          const startX = sourceX + (deltaX / distance) * WORLD_ROUTE_BASE_EDGE_INSET;
           const startY = sourceY + (deltaY / distance) * WORLD_ROUTE_BASE_EDGE_INSET;
-          const endX = target.x - (deltaX / distance) * WORLD_ROUTE_BASE_EDGE_INSET;
+          const endX = targetX - (deltaX / distance) * WORLD_ROUTE_BASE_EDGE_INSET;
           const endY = targetY - (deltaY / distance) * WORLD_ROUTE_BASE_EDGE_INSET;
           const controlX = (startX + endX) / 2;
           const controlY = (startY + endY) / 2 - 0.7;
