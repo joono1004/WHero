@@ -963,16 +963,16 @@ function TutorialIslandCandidate({
       {isSelected && !isConquered ? (
         <CastleScoutPopup candidate={candidate} availableHeroCount={availableHeroCount} />
       ) : null}
-      {isSelected ? (
+      {(isSelected || isConquered) ? (
         <button
           type="button"
-          onClick={onBattle}
+          onClick={isConquered ? undefined : onBattle}
           className="absolute left-1/2 top-[calc(44%+34px)] flex h-[28px] w-[92px] -translate-x-1/2 items-center justify-center gap-1 active:translate-y-px"
           style={{ border: "none", background: "url('/art/lobby/castle-battle-button-v1.png') center / 100% 100% no-repeat", color: "#fff0bf", cursor: "pointer", textShadow: "0 1px 2px #251208" }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element -- local generated combat icon */}
-          <img src="/art/lobby/castle-attack-marker-v1.png" alt="" className="h-[14px] w-[14px] object-contain" />
-          <span className="text-[10px] font-bold">전투</span>
+          {!isConquered ? <img src="/art/lobby/castle-attack-marker-v1.png" alt="" className="h-[14px] w-[14px] object-contain" /> : null}
+          <span className="text-[10px] font-bold">{isConquered ? "소탕" : "전투"}</span>
         </button>
       ) : null}
     </div>
