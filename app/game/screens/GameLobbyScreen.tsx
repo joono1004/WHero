@@ -1102,9 +1102,9 @@ function TutorialWorldMap({
           const path = `M ${source.x} ${sourceY} Q ${controlX} ${controlY} ${target.x} ${targetY}`;
           return (
             <g key={`${sourceId}-${targetId}`}>
-              <path d={path} fill="none" stroke="rgba(24, 45, 57, 0.92)" strokeWidth="3.6" strokeLinecap="round" />
-              <path d={path} fill="none" stroke="#b99650" strokeWidth="2.3" strokeLinecap="round" opacity="0.94" />
-              <path d={path} fill="none" stroke="url(#world-route-core)" strokeWidth="1.25" strokeLinecap="round" />
+              <path d={path} fill="none" stroke="rgba(24, 45, 57, 0.92)" strokeWidth="1.7" strokeLinecap="round" />
+              <path d={path} fill="none" stroke="#b99650" strokeWidth="1.05" strokeLinecap="round" opacity="0.94" />
+              <path d={path} fill="none" stroke="url(#world-route-core)" strokeWidth="0.55" strokeLinecap="round" />
             </g>
           );
         }))}
