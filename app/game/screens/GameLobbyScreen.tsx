@@ -876,7 +876,7 @@ function WorldCountryNode({ anchor, isStartingCountry = false }: { anchor: World
   const isAvailable = anchor.state === "available";
   return (
     <span
-      className="pointer-events-none absolute h-[30px] w-[30px] -translate-x-1/2 -translate-y-1/2 rounded-full"
+      className="pointer-events-none absolute h-[18px] w-[18px] -translate-x-1/2 -translate-y-1/2 rounded-full"
       style={{
         left: anchor.left,
         top: anchor.top,
@@ -884,17 +884,17 @@ function WorldCountryNode({ anchor, isStartingCountry = false }: { anchor: World
         background: isAvailable
           ? "radial-gradient(circle at 35% 30%, rgba(255, 237, 171, 0.7), rgba(124, 79, 36, 0.88) 58%, rgba(44, 28, 16, 0.95))"
           : "radial-gradient(circle at 35% 30%, rgba(211, 194, 155, 0.32), rgba(78, 66, 47, 0.72) 60%, rgba(42, 34, 24, 0.85))",
-        boxShadow: isAvailable ? "0 0 0 2px rgba(81, 47, 20, 0.7), 0 0 7px rgba(246, 192, 85, 0.55)" : "0 1px 3px rgba(44, 28, 15, 0.6)",
+        boxShadow: isAvailable ? "0 0 0 1px rgba(81, 47, 20, 0.7), 0 0 4px rgba(246, 192, 85, 0.45)" : "0 1px 2px rgba(44, 28, 15, 0.55)",
         opacity: isAvailable ? 1 : 0.72,
       }}
       aria-label={isStartingCountry ? "정복할 작은 섬 나라" : "아직 개방되지 않은 나라"}
     >
-      <span className="absolute left-1/2 top-1/2 h-[20px] w-[20px] -translate-x-1/2 -translate-y-1/2 rounded-full" style={{ border: "1px solid rgba(255, 232, 167, 0.2)" }} />
+      <span className="absolute left-1/2 top-1/2 h-[11px] w-[11px] -translate-x-1/2 -translate-y-1/2 rounded-full" style={{ border: "1px solid rgba(255, 232, 167, 0.2)" }} />
       {isAvailable ? (
         <img
           src="/art/lobby/country-flag-horizontal-enemy-v1.png"
           alt=""
-          className="absolute left-[45%] top-[44%] h-[15px] w-[28px] max-w-none -translate-x-1/2 -translate-y-1/2 object-contain"
+          className="absolute left-[45%] top-[44%] h-[9px] w-[17px] max-w-none -translate-x-1/2 -translate-y-1/2 object-contain"
         />
       ) : null}
     </span>
