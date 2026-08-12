@@ -866,9 +866,9 @@ function TutorialWorldMap() {
     <div className="relative flex flex-1 overflow-hidden">
       {/* eslint-disable-next-line @next/next/no-img-element -- local painted world map */}
       <img
-        src="/art/lobby/world-map-selected-v10.png"
+        src="/art/lobby/world-map-selected-faded-v11.png"
         alt="세계 지도"
-        className="pointer-events-none absolute left-1/2 top-1/2 h-full w-full -translate-x-1/2 -translate-y-1/2 scale-[1.2] object-fill"
+        className="pointer-events-none absolute inset-0 h-full w-full object-fill"
         style={{
           filter: "contrast(1.06) saturate(0.83) brightness(0.94)",
           maskImage: "none",
