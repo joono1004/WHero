@@ -833,14 +833,6 @@ function TutorialIslandCandidate({
           cursor: "pointer",
         }}
       >
-        <span className="pointer-events-none absolute bottom-[42px] left-1/2 z-10 h-[43px] w-[34px] -translate-x-1/2 overflow-hidden">
-          {/* eslint-disable-next-line @next/next/no-img-element -- local generated enemy-country flag */}
-          <img
-            src="/art/lobby/country-flag-enemy-v1.png"
-            alt=""
-            className="absolute left-1/2 top-1/2 h-[68px] w-[51px] max-w-none -translate-x-1/2 -translate-y-1/2 object-contain"
-          />
-        </span>
         {/* eslint-disable-next-line @next/next/no-img-element -- local transparent tutorial map object */}
         <img src="/art/lobby/tutorial-castle-unconquered-v1.png" alt="정복할 첫 성" className="h-[54px] w-[54px] object-contain" />
         {!isSelected ? (
@@ -883,6 +875,17 @@ function TutorialWorldMap() {
           WebkitMaskImage: "none",
         }}
       />
+      <span
+        className="pointer-events-none absolute bottom-[15%] left-[24%] h-[42px] w-[31px] overflow-hidden"
+        aria-label="정복할 작은 섬 나라"
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element -- local generated enemy-country flag */}
+        <img
+          src="/art/lobby/country-flag-enemy-v1.png"
+          alt=""
+          className="absolute left-1/2 top-1/2 h-[66px] w-[50px] max-w-none -translate-x-1/2 -translate-y-1/2 object-contain"
+        />
+      </span>
     </div>
   );
 }
