@@ -436,19 +436,6 @@ export function GameLobbyScreen({
                     alt=""
                   />
                 </button>
-                {systemMenuOpen ? (
-                  <div className="lobby-system-menu__popup">
-                    <button type="button" onClick={() => { setSystemMenuOpen(false); onSettings(); }}><span>설정</span></button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setDeveloperMode((enabled) => !enabled);
-                        setSystemMenuOpen(false);
-                      }}
-                    ><span>{developerMode ? "개발자 모드 해제" : "개발자 모드"}</span></button>
-                    <button type="button" className="lobby-system-menu__exit" onClick={onExitToMenu}><span>나가기</span></button>
-                  </div>
-                ) : null}
               </div>
               <Button size="sm" variant="secondary" className="lobby-header__utility-button lobby-header__utility-button--mail" data-unread={unreadMailCount || undefined} aria-label={unreadMailCount ? `읽지 않은 우편 ${unreadMailCount}개` : "우편"} onClick={() => window.alert("아직 준비 중인 기능입니다.")}>
                 ✉️
@@ -563,6 +550,23 @@ export function GameLobbyScreen({
               <button type="button" onClick={() => void copyDeveloperCoordinates()}>{developerCopied ? "복사됨" : "복사"}</button>
               <button type="button" onClick={() => setShowDeveloperExport(false)}>닫기</button>
             </div>
+          </div>
+        </div>
+      ) : null}
+      {systemMenuOpen ? (
+        <div className="lobby-system-overlay" role="dialog" aria-label="시스템 메뉴">
+          <div className="lobby-system-overlay__popup">
+            <button type="button" onClick={() => { setSystemMenuOpen(false); onSettings(); }}>설정</button>
+            <button
+              type="button"
+              onClick={() => {
+                setDeveloperMode((enabled) => !enabled);
+                setSystemMenuOpen(false);
+              }}
+            >
+              {developerMode ? "개발자 모드 해제" : "개발자 모드"}
+            </button>
+            <button type="button" className="lobby-system-overlay__exit" onClick={onExitToMenu}>나가기</button>
           </div>
         </div>
       ) : null}
