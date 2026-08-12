@@ -456,7 +456,7 @@ export function GameLobbyScreen({
             <div className="flex flex-1 items-stretch gap-1 overflow-hidden">
               {clearedWorlds.length === 0 && save.nextMapCandidates.length === 1 ? (
                 showWorldMap ? (
-                  <TutorialWorldMap onReturn={() => setShowWorldMap(false)} />
+                  <TutorialWorldMap />
                 ) : (
                   <TutorialIslandCandidate
                     candidate={save.nextMapCandidates[0]}
@@ -861,21 +861,20 @@ function TutorialIslandCandidate({
   );
 }
 
-function TutorialWorldMap({ onReturn }: { onReturn: () => void }) {
+function TutorialWorldMap() {
   return (
     <div className="relative flex flex-1 overflow-hidden">
       {/* eslint-disable-next-line @next/next/no-img-element -- local painted world map */}
       <img
         src="/art/lobby/world-map-v1.png"
         alt="세계 지도"
-        className="pointer-events-none absolute left-1/2 top-1/2 h-full w-[66%] -translate-x-1/2 -translate-y-1/2 object-contain"
+        className="pointer-events-none absolute left-1/2 top-1/2 h-[96%] w-[92%] -translate-x-1/2 -translate-y-1/2 object-contain"
         style={{
           filter: "contrast(1.24) saturate(1.16) brightness(0.92)",
-          maskImage: "radial-gradient(ellipse 74% 76% at center, #000 48%, rgba(0,0,0,0.72) 66%, transparent 100%)",
-          WebkitMaskImage: "radial-gradient(ellipse 74% 76% at center, #000 48%, rgba(0,0,0,0.72) 66%, transparent 100%)",
+          maskImage: "radial-gradient(ellipse 82% 84% at center, #000 55%, rgba(0,0,0,0.76) 74%, transparent 100%)",
+          WebkitMaskImage: "radial-gradient(ellipse 82% 84% at center, #000 55%, rgba(0,0,0,0.76) 74%, transparent 100%)",
         }}
       />
-      <WorldMapToggleButton onClick={onReturn} label="나라 지도" />
     </div>
   );
 }
