@@ -565,7 +565,7 @@ export function GameLobbyScreen({
           <div className="developer-export-dialog">
             <strong>전투 승리!</strong>
             <p>작은 섬 나라의 성을 정복했습니다.</p>
-            <div><button type="button" onClick={() => { setShowVictoryNotice(false); setShowWorldMap(true); }}>세계 지도 보기</button></div>
+            <div><button type="button" onClick={() => setShowVictoryNotice(false)}>확인</button></div>
           </div>
         </div>
       ) : null}
@@ -1090,7 +1090,7 @@ function TutorialWorldMap({
       {countryAnchors.filter((anchor) => anchor.id === 1 || conqueredCountries.has(anchor.id) || [...conqueredCountries].some((sourceId) => COUNTRY_CONNECTIONS[sourceId]?.includes(anchor.id))).map((anchor) => developerMode ? (
         <DeveloperWorldFlag key={`country-${anchor.id}`} flag={anchor} label={`나라 ${anchor.id}번`} onMove={onMoveCountryFlag} />
       ) : (
-        <WorldCountryNode key={`country-${anchor.id}`} anchor={{ left: `${anchor.x}%`, top: `${anchor.y}%`, state: "available" }} conquered={conqueredCountries.has(anchor.id)} onClick={() => { if (anchor.id !== 1) onConquerCountry(anchor.id); }} />
+        <WorldCountryNode key={`country-${anchor.id}`} anchor={{ left: `${anchor.x}%`, top: `${anchor.y}%`, state: "available" }} conquered={conqueredCountries.has(anchor.id)} onClick={() => onConquerCountry(anchor.id)} />
       ))}
       {developerMode ? developerFlags.map((flag, index) => <DeveloperWorldFlag key={flag.id} flag={flag} label={`추가 ${index + 1}번`} onMove={onMoveDeveloperFlag} />) : null}
     </div>
