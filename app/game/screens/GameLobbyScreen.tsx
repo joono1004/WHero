@@ -865,11 +865,46 @@ function TutorialIslandCandidate({
 // not to a guessed screen position. Future flags, connection routes and
 // assigned heroes must share these same country coordinates.
 const WORLD_COUNTRY_ANCHORS = {
-  tutorialIsland: { left: "21%", top: "70%" },
+  tutorialIsland: { left: "21%", top: "70%", state: "available" },
+  forestPass: { left: "39%", top: "57%", state: "locked" },
+  coastReach: { left: "53%", top: "72%", state: "locked" },
 } as const;
+
+type WorldCountryAnchor = (typeof WORLD_COUNTRY_ANCHORS)[keyof typeof WORLD_COUNTRY_ANCHORS];
+
+function WorldCountryNode({ anchor, isStartingCountry = false }: { anchor: WorldCountryAnchor; isStartingCountry?: boolean }) {
+  const isAvailable = anchor.state === "available";
+  return (
+    <span
+      className="pointer-events-none absolute h-[30px] w-[30px] -translate-x-1/2 -translate-y-1/2 rounded-full"
+      style={{
+        left: anchor.left,
+        top: anchor.top,
+        border: isAvailable ? "1px solid rgba(255, 219, 124, 0.96)" : "1px solid rgba(101, 80, 54, 0.7)",
+        background: isAvailable
+          ? "radial-gradient(circle at 35% 30%, rgba(255, 237, 171, 0.7), rgba(124, 79, 36, 0.88) 58%, rgba(44, 28, 16, 0.95))"
+          : "radial-gradient(circle at 35% 30%, rgba(211, 194, 155, 0.32), rgba(78, 66, 47, 0.72) 60%, rgba(42, 34, 24, 0.85))",
+        boxShadow: isAvailable ? "0 0 0 2px rgba(81, 47, 20, 0.7), 0 0 7px rgba(246, 192, 85, 0.55)" : "0 1px 3px rgba(44, 28, 15, 0.6)",
+        opacity: isAvailable ? 1 : 0.72,
+      }}
+      aria-label={isStartingCountry ? "정복할 작은 섬 나라" : "아직 개방되지 않은 나라"}
+    >
+      <span className="absolute left-1/2 top-1/2 h-[20px] w-[20px] -translate-x-1/2 -translate-y-1/2 rounded-full" style={{ border: "1px solid rgba(255, 232, 167, 0.2)" }} />
+      {isAvailable ? (
+        <img
+          src="/art/lobby/country-flag-horizontal-enemy-v1.png"
+          alt=""
+          className="absolute left-[45%] top-[44%] h-[15px] w-[28px] max-w-none -translate-x-1/2 -translate-y-1/2 object-contain"
+        />
+      ) : null}
+    </span>
+  );
+}
 
 function TutorialWorldMap() {
   const tutorialIsland = WORLD_COUNTRY_ANCHORS.tutorialIsland;
+  const forestPass = WORLD_COUNTRY_ANCHORS.forestPass;
+  const coastReach = WORLD_COUNTRY_ANCHORS.coastReach;
   return (
     <div className="relative flex flex-1 overflow-hidden">
       {/* eslint-disable-next-line @next/next/no-img-element -- local painted world map */}
@@ -883,8 +918,15 @@ function TutorialWorldMap() {
           WebkitMaskImage: "none",
         }}
       />
+      <svg className="pointer-events-none absolute inset-0 h-full w-full overflow-visible" aria-hidden="true">
+        <line x1="21%" y1="70%" x2="39%" y2="57%" stroke="rgba(137, 103, 57, 0.55)" strokeWidth="1.5" strokeDasharray="3 3" />
+        <line x1="21%" y1="70%" x2="53%" y2="72%" stroke="rgba(137, 103, 57, 0.55)" strokeWidth="1.5" strokeDasharray="3 3" />
+      </svg>
+      <WorldCountryNode anchor={tutorialIsland} isStartingCountry />
+      <WorldCountryNode anchor={forestPass} />
+      <WorldCountryNode anchor={coastReach} />
       <span
-        className="pointer-events-none absolute h-[30px] w-[18px] -translate-x-1/2 -translate-y-1/2"
+        className="hidden"
         style={tutorialIsland}
         aria-label="정복할 작은 섬 나라"
       >
