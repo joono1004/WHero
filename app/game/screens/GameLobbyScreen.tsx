@@ -944,18 +944,20 @@ function TutorialIslandCandidate({
 // not to a guessed screen position. Future flags, connection routes and
 // assigned heroes must share these same country coordinates.
 const WORLD_COUNTRY_ANCHORS = {
-  country01: { left: "21.7%", top: "68.4%", state: "available" },
-  country02: { left: "26.9%", top: "35.7%", state: "available" },
-  country03: { left: "30.9%", top: "58.0%", state: "available" },
-  country04: { left: "36.5%", top: "26.5%", state: "available" },
-  country05: { left: "42.9%", top: "41.5%", state: "available" },
-  country06: { left: "40.4%", top: "71.8%", state: "available" },
-  country07: { left: "49.2%", top: "69.1%", state: "available" },
-  country08: { left: "50.8%", top: "50.5%", state: "available" },
-  country09: { left: "45.0%", top: "23.6%", state: "available" },
-  country10: { left: "52.3%", top: "32.3%", state: "available" },
-  country11: { left: "58.3%", top: "46.1%", state: "available" },
-  country12: { left: "63.0%", top: "59.0%", state: "available" },
+  country01: { left: "21.8%", top: "68.4%", state: "available" },
+  country02: { left: "25.1%", top: "38.1%", state: "available" },
+  country03: { left: "32.5%", top: "28.7%", state: "available" },
+  country04: { left: "29.0%", top: "54.8%", state: "available" },
+  country05: { left: "34.1%", top: "39.6%", state: "available" },
+  country06: { left: "42.6%", top: "42.5%", state: "available" },
+  country07: { left: "50.5%", top: "49.0%", state: "available" },
+  country08: { left: "39.3%", top: "72.3%", state: "available" },
+  country09: { left: "46.7%", top: "69.1%", state: "available" },
+  country10: { left: "57.3%", top: "70.8%", state: "available" },
+  country11: { left: "46.0%", top: "23.4%", state: "available" },
+  country12: { left: "53.1%", top: "31.8%", state: "available" },
+  country13: { left: "59.2%", top: "45.9%", state: "available" },
+  country14: { left: "63.8%", top: "58.7%", state: "available" },
 } as const;
 
 type WorldCountryAnchor = (typeof WORLD_COUNTRY_ANCHORS)[keyof typeof WORLD_COUNTRY_ANCHORS];
