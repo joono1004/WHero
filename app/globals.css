@@ -564,7 +564,7 @@ footer small { margin-left:auto; color:#71898b; }
 .lobby-header__utility > button { min-width:24px !important; min-height:28px !important; padding:2px !important; border:0 !important; border-radius:0 !important; background-color:transparent !important; color:transparent !important; font-size:0 !important; box-shadow:none !important; }
 .lobby-header__utility-button { position:relative; width:24px !important; min-width:24px !important; }
 .lobby-header__utility-button--mail { background:url("/art/lobby/mail-icon-v2.png") center / 24px auto no-repeat !important; }
-.lobby-header__utility-button--notice { background:url("/art/lobby/bell-icon-v2.png") center / auto 24px no-repeat !important; }
+.lobby-header__utility-button--notice { background:url("/art/lobby/bell-icon-v3.png") center / auto 24px no-repeat !important; }
 .lobby-header__utility-button[data-unread]::after { content:attr(data-unread); position:absolute; top:1px; right:-2px; display:grid; min-width:11px; height:11px; padding:0 2px; place-items:center; border:1px solid #ffd7b3; border-radius:99px; background:#b51f22; color:#fff7df; font-family:Arial,sans-serif; font-size:7px; font-weight:900; line-height:1; box-shadow:0 1px 3px rgba(0,0,0,.65); }
 .lobby-header__utility > button:nth-child(4),.lobby-header__utility > button:nth-child(5) { display:none; }
 .lobby-system-menu { position:relative; z-index:55; order:3; }
