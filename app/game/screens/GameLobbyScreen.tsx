@@ -108,6 +108,14 @@ function formatResourceAmount(value: number): string {
 // just another array item.
 type MenuItemKey = "heroes" | "troops" | "bag" | "research" | "ranking" | "alliance";
 
+type DeveloperFlag = {
+  id: number;
+  x: number;
+  y: number;
+};
+
+const DEVELOPER_FLAGS_STORAGE_KEY = "world-in-hero:world-map-developer-flags";
+
 const MENU_ITEMS: { key: MenuItemKey; icon: string; label: string }[] = [
   { key: "heroes", icon: "/art/lobby/sidebar-icons/heroes-v1.png", label: "영웅" },
   { key: "troops", icon: "/art/lobby/sidebar-icons/troops-v1.png", label: "병사" },
@@ -154,10 +162,33 @@ export function GameLobbyScreen({
   const [activeMenuKey, setActiveMenuKey] = useState<MenuItemKey | null>(null);
   const [tutorialIslandSelected, setTutorialIslandSelected] = useState(false);
   const [showWorldMap, setShowWorldMap] = useState(false);
+  const [developerMode, setDeveloperMode] = useState(false);
+  const [developerFlags, setDeveloperFlags] = useState<DeveloperFlag[]>([]);
+  const [developerFlagsLoaded, setDeveloperFlagsLoaded] = useState(false);
   // Message data will later supply these values; conditional badges are ready now.
   const unreadMailCount = 0;
   const unreadNoticeCount = 0;
   const railRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(DEVELOPER_FLAGS_STORAGE_KEY);
+      if (saved) setDeveloperFlags(JSON.parse(saved) as DeveloperFlag[]);
+    } catch {
+      // A malformed developer layout is non-critical; start with no extra flags.
+    } finally {
+      setDeveloperFlagsLoaded(true);
+    }
+  }, []);
+
+  const addDeveloperFlag = () => {
+    setShowWorldMap(true);
+    setDeveloperFlags((flags) => [...flags, { id: Date.now(), x: 50, y: 50 }]);
+  };
+
+  const saveDeveloperFlags = () => {
+    window.localStorage.setItem(DEVELOPER_FLAGS_STORAGE_KEY, JSON.stringify(developerFlags));
+  };
 
   const playerFaction = save.factions[PLAYER_FACTION_ID];
   const entries = buildHeroListEntries(save.heroes);
@@ -396,6 +427,15 @@ export function GameLobbyScreen({
                 {systemMenuOpen ? (
                   <div className="lobby-system-menu__popup">
                     <button type="button" onClick={() => { setSystemMenuOpen(false); onSettings(); }}>설정</button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDeveloperMode((enabled) => !enabled);
+                        setSystemMenuOpen(false);
+                      }}
+                    >
+                      {developerMode ? "개발자 모드 해제" : "개발자 모드"}
+                    </button>
                     <button type="button" className="lobby-system-menu__exit" onClick={onExitToMenu}>나가기</button>
                   </div>
                 ) : null}
@@ -456,7 +496,11 @@ export function GameLobbyScreen({
             <div className="flex flex-1 items-stretch gap-1 overflow-hidden">
               {clearedWorlds.length === 0 && save.nextMapCandidates.length === 1 ? (
                 showWorldMap ? (
-                  <TutorialWorldMap />
+                  <TutorialWorldMap
+                    developerMode={developerMode}
+                    developerFlags={developerFlagsLoaded ? developerFlags : []}
+                    onMoveDeveloperFlag={(id, x, y) => setDeveloperFlags((flags) => flags.map((flag) => (flag.id === id ? { ...flag, x, y } : flag)))}
+                  />
                 ) : (
                   <TutorialIslandCandidate
                     candidate={save.nextMapCandidates[0]}
@@ -489,8 +533,15 @@ export function GameLobbyScreen({
                   <RailArrowButton direction="right" onClick={() => scrollRail(1)} />
                 </>
               )}
-            </div>
-          </div>
+        </div>
+      </div>
+      {developerMode ? (
+        <div className="developer-mode-toolbar">
+          <span>개발자 모드</span>
+          <button type="button" onClick={addDeveloperFlag}>깃발 추가</button>
+          <button type="button" onClick={saveDeveloperFlags}>저장</button>
+        </div>
+      ) : null}
 
         <div className="lobby-formation-footer flex shrink-0 items-center gap-2">
           {/* 출전 영웅 5슬롯: ★로 표시된(deploymentPriority) 영웅을 우선순위
@@ -885,7 +936,45 @@ function WorldCountryNode({ anchor }: { anchor: WorldCountryAnchor }) {
   );
 }
 
-function TutorialWorldMap() {
+function DeveloperWorldFlag({ flag, onMove }: { flag: DeveloperFlag; onMove: (id: number, x: number, y: number) => void }) {
+  const dragRef = useRef<{ startX: number; startY: number; originX: number; originY: number } | null>(null);
+  return (
+    <button
+      type="button"
+      className="developer-world-flag"
+      style={{ left: `${flag.x}%`, top: `${flag.y}%` }}
+      onPointerDown={(event) => {
+        event.currentTarget.setPointerCapture(event.pointerId);
+        dragRef.current = { startX: event.clientX, startY: event.clientY, originX: flag.x, originY: flag.y };
+      }}
+      onPointerMove={(event) => {
+        const drag = dragRef.current;
+        const parent = event.currentTarget.parentElement;
+        if (!drag || !parent) return;
+        onMove(
+          flag.id,
+          Math.max(0, Math.min(100, drag.originX + ((event.clientX - drag.startX) / parent.clientWidth) * 100)),
+          Math.max(0, Math.min(100, drag.originY + ((event.clientY - drag.startY) / parent.clientHeight) * 100)),
+        );
+      }}
+      onPointerUp={() => { dragRef.current = null; }}
+      aria-label={`깃발 ${flag.id} 위치 조정`}
+    >
+      <img src="/art/lobby/country-marker-unconquered-v1.png" alt="" />
+      <span>{flag.id}<br />x {flag.x.toFixed(1)} · y {flag.y.toFixed(1)}</span>
+    </button>
+  );
+}
+
+function TutorialWorldMap({
+  developerMode,
+  developerFlags,
+  onMoveDeveloperFlag,
+}: {
+  developerMode: boolean;
+  developerFlags: DeveloperFlag[];
+  onMoveDeveloperFlag: (id: number, x: number, y: number) => void;
+}) {
   const tutorialIsland = WORLD_COUNTRY_ANCHORS.tutorialIsland;
   const forestPass = WORLD_COUNTRY_ANCHORS.forestPass;
   const coastReach = WORLD_COUNTRY_ANCHORS.coastReach;
@@ -909,6 +998,7 @@ function TutorialWorldMap() {
       <WorldCountryNode anchor={tutorialIsland} />
       <WorldCountryNode anchor={forestPass} />
       <WorldCountryNode anchor={coastReach} />
+      {developerMode ? developerFlags.map((flag) => <DeveloperWorldFlag key={flag.id} flag={flag} onMove={onMoveDeveloperFlag} />) : null}
       <span
         className="hidden"
         style={tutorialIsland}

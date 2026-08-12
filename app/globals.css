@@ -580,6 +580,13 @@ footer small { margin-left:auto; color:#71898b; }
 .lobby-system-menu__popup button { display:block; width:100%; min-height:27px; padding:4px 7px; border:0 !important; border-radius:3px !important; background:transparent !important; color:#f8dfaa !important; font-family:"Malgun Gothic",sans-serif; font-size:11px; font-weight:800; text-align:left; cursor:pointer; }
 .lobby-system-menu__popup button:hover { background:rgba(244,204,113,.15) !important; }
 .lobby-system-menu__popup .lobby-system-menu__exit { color:#e7ab83 !important; }
+.developer-mode-toolbar { position:absolute; z-index:45; right:12px; bottom:8px; display:flex; align-items:center; gap:5px; padding:5px 7px; border:1px solid #d6ff31; border-radius:5px; background:rgba(18,25,12,.88); box-shadow:0 2px 8px rgba(0,0,0,.5); color:#d6ff31; font-family:"Malgun Gothic",sans-serif; font-size:10px; font-weight:900; }
+.developer-mode-toolbar button { min-height:25px; padding:3px 8px; border:1px solid rgba(214,255,49,.75); border-radius:3px; background:rgba(71,88,19,.78); color:#f2ff9e; font-family:inherit; font-size:10px; font-weight:900; cursor:pointer; }
+.developer-mode-toolbar button:active { transform:translateY(1px); }
+.developer-world-flag { position:absolute; z-index:20; width:42px; height:50px; padding:0; border:0; background:transparent; cursor:grab; touch-action:none; transform:translate(-50%,-50%); }
+.developer-world-flag:active { cursor:grabbing; }
+.developer-world-flag img { width:30px; height:36px; object-fit:contain; pointer-events:none; }
+.developer-world-flag span { position:absolute; left:50%; top:31px; min-width:70px; transform:translateX(-50%); color:#d6ff31; font-family:Consolas,"Malgun Gothic",monospace; font-size:8px; font-weight:900; line-height:1.15; text-align:center; text-shadow:0 1px 2px #071007,0 0 3px #071007; pointer-events:none; white-space:nowrap; }
 .lobby-sidebar__menu-button { position:relative; isolation:isolate; min-height:29px; background-color:#28170d !important; background-image:url("/art/lobby/sidebar-plaque-v1.png") !important; background-position:center !important; background-size:100% 100% !important; background-repeat:no-repeat !important; text-shadow:0 1px 2px #170b03; transition:transform .13s ease,filter .13s ease; }
 .lobby-sidebar__menu-button::after { content:""; position:absolute; z-index:-1; inset:2px 5px; border-radius:7px; opacity:0; background:radial-gradient(ellipse at center,rgba(255,229,146,.45),rgba(255,210,79,0) 68%); transition:opacity .15s ease; }
 .lobby-sidebar__menu-button.is-active::before { content:""; position:absolute; z-index:1; inset:2px 5px; border:1px solid rgba(250,211,104,.92); border-radius:7px; box-shadow:inset 0 0 5px rgba(255,232,151,.25),0 0 5px rgba(236,184,61,.38); pointer-events:none; }
