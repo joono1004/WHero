@@ -1014,7 +1014,7 @@ function WorldCountryNode({ anchor, conquered, onClick }: { anchor: WorldCountry
     <button
       type="button"
       onClick={onClick}
-      className="absolute h-[42px] w-[36px] -translate-x-1/2 -translate-y-1/2"
+      className="absolute z-20 h-[42px] w-[36px] -translate-x-1/2 -translate-y-1/2"
       style={{ left: anchor.left, top: anchor.top, border: "none", background: "transparent", padding: 0, cursor: "pointer" }}
       aria-label={conquered ? "정복한 나라" : "정복할 나라"}
     >
@@ -1083,7 +1083,7 @@ function TutorialWorldMap({
           WebkitMaskImage: "none",
         }}
       />
-      <svg className="pointer-events-none absolute inset-0 h-full w-full overflow-visible" aria-hidden="true">
+      <svg className="pointer-events-none absolute inset-0 z-10 h-full w-full overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
         <defs>
           <linearGradient id="world-route-core" x1="0" y1="0" x2="1" y2="1">
             <stop offset="0" stopColor="#d0e9ff" />
@@ -1099,7 +1099,7 @@ function TutorialWorldMap({
           const targetY = Math.min(100, target.y + WORLD_FLAG_BASE_OFFSET_Y);
           const controlX = (source.x + target.x) / 2;
           const controlY = (sourceY + targetY) / 2 - 1.4;
-          const path = `M ${source.x}% ${sourceY}% Q ${controlX}% ${controlY}% ${target.x}% ${targetY}%`;
+          const path = `M ${source.x} ${sourceY} Q ${controlX} ${controlY} ${target.x} ${targetY}`;
           return (
             <g key={`${sourceId}-${targetId}`}>
               <path d={path} fill="none" stroke="rgba(24, 45, 57, 0.92)" strokeWidth="3.6" strokeLinecap="round" />
