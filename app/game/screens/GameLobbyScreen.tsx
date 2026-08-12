@@ -901,7 +901,14 @@ function WorldMapToggleButton({ onClick, label }: { onClick: () => void; label: 
         className="h-[58px] w-[80px] object-contain"
         style={{ filter: "contrast(1.3) saturate(1.08) drop-shadow(0 1px 1px rgba(51, 28, 10, 0.72))" }}
       />
-      <span className="absolute bottom-[13px] whitespace-nowrap text-[9px] font-black text-[#43240f]" style={{ textShadow: "0 1px 0 rgba(255, 235, 173, 0.9), 0 0 2px rgba(255, 225, 152, 0.72)" }}>
+      <span
+        className="absolute bottom-[11px] whitespace-nowrap rounded-[2px] px-1.5 py-px text-[9px] font-black text-[#ffedbc]"
+        style={{
+          background: "linear-gradient(90deg, rgba(69, 38, 16, 0.62), rgba(96, 54, 22, 0.72), rgba(69, 38, 16, 0.62))",
+          boxShadow: "0 1px 1px rgba(52, 27, 10, 0.38), inset 0 0 0 1px rgba(255, 229, 160, 0.16)",
+          textShadow: "0 1px 1px #2a1407",
+        }}
+      >
         세계 지도
       </span>
     </button>
