@@ -114,6 +114,12 @@ type DeveloperFlag = {
   y: number;
 };
 
+const COUNTRY_CONNECTIONS: Record<number, number[]> = {
+  1: [2, 3], 2: [4, 5], 3: [6, 8], 4: [6, 11], 5: [6, 8], 6: [7, 9],
+  7: [10, 12], 8: [7, 9], 9: [10, 13], 10: [14], 11: [12], 12: [13],
+  13: [14], 14: [],
+};
+
 const DEVELOPER_FLAGS_STORAGE_KEY = "world-in-hero:world-map-developer-flags";
 const WORLD_COUNTRY_LAYOUT_STORAGE_KEY = "world-in-hero:world-map-country-layout";
 
@@ -162,6 +168,8 @@ export function GameLobbyScreen({
   const [systemGearSpin, setSystemGearSpin] = useState(0);
   const [activeMenuKey, setActiveMenuKey] = useState<MenuItemKey | null>(null);
   const [tutorialIslandSelected, setTutorialIslandSelected] = useState(false);
+  const [conqueredCountries, setConqueredCountries] = useState<Set<number>>(() => new Set());
+  const [showVictoryNotice, setShowVictoryNotice] = useState(false);
   const [showWorldMap, setShowWorldMap] = useState(false);
   const [developerMode, setDeveloperMode] = useState(false);
   const [developerFlags, setDeveloperFlags] = useState<DeveloperFlag[]>([]);
@@ -210,6 +218,11 @@ export function GameLobbyScreen({
     await navigator.clipboard.writeText(developerExportText || "추가한 깃발이 없습니다.");
     setDeveloperCopied(true);
     window.setTimeout(() => setDeveloperCopied(false), 1600);
+  };
+
+  const conquerCountry = (countryId: number) => {
+    setConqueredCountries((countries) => new Set([...countries, countryId]));
+    if (countryId === 1) setShowVictoryNotice(true);
   };
 
   const playerFaction = save.factions[PLAYER_FACTION_ID];
@@ -507,6 +520,8 @@ export function GameLobbyScreen({
                     developerMode={developerMode}
                     countryAnchors={worldCountryAnchors}
                     developerFlags={developerFlagsLoaded ? developerFlags : []}
+                    conqueredCountries={conqueredCountries}
+                    onConquerCountry={(countryId) => { if (countryId === 1) setShowWorldMap(false); else conquerCountry(countryId); }}
                     onMoveCountryFlag={(id, x, y) => setWorldCountryAnchors((flags) => flags.map((flag) => (flag.id === id ? { ...flag, x, y } : flag)))}
                     onMoveDeveloperFlag={(id, x, y) => setDeveloperFlags((flags) => flags.map((flag) => (flag.id === id ? { ...flag, x, y } : flag)))}
                   />
@@ -516,7 +531,8 @@ export function GameLobbyScreen({
                     isSelected={tutorialIslandSelected}
                     onSelect={() => setTutorialIslandSelected((selected) => !selected)}
                     availableHeroCount={entries.length}
-                    onBattle={() => setEnlistingCandidateIndex(0)}
+                    isConquered={conqueredCountries.has(1)}
+                    onBattle={() => conquerCountry(1)}
                     onOpenWorldMap={() => setShowWorldMap(true)}
                   />
                 )
@@ -544,6 +560,15 @@ export function GameLobbyScreen({
               )}
         </div>
       </div>
+      {showVictoryNotice ? (
+        <div className="developer-export-backdrop" role="dialog" aria-modal="true" aria-label="전투 승리">
+          <div className="developer-export-dialog">
+            <strong>전투 승리!</strong>
+            <p>작은 섬 나라의 성을 정복했습니다.</p>
+            <div><button type="button" onClick={() => { setShowVictoryNotice(false); setShowWorldMap(true); }}>세계 지도 보기</button></div>
+          </div>
+        </div>
+      ) : null}
       {developerMode ? (
         <div className="developer-mode-toolbar">
           <span>개발자 모드</span>
@@ -881,6 +906,7 @@ function TutorialIslandCandidate({
   availableHeroCount,
   onBattle,
   onOpenWorldMap,
+  isConquered,
 }: {
   candidate: MapCandidate;
   isSelected: boolean;
@@ -888,6 +914,7 @@ function TutorialIslandCandidate({
   availableHeroCount: number;
   onBattle: () => void;
   onOpenWorldMap: () => void;
+  isConquered: boolean;
 }) {
   const name = countryMapName(candidate);
   return (
@@ -904,16 +931,16 @@ function TutorialIslandCandidate({
         className="absolute left-1/2 top-2 -translate-x-1/2 whitespace-nowrap rounded-full px-3 py-0.5 text-center text-[12px] font-bold text-[#5b351a]"
         style={{ borderBottom: "1px solid rgba(139, 94, 39, 0.55)", background: "rgba(250, 227, 172, 0.42)", textShadow: "0 1px 0 rgba(255, 239, 185, 0.8), 0 2px 3px rgba(92, 53, 25, 0.18)" }}
       >
-        {name}
+        {name}{isConquered ? " (정복)" : ""}
       </p>
       <WorldMapToggleButton onClick={onOpenWorldMap} label="세계 지도" />
       <button
         type="button"
         aria-label="작은 섬의 적 성 선택"
-        onClick={onSelect}
+        onClick={isConquered ? undefined : onSelect}
         className="absolute left-1/2 top-[44%] -translate-x-1/2 -translate-y-1/2"
         style={{
-          border: isSelected ? "2px solid rgba(247, 207, 103, 0.96)" : "2px solid transparent",
+          border: isSelected && !isConquered ? "2px solid rgba(247, 207, 103, 0.96)" : "2px solid transparent",
           borderRadius: 8,
           background: "transparent",
           padding: 2,
@@ -921,19 +948,19 @@ function TutorialIslandCandidate({
           filter: isSelected
             ? "drop-shadow(0 0 5px rgba(255, 217, 102, 0.72)) drop-shadow(0 4px 3px rgba(30, 16, 8, 0.55))"
             : "drop-shadow(0 4px 3px rgba(30, 16, 8, 0.55))",
-          cursor: "pointer",
+          cursor: isConquered ? "default" : "pointer",
         }}
       >
         {/* eslint-disable-next-line @next/next/no-img-element -- local transparent tutorial map object */}
-        <img src="/art/lobby/tutorial-castle-unconquered-v1.png" alt="정복할 첫 성" className="h-[54px] w-[54px] object-contain" />
-        {!isSelected ? (
+        <img src={isConquered ? "/art/lobby/tutorial-castle-conquered-v1.png" : "/art/lobby/tutorial-castle-unconquered-v1.png"} alt={isConquered ? "정복한 성" : "정복할 첫 성"} className="h-[54px] w-[54px] object-contain" />
+        {!isSelected && !isConquered ? (
           <span className="pointer-events-none absolute bottom-[7px] left-1/2 -translate-x-1/2">
             {/* eslint-disable-next-line @next/next/no-img-element -- local generated attackable-target marker */}
             <img src="/art/lobby/castle-attack-marker-v1.png" alt="" className="h-[20px] w-[20px] object-contain" />
           </span>
         ) : null}
       </button>
-      {isSelected ? (
+      {isSelected && !isConquered ? (
         <CastleScoutPopup candidate={candidate} availableHeroCount={availableHeroCount} />
       ) : null}
       {isSelected ? (
@@ -978,15 +1005,17 @@ type WorldCountryAnchor = {
   state: "available";
 };
 
-function WorldCountryNode({ anchor }: { anchor: WorldCountryAnchor }) {
+function WorldCountryNode({ anchor, conquered, onClick }: { anchor: WorldCountryAnchor; conquered: boolean; onClick: () => void }) {
   return (
-    <img
-      src="/art/lobby/country-marker-unconquered-v1.png"
-      alt=""
-      className="pointer-events-none absolute h-[36px] w-[30px] -translate-x-1/2 -translate-y-1/2 object-contain"
-      style={{ left: anchor.left, top: anchor.top }}
-      aria-label="정복할 나라"
-    />
+    <button
+      type="button"
+      onClick={onClick}
+      className="absolute h-[42px] w-[36px] -translate-x-1/2 -translate-y-1/2"
+      style={{ left: anchor.left, top: anchor.top, border: "none", background: "transparent", padding: 0, cursor: "pointer" }}
+      aria-label={conquered ? "정복한 나라" : "정복할 나라"}
+    >
+      <img src={conquered ? "/art/lobby/country-marker-conquered-v1.png" : "/art/lobby/country-marker-unconquered-v1.png"} alt="" className="h-[36px] w-[30px] object-contain" />
+    </button>
   );
 }
 
@@ -1024,12 +1053,16 @@ function TutorialWorldMap({
   developerMode,
   countryAnchors,
   developerFlags,
+  conqueredCountries,
+  onConquerCountry,
   onMoveCountryFlag,
   onMoveDeveloperFlag,
 }: {
   developerMode: boolean;
   countryAnchors: DeveloperFlag[];
   developerFlags: DeveloperFlag[];
+  conqueredCountries: Set<number>;
+  onConquerCountry: (id: number) => void;
   onMoveCountryFlag: (id: number, x: number, y: number) => void;
   onMoveDeveloperFlag: (id: number, x: number, y: number) => void;
 }) {
@@ -1046,10 +1079,18 @@ function TutorialWorldMap({
           WebkitMaskImage: "none",
         }}
       />
-      {countryAnchors.map((anchor, index) => developerMode ? (
-        <DeveloperWorldFlag key={`country-${anchor.id}`} flag={anchor} label={`나라 ${index + 1}번`} onMove={onMoveCountryFlag} />
+      <svg className="pointer-events-none absolute inset-0 h-full w-full overflow-visible" aria-hidden="true">
+        {[...conqueredCountries].flatMap((sourceId) => (COUNTRY_CONNECTIONS[sourceId] ?? []).filter((targetId) => conqueredCountries.has(sourceId) || true).map((targetId) => {
+          const source = countryAnchors.find((country) => country.id === sourceId);
+          const target = countryAnchors.find((country) => country.id === targetId);
+          if (!source || !target) return null;
+          return <line key={`${sourceId}-${targetId}`} x1={`${source.x}%`} y1={`${source.y}%`} x2={`${target.x}%`} y2={`${target.y}%`} stroke="#719fc7" strokeWidth="1.4" strokeDasharray={conqueredCountries.has(targetId) ? undefined : "4 3"} opacity="0.9" />;
+        }))}
+      </svg>
+      {countryAnchors.filter((anchor) => anchor.id === 1 || conqueredCountries.has(anchor.id) || [...conqueredCountries].some((sourceId) => COUNTRY_CONNECTIONS[sourceId]?.includes(anchor.id))).map((anchor) => developerMode ? (
+        <DeveloperWorldFlag key={`country-${anchor.id}`} flag={anchor} label={`나라 ${anchor.id}번`} onMove={onMoveCountryFlag} />
       ) : (
-        <WorldCountryNode key={`country-${anchor.id}`} anchor={{ left: `${anchor.x}%`, top: `${anchor.y}%`, state: "available" }} />
+        <WorldCountryNode key={`country-${anchor.id}`} anchor={{ left: `${anchor.x}%`, top: `${anchor.y}%`, state: "available" }} conquered={conqueredCountries.has(anchor.id)} onClick={() => { if (anchor.id !== 1) onConquerCountry(anchor.id); }} />
       ))}
       {developerMode ? developerFlags.map((flag, index) => <DeveloperWorldFlag key={flag.id} flag={flag} label={`추가 ${index + 1}번`} onMove={onMoveDeveloperFlag} />) : null}
     </div>
