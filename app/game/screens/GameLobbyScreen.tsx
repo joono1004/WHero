@@ -861,7 +861,15 @@ function TutorialIslandCandidate({
   );
 }
 
+// Every world-country marker is anchored to the painted source map itself,
+// not to a guessed screen position. Future flags, connection routes and
+// assigned heroes must share these same country coordinates.
+const WORLD_COUNTRY_ANCHORS = {
+  tutorialIsland: { left: "21%", top: "70%" },
+} as const;
+
 function TutorialWorldMap() {
+  const tutorialIsland = WORLD_COUNTRY_ANCHORS.tutorialIsland;
   return (
     <div className="relative flex flex-1 overflow-hidden">
       {/* eslint-disable-next-line @next/next/no-img-element -- local painted world map */}
@@ -876,14 +884,15 @@ function TutorialWorldMap() {
         }}
       />
       <span
-        className="pointer-events-none absolute bottom-[15%] left-[24%] h-[42px] w-[31px] overflow-hidden"
+        className="pointer-events-none absolute h-[30px] w-[18px] -translate-x-1/2 -translate-y-1/2"
+        style={tutorialIsland}
         aria-label="정복할 작은 섬 나라"
       >
         {/* eslint-disable-next-line @next/next/no-img-element -- local generated enemy-country flag */}
         <img
-          src="/art/lobby/country-flag-enemy-v1.png"
+          src="/art/lobby/country-flag-enemy-trimmed-v1.png"
           alt=""
-          className="absolute left-1/2 top-1/2 h-[66px] w-[50px] max-w-none -translate-x-1/2 -translate-y-1/2 object-contain"
+          className="h-full w-full object-contain"
         />
       </span>
     </div>
