@@ -865,39 +865,23 @@ function TutorialIslandCandidate({
 // not to a guessed screen position. Future flags, connection routes and
 // assigned heroes must share these same country coordinates.
 const WORLD_COUNTRY_ANCHORS = {
-  tutorialIsland: { left: "36%", top: "77%", state: "available" },
-  forestPass: { left: "39%", top: "57%", state: "locked" },
-  coastReach: { left: "53%", top: "72%", state: "locked" },
+  tutorialIsland: { left: "36%", top: "77%", state: "conquered" },
+  forestPass: { left: "39%", top: "57%", state: "conquered" },
+  coastReach: { left: "53%", top: "72%", state: "available" },
 } as const;
 
 type WorldCountryAnchor = (typeof WORLD_COUNTRY_ANCHORS)[keyof typeof WORLD_COUNTRY_ANCHORS];
 
-function WorldCountryNode({ anchor, isStartingCountry = false }: { anchor: WorldCountryAnchor; isStartingCountry?: boolean }) {
-  const isAvailable = anchor.state === "available";
+function WorldCountryNode({ anchor }: { anchor: WorldCountryAnchor }) {
+  const isConquered = anchor.state === "conquered";
   return (
-    <span
-      className="pointer-events-none absolute h-[20px] w-[20px] -translate-x-1/2 -translate-y-1/2 rounded-full"
-      style={{
-        left: anchor.left,
-        top: anchor.top,
-        border: isAvailable ? "1px solid rgba(255, 219, 124, 0.96)" : "1px solid rgba(101, 80, 54, 0.7)",
-        background: isAvailable
-          ? "radial-gradient(circle at 35% 30%, rgba(255, 237, 171, 0.7), rgba(124, 79, 36, 0.88) 58%, rgba(44, 28, 16, 0.95))"
-          : "radial-gradient(circle at 35% 30%, rgba(211, 194, 155, 0.32), rgba(78, 66, 47, 0.72) 60%, rgba(42, 34, 24, 0.85))",
-        boxShadow: isAvailable ? "0 0 0 1px rgba(81, 47, 20, 0.7), 0 0 4px rgba(246, 192, 85, 0.45)" : "0 1px 2px rgba(44, 28, 15, 0.55)",
-        opacity: isAvailable ? 1 : 0.72,
-      }}
-      aria-label={isStartingCountry ? "정복할 작은 섬 나라" : "아직 개방되지 않은 나라"}
-    >
-      <span className="absolute left-1/2 top-1/2 h-[12px] w-[12px] -translate-x-1/2 -translate-y-1/2 rounded-full" style={{ border: "1px solid rgba(255, 232, 167, 0.2)" }} />
-      {isAvailable ? (
-        <img
-          src="/art/lobby/country-flag-horizontal-enemy-v1.png"
-          alt=""
-          className="absolute left-[48%] top-[-11px] h-[14px] w-[27px] max-w-none -translate-x-1/2 object-contain"
-        />
-      ) : null}
-    </span>
+    <img
+      src={isConquered ? "/art/lobby/country-marker-conquered-v1.png" : "/art/lobby/country-marker-unconquered-v1.png"}
+      alt=""
+      className="pointer-events-none absolute h-[36px] w-[30px] -translate-x-1/2 -translate-y-1/2 object-contain"
+      style={{ left: anchor.left, top: anchor.top }}
+      aria-label={isConquered ? "정복한 나라" : "정복할 나라"}
+    />
   );
 }
 
@@ -919,10 +903,10 @@ function TutorialWorldMap() {
         }}
       />
       <svg className="pointer-events-none absolute inset-0 h-full w-full overflow-visible" aria-hidden="true">
-        <line x1="36%" y1="77%" x2="39%" y2="57%" stroke="rgba(137, 103, 57, 0.55)" strokeWidth="1.5" strokeDasharray="3 3" />
-        <line x1="36%" y1="77%" x2="53%" y2="72%" stroke="rgba(137, 103, 57, 0.55)" strokeWidth="1.5" strokeDasharray="3 3" />
+        <line x1="36%" y1="77%" x2="39%" y2="57%" stroke="rgba(34, 88, 156, 0.92)" strokeWidth="2" />
+        <line x1="39%" y1="57%" x2="53%" y2="72%" stroke="rgba(90, 76, 54, 0.72)" strokeWidth="1.4" strokeDasharray="3 2" />
       </svg>
-      <WorldCountryNode anchor={tutorialIsland} isStartingCountry />
+      <WorldCountryNode anchor={tutorialIsland} />
       <WorldCountryNode anchor={forestPass} />
       <WorldCountryNode anchor={coastReach} />
       <span
