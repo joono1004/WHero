@@ -865,7 +865,7 @@ function TutorialIslandCandidate({
 // not to a guessed screen position. Future flags, connection routes and
 // assigned heroes must share these same country coordinates.
 const WORLD_COUNTRY_ANCHORS = {
-  tutorialIsland: { left: "21%", top: "70%", state: "available" },
+  tutorialIsland: { left: "36%", top: "77%", state: "available" },
   forestPass: { left: "39%", top: "57%", state: "locked" },
   coastReach: { left: "53%", top: "72%", state: "locked" },
 } as const;
@@ -876,7 +876,7 @@ function WorldCountryNode({ anchor, isStartingCountry = false }: { anchor: World
   const isAvailable = anchor.state === "available";
   return (
     <span
-      className="pointer-events-none absolute h-[18px] w-[18px] -translate-x-1/2 -translate-y-1/2 rounded-full"
+      className="pointer-events-none absolute h-[20px] w-[20px] -translate-x-1/2 -translate-y-1/2 rounded-full"
       style={{
         left: anchor.left,
         top: anchor.top,
@@ -889,12 +889,12 @@ function WorldCountryNode({ anchor, isStartingCountry = false }: { anchor: World
       }}
       aria-label={isStartingCountry ? "정복할 작은 섬 나라" : "아직 개방되지 않은 나라"}
     >
-      <span className="absolute left-1/2 top-1/2 h-[11px] w-[11px] -translate-x-1/2 -translate-y-1/2 rounded-full" style={{ border: "1px solid rgba(255, 232, 167, 0.2)" }} />
+      <span className="absolute left-1/2 top-1/2 h-[12px] w-[12px] -translate-x-1/2 -translate-y-1/2 rounded-full" style={{ border: "1px solid rgba(255, 232, 167, 0.2)" }} />
       {isAvailable ? (
         <img
           src="/art/lobby/country-flag-horizontal-enemy-v1.png"
           alt=""
-          className="absolute left-[45%] top-[44%] h-[9px] w-[17px] max-w-none -translate-x-1/2 -translate-y-1/2 object-contain"
+          className="absolute left-[48%] top-[-11px] h-[14px] w-[27px] max-w-none -translate-x-1/2 object-contain"
         />
       ) : null}
     </span>
@@ -919,8 +919,8 @@ function TutorialWorldMap() {
         }}
       />
       <svg className="pointer-events-none absolute inset-0 h-full w-full overflow-visible" aria-hidden="true">
-        <line x1="21%" y1="70%" x2="39%" y2="57%" stroke="rgba(137, 103, 57, 0.55)" strokeWidth="1.5" strokeDasharray="3 3" />
-        <line x1="21%" y1="70%" x2="53%" y2="72%" stroke="rgba(137, 103, 57, 0.55)" strokeWidth="1.5" strokeDasharray="3 3" />
+        <line x1="36%" y1="77%" x2="39%" y2="57%" stroke="rgba(137, 103, 57, 0.55)" strokeWidth="1.5" strokeDasharray="3 3" />
+        <line x1="36%" y1="77%" x2="53%" y2="72%" stroke="rgba(137, 103, 57, 0.55)" strokeWidth="1.5" strokeDasharray="3 3" />
       </svg>
       <WorldCountryNode anchor={tutorialIsland} isStartingCountry />
       <WorldCountryNode anchor={forestPass} />
