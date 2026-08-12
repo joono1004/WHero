@@ -126,7 +126,7 @@ const WORLD_FLAG_BASE_OFFSET_Y = 5.2;
 const WORLD_ROUTE_BASE_EDGE_INSET = 2.3;
 // The painted flag base sits slightly left of the marker element's stored
 // horizontal centre. Routes use this visual base centre without moving flags.
-const WORLD_FLAG_BASE_OFFSET_X = -0.55;
+const WORLD_FLAG_BASE_OFFSET_X = -1.0;
 
 const DEVELOPER_FLAGS_STORAGE_KEY = "world-in-hero:world-map-developer-flags";
 const WORLD_COUNTRY_LAYOUT_STORAGE_KEY = "world-in-hero:world-map-country-layout";
