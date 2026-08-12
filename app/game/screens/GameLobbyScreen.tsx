@@ -865,13 +865,16 @@ function TutorialWorldMap({ onReturn }: { onReturn: () => void }) {
   return (
     <div className="relative flex flex-1 overflow-hidden">
       {/* eslint-disable-next-line @next/next/no-img-element -- local painted world map */}
-      <img src="/art/lobby/world-map-v1.png" alt="세계 지도" className="pointer-events-none absolute inset-0 h-full w-full object-contain" />
-      <p
-        className="absolute left-1/2 top-2 -translate-x-1/2 rounded-full px-3 py-0.5 text-[12px] font-bold text-[#5b351a]"
-        style={{ borderBottom: "1px solid rgba(139, 94, 39, 0.55)", background: "rgba(250, 227, 172, 0.42)", textShadow: "0 1px 0 rgba(255, 239, 185, 0.8)" }}
-      >
-        세계 지도
-      </p>
+      <img
+        src="/art/lobby/world-map-v1.png"
+        alt="세계 지도"
+        className="pointer-events-none absolute left-1/2 top-1/2 h-full w-[66%] -translate-x-1/2 -translate-y-1/2 object-contain"
+        style={{
+          filter: "contrast(1.24) saturate(1.16) brightness(0.92)",
+          maskImage: "radial-gradient(ellipse 74% 76% at center, #000 48%, rgba(0,0,0,0.72) 66%, transparent 100%)",
+          WebkitMaskImage: "radial-gradient(ellipse 74% 76% at center, #000 48%, rgba(0,0,0,0.72) 66%, transparent 100%)",
+        }}
+      />
       <WorldMapToggleButton onClick={onReturn} label="나라 지도" />
     </div>
   );
@@ -882,20 +885,22 @@ function WorldMapToggleButton({ onClick, label }: { onClick: () => void; label: 
     <button
       type="button"
       onClick={onClick}
-      className="absolute bottom-2 left-2 flex h-[30px] items-center gap-1 rounded-[4px] px-1.5 active:translate-y-px"
+      className="absolute bottom-2 left-2 flex h-[30px] w-[38px] items-center justify-center active:scale-95"
       style={{
-        border: "1px solid rgba(109, 69, 30, 0.88)",
-        background: "linear-gradient(135deg, rgba(67, 38, 18, 0.92), rgba(115, 74, 36, 0.88))",
-        boxShadow: "0 1px 3px rgba(40, 19, 6, 0.48), inset 0 0 0 1px rgba(231, 191, 107, 0.2)",
-        color: "#f5dfaa",
+        border: "none",
+        background: "transparent",
+        boxShadow: "none",
         cursor: "pointer",
-        textShadow: "0 1px 1px #2b1609",
       }}
       aria-label={label}
     >
       {/* eslint-disable-next-line @next/next/no-img-element -- local generated world-map navigation icon */}
-      <img src="/art/lobby/world-map-button-v1.png" alt="" className="h-[24px] w-[30px] object-contain" />
-      <span className="text-[9px] font-bold">{label}</span>
+      <img
+        src="/art/lobby/world-map-button-v1.png"
+        alt=""
+        className="h-[28px] w-[36px] object-contain"
+        style={{ filter: "contrast(1.3) saturate(1.08) drop-shadow(0 1px 1px rgba(51, 28, 10, 0.72))" }}
+      />
     </button>
   );
 }
