@@ -866,22 +866,14 @@ function TutorialWorldMap() {
     <div className="relative flex flex-1 overflow-hidden">
       {/* eslint-disable-next-line @next/next/no-img-element -- local painted world map */}
       <img
-        src="/art/lobby/world-map-continent-land-v6.png"
+        src="/art/lobby/world-map-balanced-v8.png"
         alt="세계 지도"
         className="pointer-events-none absolute inset-x-0 -bottom-[5%] h-[105%] w-full object-fill"
         style={{
           filter: "contrast(1.06) saturate(0.83) brightness(0.94)",
-          maskImage: "linear-gradient(to right, transparent 0%, rgba(0,0,0,0.55) 11%, #000 24%, #000 100%)",
-          WebkitMaskImage: "linear-gradient(to right, transparent 0%, rgba(0,0,0,0.55) 11%, #000 24%, #000 100%)",
+          maskImage: "none",
+          WebkitMaskImage: "none",
         }}
-      />
-      <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-[18%]"
-        style={{ background: "linear-gradient(to bottom, rgba(242, 214, 152, 0.66), rgba(242, 214, 152, 0.12) 62%, transparent)" }}
-      />
-      <div
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-[19%]"
-        style={{ background: "linear-gradient(to bottom, transparent, rgba(242, 214, 152, 0.14) 52%, rgba(242, 214, 152, 0.68) 100%)" }}
       />
     </div>
   );
