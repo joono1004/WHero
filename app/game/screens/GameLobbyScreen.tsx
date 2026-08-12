@@ -60,7 +60,7 @@ const RESOURCE_CHIPS: { key: "wood" | "iron" | "gold" | "gem"; icon: string; lab
   { key: "wood", icon: "/art/lobby/resources/wood-v1.png", label: "목재", tint: "#a97c50" },
   { key: "iron", icon: "/art/lobby/resources/iron-v1.png", label: "철광", tint: "#9aa5a3" },
   { key: "gold", icon: "/art/lobby/resources/gold-v1.png", label: "금화", tint: "#d7b765" },
-  { key: "gem", icon: "/art/lobby/resources/gem-v1.png", label: "보석", tint: "#c17be0" },
+  { key: "gem", icon: "/art/lobby/resources/gem-v2.png", label: "보석", tint: "#d88cff" },
 ];
 
 // Face-focused derivatives keep the representative hero readable in the compact HUD.
