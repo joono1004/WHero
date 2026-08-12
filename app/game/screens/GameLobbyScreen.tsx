@@ -868,7 +868,7 @@ function TutorialWorldMap() {
       <img
         src="/art/lobby/world-map-selected-v10.png"
         alt="세계 지도"
-        className="pointer-events-none absolute inset-x-0 -bottom-[5%] h-[105%] w-full object-fill"
+        className="pointer-events-none absolute left-1/2 top-1/2 h-full w-full -translate-x-1/2 -translate-y-1/2 scale-[1.2] object-fill"
         style={{
           filter: "contrast(1.06) saturate(0.83) brightness(0.94)",
           maskImage: "none",
