@@ -115,6 +115,7 @@ type DeveloperFlag = {
 };
 
 const DEVELOPER_FLAGS_STORAGE_KEY = "world-in-hero:world-map-developer-flags";
+const WORLD_COUNTRY_LAYOUT_STORAGE_KEY = "world-in-hero:world-map-country-layout";
 
 const MENU_ITEMS: { key: MenuItemKey; icon: string; label: string }[] = [
   { key: "heroes", icon: "/art/lobby/sidebar-icons/heroes-v1.png", label: "영웅" },
@@ -164,6 +165,13 @@ export function GameLobbyScreen({
   const [showWorldMap, setShowWorldMap] = useState(false);
   const [developerMode, setDeveloperMode] = useState(false);
   const [developerFlags, setDeveloperFlags] = useState<DeveloperFlag[]>([]);
+  const [worldCountryAnchors, setWorldCountryAnchors] = useState<DeveloperFlag[]>(() =>
+    Object.values(WORLD_COUNTRY_ANCHORS).map((anchor, index) => ({
+      id: index + 1,
+      x: Number.parseFloat(anchor.left),
+      y: Number.parseFloat(anchor.top),
+    })),
+  );
   const [developerFlagsLoaded, setDeveloperFlagsLoaded] = useState(false);
   const [showDeveloperExport, setShowDeveloperExport] = useState(false);
   const [developerCopied, setDeveloperCopied] = useState(false);
@@ -176,6 +184,8 @@ export function GameLobbyScreen({
     try {
       const saved = window.localStorage.getItem(DEVELOPER_FLAGS_STORAGE_KEY);
       if (saved) setDeveloperFlags(JSON.parse(saved) as DeveloperFlag[]);
+      const savedCountryLayout = window.localStorage.getItem(WORLD_COUNTRY_LAYOUT_STORAGE_KEY);
+      if (savedCountryLayout) setWorldCountryAnchors(JSON.parse(savedCountryLayout) as DeveloperFlag[]);
     } catch {
       // A malformed developer layout is non-critical; start with no extra flags.
     } finally {
@@ -190,10 +200,10 @@ export function GameLobbyScreen({
 
   const saveDeveloperFlags = () => {
     window.localStorage.setItem(DEVELOPER_FLAGS_STORAGE_KEY, JSON.stringify(developerFlags));
+    window.localStorage.setItem(WORLD_COUNTRY_LAYOUT_STORAGE_KEY, JSON.stringify(worldCountryAnchors));
   };
 
-  const developerExportText = developerFlags
-    .map((flag, index) => `깃발 ${index + 1}: x ${flag.x.toFixed(1)} / y ${flag.y.toFixed(1)}`)
+  const developerExportText = [...worldCountryAnchors.map((flag, index) => `나라 ${index + 1}: x ${flag.x.toFixed(1)} / y ${flag.y.toFixed(1)}`), ...developerFlags.map((flag, index) => `추가 깃발 ${index + 1}: x ${flag.x.toFixed(1)} / y ${flag.y.toFixed(1)}`)]
     .join("\n");
 
   const copyDeveloperCoordinates = async () => {
@@ -495,7 +505,9 @@ export function GameLobbyScreen({
                 showWorldMap ? (
                   <TutorialWorldMap
                     developerMode={developerMode}
+                    countryAnchors={worldCountryAnchors}
                     developerFlags={developerFlagsLoaded ? developerFlags : []}
+                    onMoveCountryFlag={(id, x, y) => setWorldCountryAnchors((flags) => flags.map((flag) => (flag.id === id ? { ...flag, x, y } : flag)))}
                     onMoveDeveloperFlag={(id, x, y) => setDeveloperFlags((flags) => flags.map((flag) => (flag.id === id ? { ...flag, x, y } : flag)))}
                   />
                 ) : (
@@ -960,7 +972,11 @@ const WORLD_COUNTRY_ANCHORS = {
   country14: { left: "63.8%", top: "58.7%", state: "available" },
 } as const;
 
-type WorldCountryAnchor = (typeof WORLD_COUNTRY_ANCHORS)[keyof typeof WORLD_COUNTRY_ANCHORS];
+type WorldCountryAnchor = {
+  left: string;
+  top: string;
+  state: "available";
+};
 
 function WorldCountryNode({ anchor }: { anchor: WorldCountryAnchor }) {
   return (
@@ -974,7 +990,7 @@ function WorldCountryNode({ anchor }: { anchor: WorldCountryAnchor }) {
   );
 }
 
-function DeveloperWorldFlag({ flag, onMove }: { flag: DeveloperFlag; onMove: (id: number, x: number, y: number) => void }) {
+function DeveloperWorldFlag({ flag, label, onMove }: { flag: DeveloperFlag; label: string; onMove: (id: number, x: number, y: number) => void }) {
   const dragRef = useRef<{ startX: number; startY: number; originX: number; originY: number } | null>(null);
   return (
     <button
@@ -996,24 +1012,27 @@ function DeveloperWorldFlag({ flag, onMove }: { flag: DeveloperFlag; onMove: (id
         );
       }}
       onPointerUp={() => { dragRef.current = null; }}
-      aria-label={`깃발 ${flag.id} 위치 조정`}
+      aria-label={`${label} 위치 조정`}
     >
       <img src="/art/lobby/country-marker-unconquered-v1.png" alt="" />
-      <span>{flag.id}<br />x {flag.x.toFixed(1)} · y {flag.y.toFixed(1)}</span>
+      <span>{label}<br />x {flag.x.toFixed(1)} · y {flag.y.toFixed(1)}</span>
     </button>
   );
 }
 
 function TutorialWorldMap({
   developerMode,
+  countryAnchors,
   developerFlags,
+  onMoveCountryFlag,
   onMoveDeveloperFlag,
 }: {
   developerMode: boolean;
+  countryAnchors: DeveloperFlag[];
   developerFlags: DeveloperFlag[];
+  onMoveCountryFlag: (id: number, x: number, y: number) => void;
   onMoveDeveloperFlag: (id: number, x: number, y: number) => void;
 }) {
-  const countryAnchors = Object.values(WORLD_COUNTRY_ANCHORS);
   return (
     <div className="relative flex flex-1 overflow-hidden">
       {/* eslint-disable-next-line @next/next/no-img-element -- local painted world map */}
@@ -1027,8 +1046,12 @@ function TutorialWorldMap({
           WebkitMaskImage: "none",
         }}
       />
-      {countryAnchors.map((anchor, index) => <WorldCountryNode key={`country-${index + 1}`} anchor={anchor} />)}
-      {developerMode ? developerFlags.map((flag) => <DeveloperWorldFlag key={flag.id} flag={flag} onMove={onMoveDeveloperFlag} />) : null}
+      {countryAnchors.map((anchor, index) => developerMode ? (
+        <DeveloperWorldFlag key={`country-${anchor.id}`} flag={anchor} label={`나라 ${index + 1}번`} onMove={onMoveCountryFlag} />
+      ) : (
+        <WorldCountryNode key={`country-${anchor.id}`} anchor={{ left: `${anchor.x}%`, top: `${anchor.y}%`, state: "available" }} />
+      ))}
+      {developerMode ? developerFlags.map((flag, index) => <DeveloperWorldFlag key={flag.id} flag={flag} label={`추가 ${index + 1}번`} onMove={onMoveDeveloperFlag} />) : null}
     </div>
   );
 }
