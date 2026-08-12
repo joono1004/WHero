@@ -944,22 +944,30 @@ function TutorialIslandCandidate({
 // not to a guessed screen position. Future flags, connection routes and
 // assigned heroes must share these same country coordinates.
 const WORLD_COUNTRY_ANCHORS = {
-  tutorialIsland: { left: "36%", top: "77%", state: "conquered" },
-  forestPass: { left: "39%", top: "57%", state: "conquered" },
-  coastReach: { left: "53%", top: "72%", state: "available" },
+  country01: { left: "21.7%", top: "68.4%", state: "available" },
+  country02: { left: "26.9%", top: "35.7%", state: "available" },
+  country03: { left: "30.9%", top: "58.0%", state: "available" },
+  country04: { left: "36.5%", top: "26.5%", state: "available" },
+  country05: { left: "42.9%", top: "41.5%", state: "available" },
+  country06: { left: "40.4%", top: "71.8%", state: "available" },
+  country07: { left: "49.2%", top: "69.1%", state: "available" },
+  country08: { left: "50.8%", top: "50.5%", state: "available" },
+  country09: { left: "45.0%", top: "23.6%", state: "available" },
+  country10: { left: "52.3%", top: "32.3%", state: "available" },
+  country11: { left: "58.3%", top: "46.1%", state: "available" },
+  country12: { left: "63.0%", top: "59.0%", state: "available" },
 } as const;
 
 type WorldCountryAnchor = (typeof WORLD_COUNTRY_ANCHORS)[keyof typeof WORLD_COUNTRY_ANCHORS];
 
 function WorldCountryNode({ anchor }: { anchor: WorldCountryAnchor }) {
-  const isConquered = anchor.state === "conquered";
   return (
     <img
-      src={isConquered ? "/art/lobby/country-marker-conquered-v1.png" : "/art/lobby/country-marker-unconquered-v1.png"}
+      src="/art/lobby/country-marker-unconquered-v1.png"
       alt=""
       className="pointer-events-none absolute h-[36px] w-[30px] -translate-x-1/2 -translate-y-1/2 object-contain"
       style={{ left: anchor.left, top: anchor.top }}
-      aria-label={isConquered ? "정복한 나라" : "정복할 나라"}
+      aria-label="정복할 나라"
     />
   );
 }
@@ -1003,9 +1011,7 @@ function TutorialWorldMap({
   developerFlags: DeveloperFlag[];
   onMoveDeveloperFlag: (id: number, x: number, y: number) => void;
 }) {
-  const tutorialIsland = WORLD_COUNTRY_ANCHORS.tutorialIsland;
-  const forestPass = WORLD_COUNTRY_ANCHORS.forestPass;
-  const coastReach = WORLD_COUNTRY_ANCHORS.coastReach;
+  const countryAnchors = Object.values(WORLD_COUNTRY_ANCHORS);
   return (
     <div className="relative flex flex-1 overflow-hidden">
       {/* eslint-disable-next-line @next/next/no-img-element -- local painted world map */}
@@ -1019,26 +1025,8 @@ function TutorialWorldMap({
           WebkitMaskImage: "none",
         }}
       />
-      <svg className="pointer-events-none absolute inset-0 h-full w-full overflow-visible" aria-hidden="true">
-        <line x1="36%" y1="77%" x2="39%" y2="57%" stroke="rgba(34, 88, 156, 0.92)" strokeWidth="2" />
-        <line x1="39%" y1="57%" x2="53%" y2="72%" stroke="rgba(90, 76, 54, 0.72)" strokeWidth="1.4" strokeDasharray="3 2" />
-      </svg>
-      <WorldCountryNode anchor={tutorialIsland} />
-      <WorldCountryNode anchor={forestPass} />
-      <WorldCountryNode anchor={coastReach} />
+      {countryAnchors.map((anchor, index) => <WorldCountryNode key={`country-${index + 1}`} anchor={anchor} />)}
       {developerMode ? developerFlags.map((flag) => <DeveloperWorldFlag key={flag.id} flag={flag} onMove={onMoveDeveloperFlag} />) : null}
-      <span
-        className="hidden"
-        style={tutorialIsland}
-        aria-label="정복할 작은 섬 나라"
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element -- local generated enemy-country flag */}
-        <img
-          src="/art/lobby/country-flag-enemy-trimmed-v1.png"
-          alt=""
-          className="h-full w-full object-contain"
-        />
-      </span>
     </div>
   );
 }
