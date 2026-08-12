@@ -120,6 +120,10 @@ const COUNTRY_CONNECTIONS: Record<number, number[]> = {
   13: [14], 14: [],
 };
 
+// The stored coordinate marks the flag artwork's centre.  Route lines need
+// to meet the circular ground base, which sits lower than that centre.
+const WORLD_FLAG_BASE_OFFSET_Y = 5.2;
+
 const DEVELOPER_FLAGS_STORAGE_KEY = "world-in-hero:world-map-developer-flags";
 const WORLD_COUNTRY_LAYOUT_STORAGE_KEY = "world-in-hero:world-map-country-layout";
 
@@ -1080,11 +1084,29 @@ function TutorialWorldMap({
         }}
       />
       <svg className="pointer-events-none absolute inset-0 h-full w-full overflow-visible" aria-hidden="true">
+        <defs>
+          <linearGradient id="world-route-core" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stopColor="#d0e9ff" />
+            <stop offset="0.45" stopColor="#4b9bd0" />
+            <stop offset="1" stopColor="#9ed9ff" />
+          </linearGradient>
+        </defs>
         {[...conqueredCountries].flatMap((sourceId) => (COUNTRY_CONNECTIONS[sourceId] ?? []).filter((targetId) => conqueredCountries.has(sourceId) || true).map((targetId) => {
           const source = countryAnchors.find((country) => country.id === sourceId);
           const target = countryAnchors.find((country) => country.id === targetId);
           if (!source || !target) return null;
-          return <line key={`${sourceId}-${targetId}`} x1={`${source.x}%`} y1={`${source.y}%`} x2={`${target.x}%`} y2={`${target.y}%`} stroke="#719fc7" strokeWidth="1.4" strokeDasharray={conqueredCountries.has(targetId) ? undefined : "4 3"} opacity="0.9" />;
+          const sourceY = Math.min(100, source.y + WORLD_FLAG_BASE_OFFSET_Y);
+          const targetY = Math.min(100, target.y + WORLD_FLAG_BASE_OFFSET_Y);
+          const controlX = (source.x + target.x) / 2;
+          const controlY = (sourceY + targetY) / 2 - 1.4;
+          const path = `M ${source.x}% ${sourceY}% Q ${controlX}% ${controlY}% ${target.x}% ${targetY}%`;
+          return (
+            <g key={`${sourceId}-${targetId}`}>
+              <path d={path} fill="none" stroke="rgba(24, 45, 57, 0.92)" strokeWidth="3.6" strokeLinecap="round" />
+              <path d={path} fill="none" stroke="#b99650" strokeWidth="2.3" strokeLinecap="round" opacity="0.94" />
+              <path d={path} fill="none" stroke="url(#world-route-core)" strokeWidth="1.25" strokeLinecap="round" />
+            </g>
+          );
         }))}
       </svg>
       {countryAnchors.filter((anchor) => anchor.id === 1 || conqueredCountries.has(anchor.id) || [...conqueredCountries].some((sourceId) => COUNTRY_CONNECTIONS[sourceId]?.includes(anchor.id))).map((anchor) => developerMode ? (
