@@ -31,6 +31,7 @@ import { GameLobbyScreen } from "./screens/GameLobbyScreen.tsx";
 import { HeroSelectScreen } from "./screens/HeroSelectScreen.tsx";
 import { MainMenuScreen } from "./screens/MainMenuScreen.tsx";
 import { MapPlayScreen } from "./screens/MapPlayScreen.tsx";
+import { BattleBriefingScreen } from "./screens/BattleBriefingScreen.tsx";
 import { SettingsScreen } from "./screens/SettingsScreen.tsx";
 import { TitleScreen } from "./screens/TitleScreen.tsx";
 
@@ -44,6 +45,7 @@ type Screen =
   | { name: "settings"; returnTo: Screen }
   | { name: "faction-name" }
   | { name: "hero-select"; factionName: string }
+  | { name: "battle-briefing"; slotId: string; save: SaveGame; candidateIndex: number; heroId: string }
   | { name: "main"; slotId: string; save: SaveGame };
 
 const AUTO_BACKUP_KEY = "whero:auto-backup";
@@ -245,6 +247,19 @@ export function GameEntry() {
           />
         );
 
+      case "battle-briefing": {
+        const candidate = screen.save.nextMapCandidates[screen.candidateIndex];
+        if (!candidate) {
+          setScreen({ name: "main", slotId: screen.slotId, save: screen.save });
+          return null;
+        }
+        return <BattleBriefingScreen candidate={candidate} heroes={screen.save.heroes} initialHeroId={screen.heroId} onBack={() => setScreen({ name: "main", slotId: screen.slotId, save: screen.save })} onStart={(heroId) => {
+          const updated = enterMapCandidate(screen.save, screen.candidateIndex, [heroId], new Date().toISOString());
+          if (storage) writeSaveGame(storage, screen.slotId, { ...updated, updatedAt: new Date().toISOString() });
+          setScreen({ name: "main", slotId: screen.slotId, save: updated });
+        }} />;
+      }
+
       case "main": {
         const slotId = screen.slotId;
         const updateSave = (updated: SaveGame) => {
@@ -308,9 +323,7 @@ export function GameEntry() {
             save={screen.save}
             onExitToMenu={() => setScreen({ name: "menu" })}
             onUpdateSave={updateSave}
-            onEnterCandidate={(candidateIndex, enlistedHeroIds) =>
-              updateSave(enterMapCandidate(screen.save, candidateIndex, enlistedHeroIds, new Date().toISOString()))
-            }
+            onEnterCandidate={(candidateIndex, enlistedHeroIds) => setScreen({ name: "battle-briefing", slotId, save: screen.save, candidateIndex, heroId: enlistedHeroIds[0] })}
             onSettings={() => setScreen({ name: "settings", returnTo: screen })}
           />
         );

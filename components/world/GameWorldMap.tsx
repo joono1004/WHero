@@ -11,19 +11,24 @@ export function GameWorldMap({
   mapTypeId,
   turn,
   onHexSelected,
+  onReady,
 }: {
   seed: number;
   mapTierId: MapTierId;
   mapTypeId: MapTypeId;
   turn: number;
   onHexSelected: (diagnostic: HexDiagnostic) => void;
+  onReady?: () => void;
 }) {
   const [isReady, setIsReady] = useState(false);
   const generationId = seed;
 
   const handleReady = useCallback((readyGenerationId: number) => {
-    if (readyGenerationId === generationId) setIsReady(true);
-  }, [generationId]);
+    if (readyGenerationId === generationId) {
+      setIsReady(true);
+      onReady?.();
+    }
+  }, [generationId, onReady]);
 
   const handleHexSelected = useCallback((diagnostic: HexDiagnostic) => {
     onHexSelected(diagnostic);
