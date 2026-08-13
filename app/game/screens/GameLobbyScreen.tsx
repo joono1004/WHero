@@ -130,6 +130,8 @@ const WORLD_FLAG_BASE_OFFSET_X = -1.0;
 
 const DEVELOPER_FLAGS_STORAGE_KEY = "world-in-hero:world-map-developer-flags";
 const WORLD_COUNTRY_LAYOUT_STORAGE_KEY = "world-in-hero:world-map-country-layout";
+export const CAMPAIGN_COUNTRIES_STORAGE_KEY = "world-in-hero:campaign-countries";
+export const ACTIVE_CAMPAIGN_COUNTRY_STORAGE_KEY = "world-in-hero:active-campaign-country";
 
 const MENU_ITEMS: { key: MenuItemKey; icon: string; label: string }[] = [
   { key: "heroes", icon: "/art/lobby/sidebar-icons/heroes-v1.png", label: "영웅" },
@@ -163,7 +165,7 @@ export function GameLobbyScreen({
   save: SaveGame;
   onExitToMenu: () => void;
   onUpdateSave: (save: SaveGame) => void;
-  onEnterCandidate: (candidateIndex: number, enlistedHeroIds: string[]) => void;
+  onEnterCandidate: (candidateIndex: number, enlistedHeroIds: string[], countryId?: number) => void;
   onSettings: () => void;
 }) {
   const [enlistingCandidateIndex, setEnlistingCandidateIndex] = useState<number | null>(null);
@@ -202,6 +204,13 @@ export function GameLobbyScreen({
       if (saved) setDeveloperFlags(JSON.parse(saved) as DeveloperFlag[]);
       const savedCountryLayout = window.localStorage.getItem(WORLD_COUNTRY_LAYOUT_STORAGE_KEY);
       if (savedCountryLayout) setWorldCountryAnchors(JSON.parse(savedCountryLayout) as DeveloperFlag[]);
+      const savedCampaign = window.localStorage.getItem(CAMPAIGN_COUNTRIES_STORAGE_KEY);
+      if (savedCampaign) setConqueredCountries(new Set(JSON.parse(savedCampaign) as number[]));
+      else if (Object.keys(save.clearedWorlds).length > 0) {
+        const restored = new Set(Array.from({ length: Object.keys(save.clearedWorlds).length }, (_, index) => index + 1));
+        setConqueredCountries(restored);
+        window.localStorage.setItem(CAMPAIGN_COUNTRIES_STORAGE_KEY, JSON.stringify([...restored]));
+      }
     } catch {
       // A malformed developer layout is non-critical; start with no extra flags.
     } finally {
@@ -228,9 +237,13 @@ export function GameLobbyScreen({
     window.setTimeout(() => setDeveloperCopied(false), 1600);
   };
 
-  const conquerCountry = (countryId: number) => {
-    setConqueredCountries((countries) => new Set([...countries, countryId]));
-    if (countryId === 1) setShowVictoryNotice(true);
+  const selectCountry = (countryId: number) => {
+    if (countryId === 1) { setShowWorldMap(false); return; }
+    const candidateIndex = countryId === 2 ? 0 : countryId === 3 ? 1 : 0;
+    const candidate = save.nextMapCandidates[candidateIndex];
+    const leadHero = entries[0];
+    if (!candidate || !leadHero) return;
+    onEnterCandidate(candidateIndex, [leadHero.state.heroId], countryId);
   };
 
   const playerFaction = save.factions[PLAYER_FACTION_ID];
@@ -522,14 +535,24 @@ export function GameLobbyScreen({
         <div className="flex flex-1 flex-col gap-1.5 overflow-hidden">
           <div className="flex flex-1 flex-col gap-1 overflow-hidden">
             <div className="flex flex-1 items-stretch gap-1 overflow-hidden">
-              {clearedWorlds.length === 0 && save.nextMapCandidates.length === 1 ? (
+              {showWorldMap || clearedWorlds.length > 0 ? (
+                <TutorialWorldMap
+                  developerMode={developerMode}
+                  countryAnchors={worldCountryAnchors}
+                  developerFlags={developerFlagsLoaded ? developerFlags : []}
+                  conqueredCountries={conqueredCountries}
+                  onConquerCountry={selectCountry}
+                  onMoveCountryFlag={(id, x, y) => setWorldCountryAnchors((flags) => flags.map((flag) => (flag.id === id ? { ...flag, x, y } : flag)))}
+                  onMoveDeveloperFlag={(id, x, y) => setDeveloperFlags((flags) => flags.map((flag) => (flag.id === id ? { ...flag, x, y } : flag)))}
+                />
+              ) : clearedWorlds.length === 0 && save.nextMapCandidates.length === 1 ? (
                 showWorldMap ? (
                   <TutorialWorldMap
                     developerMode={developerMode}
                     countryAnchors={worldCountryAnchors}
                     developerFlags={developerFlagsLoaded ? developerFlags : []}
                     conqueredCountries={conqueredCountries}
-                    onConquerCountry={(countryId) => { if (countryId === 1) setShowWorldMap(false); else conquerCountry(countryId); }}
+                    onConquerCountry={selectCountry}
                     onMoveCountryFlag={(id, x, y) => setWorldCountryAnchors((flags) => flags.map((flag) => (flag.id === id ? { ...flag, x, y } : flag)))}
                     onMoveDeveloperFlag={(id, x, y) => setDeveloperFlags((flags) => flags.map((flag) => (flag.id === id ? { ...flag, x, y } : flag)))}
                   />
@@ -543,7 +566,7 @@ export function GameLobbyScreen({
                     onBattle={() => {
                       const leadHero = entries[0];
                       if (!leadHero) return;
-                      onEnterCandidate(0, [leadHero.state.heroId]);
+                      onEnterCandidate(0, [leadHero.state.heroId], 1);
                     }}
                     onOpenWorldMap={() => setShowWorldMap(true)}
                   />

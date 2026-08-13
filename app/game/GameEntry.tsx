@@ -27,7 +27,7 @@ import { endTurn } from "../../lib/game/turn.ts";
 import { completeActiveWorld, enterMapCandidate } from "../../lib/game/world-entry.ts";
 import { captureEnemyCity, surrenderRivalFaction } from "../../lib/game/world-progress.ts";
 import { FactionNameScreen } from "./screens/FactionNameScreen.tsx";
-import { GameLobbyScreen } from "./screens/GameLobbyScreen.tsx";
+import { ACTIVE_CAMPAIGN_COUNTRY_STORAGE_KEY, CAMPAIGN_COUNTRIES_STORAGE_KEY, GameLobbyScreen } from "./screens/GameLobbyScreen.tsx";
 import { HeroSelectScreen } from "./screens/HeroSelectScreen.tsx";
 import { MainMenuScreen } from "./screens/MainMenuScreen.tsx";
 import { MapPlayScreen } from "./screens/MapPlayScreen.tsx";
@@ -45,7 +45,7 @@ type Screen =
   | { name: "settings"; returnTo: Screen }
   | { name: "faction-name" }
   | { name: "hero-select"; factionName: string }
-  | { name: "battle-briefing"; slotId: string; save: SaveGame; candidateIndex: number; heroId: string }
+  | { name: "battle-briefing"; slotId: string; save: SaveGame; candidateIndex: number; heroId: string; countryId: number }
   | { name: "main"; slotId: string; save: SaveGame };
 
 const AUTO_BACKUP_KEY = "whero:auto-backup";
@@ -254,6 +254,7 @@ export function GameEntry() {
           return null;
         }
         return <BattleBriefingScreen candidate={candidate} heroes={screen.save.heroes} initialHeroId={screen.heroId} onBack={() => setScreen({ name: "main", slotId: screen.slotId, save: screen.save })} onStart={(heroId) => {
+          storage?.setItem(ACTIVE_CAMPAIGN_COUNTRY_STORAGE_KEY, String(screen.countryId));
           const updated = enterMapCandidate(screen.save, screen.candidateIndex, [heroId], new Date().toISOString());
           if (storage) writeSaveGame(storage, screen.slotId, { ...updated, updatedAt: new Date().toISOString() });
           setScreen({ name: "main", slotId: screen.slotId, save: updated });
@@ -276,6 +277,10 @@ export function GameEntry() {
               onExitToMenu={() => setScreen({ name: "menu" })}
               onCompleteWorld={() => {
                 const updated = completeActiveWorld(screen.save, new Date().toISOString());
+                const activeCountry = Number.parseInt(storage?.getItem(ACTIVE_CAMPAIGN_COUNTRY_STORAGE_KEY) ?? "1", 10);
+                const savedCountries = JSON.parse(storage?.getItem(CAMPAIGN_COUNTRIES_STORAGE_KEY) ?? "[]") as number[];
+                storage?.setItem(CAMPAIGN_COUNTRIES_STORAGE_KEY, JSON.stringify([...new Set([...savedCountries, activeCountry])]))
+                storage?.removeItem(ACTIVE_CAMPAIGN_COUNTRY_STORAGE_KEY);
                 updateSave(updated);
                 maybeAutoBackup(slotId, { ...updated, updatedAt: new Date().toISOString() });
               }}
@@ -323,7 +328,7 @@ export function GameEntry() {
             save={screen.save}
             onExitToMenu={() => setScreen({ name: "menu" })}
             onUpdateSave={updateSave}
-            onEnterCandidate={(candidateIndex, enlistedHeroIds) => setScreen({ name: "battle-briefing", slotId, save: screen.save, candidateIndex, heroId: enlistedHeroIds[0] })}
+            onEnterCandidate={(candidateIndex, enlistedHeroIds, countryId = 1) => setScreen({ name: "battle-briefing", slotId, save: screen.save, candidateIndex, heroId: enlistedHeroIds[0], countryId })}
             onSettings={() => setScreen({ name: "settings", returnTo: screen })}
           />
         );
