@@ -97,6 +97,11 @@ export function GameEntry() {
 
   function startNewGame(factionName: string, heroId: string) {
     if (!storage) return;
+    // Campaign country progress belongs to the current save.  It is stored
+    // separately only for the world-map presentation, so it must be cleared
+    // before creating a new save as well.
+    storage.removeItem(CAMPAIGN_COUNTRIES_STORAGE_KEY);
+    storage.removeItem(ACTIVE_CAMPAIGN_COUNTRY_STORAGE_KEY);
     const save = createNewSaveGame({
       factionName,
       heroId,
@@ -225,6 +230,8 @@ export function GameEntry() {
                 for (const slot of listSaveSlots(storage)) {
                   deleteSaveGame(storage, slot.slotId);
                 }
+                storage.removeItem(CAMPAIGN_COUNTRIES_STORAGE_KEY);
+                storage.removeItem(ACTIVE_CAMPAIGN_COUNTRY_STORAGE_KEY);
               }
               return result;
             }}
