@@ -540,7 +540,11 @@ export function GameLobbyScreen({
                     onSelect={() => setTutorialIslandSelected((selected) => !selected)}
                     availableHeroCount={entries.length}
                     isConquered={conqueredCountries.has(1)}
-                    onBattle={() => conquerCountry(1)}
+                    onBattle={() => {
+                      const leadHero = entries[0];
+                      if (!leadHero) return;
+                      onEnterCandidate(0, [leadHero.state.heroId]);
+                    }}
                     onOpenWorldMap={() => setShowWorldMap(true)}
                   />
                 )
