@@ -181,6 +181,10 @@ export function GameLobbyScreen({
   const [conqueredCountries, setConqueredCountries] = useState<Set<number>>(() => new Set());
   const [showVictoryNotice, setShowVictoryNotice] = useState(false);
   const [showWorldMap, setShowWorldMap] = useState(false);
+  // A conquered country can be re-opened from its world-map flag.  Keep this
+  // separate from the map visibility so the world map does not immediately
+  // take over again just because cleared-world history exists.
+  const [openedCountryId, setOpenedCountryId] = useState<number | null>(null);
   const [developerMode, setDeveloperMode] = useState(false);
   const [developerFlags, setDeveloperFlags] = useState<DeveloperFlag[]>([]);
   const [worldCountryAnchors, setWorldCountryAnchors] = useState<DeveloperFlag[]>(() =>
@@ -238,7 +242,11 @@ export function GameLobbyScreen({
   };
 
   const selectCountry = (countryId: number) => {
-    if (countryId === 1) { setShowWorldMap(false); return; }
+    if (countryId === 1 && conqueredCountries.has(1)) {
+      setOpenedCountryId(1);
+      setShowWorldMap(false);
+      return;
+    }
     const candidateIndex = countryId === 2 ? 0 : countryId === 3 ? 1 : 0;
     const candidate = save.nextMapCandidates[candidateIndex];
     const leadHero = entries[0];
@@ -249,6 +257,9 @@ export function GameLobbyScreen({
   const playerFaction = save.factions[PLAYER_FACTION_ID];
   const entries = buildHeroListEntries(save.heroes);
   const clearedWorlds = Object.values(save.clearedWorlds).sort((a, b) => a.worldIndex - b.worldIndex);
+  const reopenedTutorialCountry = openedCountryId === 1
+    ? clearedWorlds.find((record) => record.worldIndex === 1) ?? null
+    : null;
 
   // Keep the newly-offered world candidates in view by default rather than
   // requiring a scroll every visit - they always sit at the right end of
@@ -535,7 +546,7 @@ export function GameLobbyScreen({
         <div className="flex flex-1 flex-col gap-1.5 overflow-hidden">
           <div className="flex flex-1 flex-col gap-1 overflow-hidden">
             <div className="flex flex-1 items-stretch gap-1 overflow-hidden">
-              {showWorldMap || clearedWorlds.length > 0 ? (
+              {showWorldMap || (clearedWorlds.length > 0 && openedCountryId === null) ? (
                 <TutorialWorldMap
                   developerMode={developerMode}
                   countryAnchors={worldCountryAnchors}
@@ -545,7 +556,7 @@ export function GameLobbyScreen({
                   onMoveCountryFlag={(id, x, y) => setWorldCountryAnchors((flags) => flags.map((flag) => (flag.id === id ? { ...flag, x, y } : flag)))}
                   onMoveDeveloperFlag={(id, x, y) => setDeveloperFlags((flags) => flags.map((flag) => (flag.id === id ? { ...flag, x, y } : flag)))}
                 />
-              ) : clearedWorlds.length === 0 && save.nextMapCandidates.length === 1 ? (
+              ) : (clearedWorlds.length === 0 && save.nextMapCandidates.length === 1) || reopenedTutorialCountry ? (
                 showWorldMap ? (
                   <TutorialWorldMap
                     developerMode={developerMode}
@@ -558,7 +569,7 @@ export function GameLobbyScreen({
                   />
                 ) : (
                   <TutorialIslandCandidate
-                    candidate={save.nextMapCandidates[0]}
+                    candidate={reopenedTutorialCountry ?? save.nextMapCandidates[0]}
                     isSelected={tutorialIslandSelected}
                     onSelect={() => setTutorialIslandSelected((selected) => !selected)}
                     availableHeroCount={entries.length}
@@ -568,7 +579,10 @@ export function GameLobbyScreen({
                       if (!leadHero) return;
                       onEnterCandidate(0, [leadHero.state.heroId], 1);
                     }}
-                    onOpenWorldMap={() => setShowWorldMap(true)}
+                    onOpenWorldMap={() => {
+                      setOpenedCountryId(null);
+                      setShowWorldMap(true);
+                    }}
                   />
                 )
               ) : (
