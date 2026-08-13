@@ -53,6 +53,7 @@ function makeSave(overrides: Partial<SaveGame> = {}): SaveGame {
     },
     units: {},
     cities: {},
+    campaign: { conqueredCountryIds: [], activeCountryId: null },
     createdAt: "2026-07-27T00:00:00.000Z",
     updatedAt: "2026-07-27T00:00:00.000Z",
     ...overrides,

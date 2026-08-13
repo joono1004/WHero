@@ -57,6 +57,7 @@ export function createNewSaveGame(params: NewGameParams): SaveGame {
     },
     units: {},
     cities: {},
+    campaign: { conqueredCountryIds: [], activeCountryId: null },
     createdAt: params.now,
     updatedAt: params.now,
   };

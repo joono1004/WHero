@@ -6,7 +6,15 @@ import type { MapCandidate } from "./map-candidates.ts";
 import type { Unit } from "./unit.ts";
 import type { ClearedWorldRecord, WorldState } from "./world.ts";
 
-export const SAVE_SCHEMA_VERSION = 1;
+// Version 2 moves campaign progression into the save itself. Version 1
+// saves intentionally do not load because their browser-side state could
+// disagree with the actual game data.
+export const SAVE_SCHEMA_VERSION = 2;
+
+export type CampaignProgress = {
+  conqueredCountryIds: number[];
+  activeCountryId: number | null;
+};
 
 // A SaveGame is the whole of a player's progress: everything that would
 // otherwise be lost by closing the tab. `world` is null while the player is
@@ -34,6 +42,7 @@ export type SaveGame = {
   factions: Record<string, Faction>;
   units: Record<string, Unit>;
   cities: Record<string, City>;
+  campaign: CampaignProgress;
   createdAt: string;
   updatedAt: string;
 };
@@ -57,6 +66,16 @@ export function findSaveGameIssues(save: SaveGame): string[] {
   }
   if (save.world !== null && save.nextMapCandidates.length > 0) {
     issues.push("both world and nextMapCandidates are set - candidates should be cleared once a world is entered");
+  }
+
+  if (new Set(save.campaign.conqueredCountryIds).size !== save.campaign.conqueredCountryIds.length) {
+    issues.push("campaign.conqueredCountryIds contains duplicates");
+  }
+  if (save.campaign.conqueredCountryIds.some((countryId) => !Number.isInteger(countryId) || countryId < 1)) {
+    issues.push("campaign.conqueredCountryIds must contain positive integer country ids");
+  }
+  if (save.campaign.activeCountryId !== null && (!Number.isInteger(save.campaign.activeCountryId) || save.campaign.activeCountryId < 1)) {
+    issues.push("campaign.activeCountryId must be a positive integer or null");
   }
 
   if (save.world) {
@@ -306,6 +325,19 @@ export function checkSaveGameShape(value: unknown): string[] {
   if (typeof value.factionName !== "string") errors.push("factionName must be a string");
   if (typeof value.createdAt !== "string") errors.push("createdAt must be a string");
   if (typeof value.updatedAt !== "string") errors.push("updatedAt must be a string");
+
+  if (!isPlainObject(value.campaign)) {
+    errors.push("campaign must be an object");
+  } else {
+    if (!Array.isArray(value.campaign.conqueredCountryIds)) {
+      errors.push("campaign.conqueredCountryIds must be an array");
+    } else if (value.campaign.conqueredCountryIds.some((countryId) => typeof countryId !== "number")) {
+      errors.push("campaign.conqueredCountryIds must contain numbers");
+    }
+    if (value.campaign.activeCountryId !== null && typeof value.campaign.activeCountryId !== "number") {
+      errors.push("campaign.activeCountryId must be a number or null");
+    }
+  }
 
   if (!Array.isArray(value.heroes)) {
     errors.push("heroes must be an array");

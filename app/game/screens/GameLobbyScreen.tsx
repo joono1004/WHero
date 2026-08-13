@@ -130,8 +130,6 @@ const WORLD_FLAG_BASE_OFFSET_X = -1.0;
 
 const DEVELOPER_FLAGS_STORAGE_KEY = "world-in-hero:world-map-developer-flags";
 const WORLD_COUNTRY_LAYOUT_STORAGE_KEY = "world-in-hero:world-map-country-layout";
-export const CAMPAIGN_COUNTRIES_STORAGE_KEY = "world-in-hero:campaign-countries";
-export const ACTIVE_CAMPAIGN_COUNTRY_STORAGE_KEY = "world-in-hero:active-campaign-country";
 
 const MENU_ITEMS: { key: MenuItemKey; icon: string; label: string }[] = [
   { key: "heroes", icon: "/art/lobby/sidebar-icons/heroes-v1.png", label: "영웅" },
@@ -178,7 +176,6 @@ export function GameLobbyScreen({
   const [systemGearSpin, setSystemGearSpin] = useState(0);
   const [activeMenuKey, setActiveMenuKey] = useState<MenuItemKey | null>(null);
   const [tutorialIslandSelected, setTutorialIslandSelected] = useState(false);
-  const [conqueredCountries, setConqueredCountries] = useState<Set<number>>(() => new Set());
   const [showVictoryNotice, setShowVictoryNotice] = useState(false);
   const [showWorldMap, setShowWorldMap] = useState(false);
   // A conquered country can be re-opened from its world-map flag.  Keep this
@@ -208,13 +205,6 @@ export function GameLobbyScreen({
       if (saved) setDeveloperFlags(JSON.parse(saved) as DeveloperFlag[]);
       const savedCountryLayout = window.localStorage.getItem(WORLD_COUNTRY_LAYOUT_STORAGE_KEY);
       if (savedCountryLayout) setWorldCountryAnchors(JSON.parse(savedCountryLayout) as DeveloperFlag[]);
-      const savedCampaign = window.localStorage.getItem(CAMPAIGN_COUNTRIES_STORAGE_KEY);
-      if (savedCampaign) setConqueredCountries(new Set(JSON.parse(savedCampaign) as number[]));
-      else if (Object.keys(save.clearedWorlds).length > 0) {
-        const restored = new Set(Array.from({ length: Object.keys(save.clearedWorlds).length }, (_, index) => index + 1));
-        setConqueredCountries(restored);
-        window.localStorage.setItem(CAMPAIGN_COUNTRIES_STORAGE_KEY, JSON.stringify([...restored]));
-      }
     } catch {
       // A malformed developer layout is non-critical; start with no extra flags.
     } finally {
@@ -257,6 +247,7 @@ export function GameLobbyScreen({
   const playerFaction = save.factions[PLAYER_FACTION_ID];
   const entries = buildHeroListEntries(save.heroes);
   const clearedWorlds = Object.values(save.clearedWorlds).sort((a, b) => a.worldIndex - b.worldIndex);
+  const conqueredCountries = new Set(save.campaign.conqueredCountryIds);
   const reopenedTutorialCountry = openedCountryId === 1
     ? clearedWorlds.find((record) => record.worldIndex === 1) ?? null
     : null;

@@ -80,6 +80,7 @@ function makeValidSave(): SaveGame {
     factions: { "faction-1": faction },
     units: { "unit-1": unit },
     cities: { "city-1": city },
+    campaign: { conqueredCountryIds: [], activeCountryId: null },
     createdAt: "2026-07-27T00:00:00.000Z",
     updatedAt: "2026-07-27T00:00:00.000Z",
   };
