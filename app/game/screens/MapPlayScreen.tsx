@@ -95,65 +95,55 @@ export function MapPlayScreen({
   return (
     <ScreenShell
       header={
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-xs font-bold text-[#e3ce94]">
-            {world.worldIndex}번째 세계
-            <span className="text-[#8fa6a8]"> · {typeInfo.label} · {tierInfo.label}</span>
-          </span>
-          <span className="text-[10px] text-[#8fa6a8]">
-            출전 영웅 {summonedCount}/{world.enlistedHeroIds.length}명 · 적 세력 {defeatedRivalCount}/{rivalFactions.length} 격파
-          </span>
-          <Button size="sm" variant="secondary" onClick={onExitToMenu}>
-            메뉴
-          </Button>
+        <div className="battle-header flex items-center justify-between gap-2">
+          <div>
+            <strong className="text-[12px] text-[#fff0bf]">{world.worldIndex}번째 세계</strong>
+            <span className="ml-1 text-[9px] text-[#d9bd74]">{typeInfo.label} · {tierInfo.label}</span>
+          </div>
+          <div className="battle-header__objective">승리 조건 · 적 성 점령 {defeatedRivalCount}/{rivalFactions.length}</div>
+          <Button size="sm" variant="secondary" onClick={onExitToMenu}>메뉴</Button>
         </div>
       }
       footer={
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={onCompleteWorld}
-              disabled={!world.conquered}
-            >
-              정복 완료
-            </Button>
-            {founder && (
-              <Button
-                size="sm"
-                variant="secondary"
-                disabled={!canFoundAtSelection}
-                onClick={() => {
-                  if (!selectedHex) return;
-                  onFoundCity(founder.heroId, {
-                    row: selectedHex.row,
-                    column: selectedHex.column,
-                  });
-                }}
-              >
-                선택한 칸에 거점 건설
-              </Button>
-            )}
-            <span className="text-[9px] text-[#8fa6a8]">
-              {selectedHex
-                ? `선택 ${selectedHex.row}, ${selectedHex.column} · ${selectedHex.kind === "land" ? selectedHex.terrain : selectedHex.kind}`
-                : "지도에서 육각형을 선택하세요"}
-            </span>
+        <div className="battle-action-bar flex items-center gap-2">
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] font-bold text-[#f3dfaa]">{founder ? findHeroDefinition(founder.heroId)?.name ?? "출전 영웅" : "선택 정보"}</p>
+            <p className="truncate text-[9px] text-[#b7c7c0]">{selectedHex ? `${selectedHex.kind === "land" ? selectedHex.terrain : selectedHex.kind} · 좌표 ${selectedHex.row}, ${selectedHex.column}` : "지도에서 영웅 또는 육각형을 선택하세요"}</p>
           </div>
-          <span className="text-[10px] text-[#8fa6a8]">{world.turn}턴</span>
-          <Button size="sm" onClick={onEndTurn}>
-            턴 종료
-          </Button>
+          <div className="flex items-center gap-1">
+            {founder && <Button size="sm" variant="secondary" disabled={!canFoundAtSelection} onClick={() => { if (selectedHex) onFoundCity(founder.heroId, { row: selectedHex.row, column: selectedHex.column }); }}>거점 건설</Button>}
+            <Button size="sm" variant="secondary" onClick={onCompleteWorld} disabled={!world.conquered}>정복 완료</Button>
+          </div>
+          <span className="shrink-0 text-[10px] font-bold text-[#d9bd74]">{world.turn}턴</span>
+          <Button size="sm" onClick={onEndTurn}>턴 종료</Button>
         </div>
       }
     >
-      <div className="flex h-full min-h-0 gap-2 py-1">
-        <aside className="flex w-36 shrink-0 flex-col gap-1 overflow-y-auto rounded-md border border-[#43606a] bg-[#17343e] p-1.5">
-          <p className="text-[10px] font-bold text-[#8fa6a8]">내 도시 ({cities.length})</p>
-          {cities.length === 0 && (
-            <p className="text-[9px] text-[#5f7a80]">선택한 육지에 첫 거점을 건설하세요.</p>
-          )}
+      <div className="battle-layout flex h-full min-h-0 gap-1.5 py-1">
+        <aside className="battle-hero-rail flex w-12 shrink-0 flex-col items-center gap-1 rounded-md p-1">
+          <span className="text-[8px] font-bold text-[#d9bd74]">영웅</span>
+          {world.enlistedHeroIds.map((heroId) => {
+            const hero = findHeroDefinition(heroId);
+            return <div key={heroId} className="battle-hero-rail__portrait" title={hero?.name}>{hero?.name.slice(0, 1) ?? "?"}</div>;
+          })}
+          <span className="mt-auto text-[8px] text-[#8fa6a8]">{summonedCount}/{world.enlistedHeroIds.length}</span>
+        </aside>
+
+        <section className="battle-map min-w-0 flex-1 overflow-hidden rounded-md">
+          <GameWorldMap
+            seed={world.generation.seed}
+            mapTierId={world.generation.mapTier}
+            mapTypeId={world.generation.mapType}
+            turn={world.turn}
+            onHexSelected={handleHexSelected}
+          />
+        </section>
+
+        <aside className="battle-objectives flex w-24 shrink-0 flex-col gap-1 rounded-md p-1.5">
+          <p className="text-[9px] font-bold text-[#f3dfaa]">전투 목표</p>
+          <p className="text-[8px] text-[#b7c7c0]">적 성을 점령하세요</p>
+          <div className="battle-objectives__status">적 세력 {rivalFactions.length} · 격파 {defeatedRivalCount}</div>
+          <div className="mt-auto flex flex-col gap-1">
           {cities.map((city) => {
             const stationed = city.heroId ? findHeroDefinition(city.heroId) : null;
             return (
@@ -179,24 +169,10 @@ export function MapPlayScreen({
               </div>
             );
           })}
-        </aside>
-
-        <section className="min-w-0 flex-1 overflow-hidden rounded-md border border-[#43606a] bg-[#10272e]">
-          <GameWorldMap
-            seed={world.generation.seed}
-            mapTierId={world.generation.mapTier}
-            mapTypeId={world.generation.mapType}
-            turn={world.turn}
-            onHexSelected={handleHexSelected}
-          />
-        </section>
-
-        <aside className="flex w-36 shrink-0 flex-col gap-1 overflow-y-auto rounded-md border border-[#43606a] bg-[#17343e] p-1.5">
-          <p className="text-[10px] font-bold text-[#8fa6a8]">적 세력 ({rivalFactions.length})</p>
           {rivalFactions.map((faction) => {
             const eliminated = isFactionEliminated(faction);
             return (
-              <div key={faction.id} className="rounded p-1 text-[9px]" style={{ border: "1px solid #274049" }}>
+              <div key={faction.id} className="rounded p-1 text-[8px]" style={{ border: "1px solid #274049" }}>
                 <p className="font-bold text-[#f3dfaa]">{faction.name}</p>
                 {eliminated ? (
                   <p className="text-[#8fa6a8]">
@@ -225,6 +201,7 @@ export function MapPlayScreen({
               </div>
             );
           })}
+          </div>
         </aside>
       </div>
     </ScreenShell>
