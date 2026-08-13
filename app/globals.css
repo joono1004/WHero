@@ -34,8 +34,13 @@ canvas { display:block; width:100%; height:calc(100vh - 148px); min-height:620px
 .game-map-loading span { color:#9eb2b1; font-size:10px; }
 .battle-header { min-height:31px; padding:3px 4px; border-bottom:1px solid rgba(217,182,93,.32); }
 .battle-header__objective { color:#b7c7c0; font-size:9px; white-space:nowrap; }
-.battle-layout { min-height:0; }
-.battle-map { border:1px solid rgba(217,182,93,.55); background:#172c31; box-shadow:inset 0 0 0 1px rgba(255,234,175,.08); }
+.battle-fullscreen { position:relative; width:100%; height:100%; overflow:hidden; background:#172c31; }
+.battle-fullscreen > .game-map-viewport { position:absolute; inset:0; z-index:0; border-radius:0; }
+.battle-overlay { position:absolute; z-index:10; }
+.battle-overlay--top { top:7px; left:8px; right:8px; }
+.battle-overlay--left { top:48px; bottom:48px; left:8px; }
+.battle-overlay--right { top:48px; right:8px; bottom:48px; }
+.battle-overlay--bottom { right:8px; bottom:7px; left:8px; }
 .battle-hero-rail,.battle-objectives { border:1px solid rgba(129,100,56,.72); background:linear-gradient(180deg,rgba(53,32,14,.88),rgba(29,17,8,.88)); box-shadow:inset 0 1px rgba(255,229,158,.08); }
 .battle-hero-rail__portrait { display:grid; width:27px; height:31px; place-items:center; border:1px solid #bb9550; border-radius:3px; background:linear-gradient(145deg,#233f4a,#10232b); color:#f3dfaa; font-size:12px; font-weight:900; box-shadow:0 1px 3px rgba(0,0,0,.5); }
 .battle-objectives__status { margin-top:2px; padding-top:3px; border-top:1px solid rgba(217,182,93,.24); color:#d9bd74; font-size:8px; }
