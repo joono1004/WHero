@@ -35,7 +35,7 @@ export async function ensureGuestSession(): Promise<void> {
 // message (still useful in Vercel logs/screenshots for us) for anything
 // unrecognized rather than hiding it.
 const KNOWN_ERROR_PATTERNS: [RegExp, string][] = [
-  [/already been registered|already exists/i, "이미 등록된 이메일입니다."],
+  [/already been registered|already registered|already exists/i, "이미 등록된 이메일입니다. 로그인해 주세요."],
   [/invalid login credentials/i, "이메일 또는 비밀번호가 올바르지 않습니다."],
   [/email rate limit exceeded/i, "이메일 발송 한도를 초과했습니다. 잠시 후 다시 시도해주세요."],
   [/password should be at least/i, "비밀번호가 너무 짧습니다. 6자 이상 입력해주세요."],
