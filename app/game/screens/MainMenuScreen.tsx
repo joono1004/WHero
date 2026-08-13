@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Button } from "../Button.tsx";
 import type { AccountActionResult, AccountStatus } from "../account.ts";
 
 export function MainMenuScreen({ onGoToTitle, onSignIn, onRegister, hasSave: _hasSave, onNewGame: _onNewGame, onContinue: _onContinue }: {
