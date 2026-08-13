@@ -7,12 +7,10 @@ import type { AccountActionResult } from "../account.ts";
 export function LoginScreen({
   onSignIn,
   onRegister,
-  onSettings,
   onGoToTitle,
 }: {
   onSignIn: (email: string, password: string) => Promise<AccountActionResult>;
   onRegister: (email: string, password: string) => Promise<AccountActionResult>;
-  onSettings: () => void;
   onGoToTitle: () => void;
 }) {
   const [mode, setMode] = useState<"sign-in" | "register">("sign-in");
@@ -38,13 +36,6 @@ export function LoginScreen({
   return (
     <div className="login-screen">
       <div className="login-screen__panel">
-        <p className="login-screen__eyebrow">HERO STORY</p>
-        <h2>{isRegistering ? "새 계정 등록" : "계정 로그인"}</h2>
-        <p className="login-screen__guide">
-          {isRegistering
-            ? "새로운 여정을 시작할 계정을 등록하세요."
-            : "계정으로 접속해 지난 여정을 이어가세요."}
-        </p>
         <label>
           <span>ID (이메일)</span>
           <input
@@ -81,8 +72,6 @@ export function LoginScreen({
           {isRegistering ? "로그인으로 돌아가기" : "신규 등록"}
         </button>
         <div className="login-screen__footer">
-          <button type="button" onClick={onSettings}>설정</button>
-          <span />
           <button type="button" onClick={onGoToTitle}>첫 화면</button>
         </div>
       </div>

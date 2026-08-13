@@ -317,10 +317,7 @@ footer small { margin-left:auto; color:#71898b; }
 .main-menu-screen__button:active { transform:translateY(3px) scale(.985); filter:brightness(.86); box-shadow:0 1px 0 #0a1b1d !important; }
 .login-screen { position:relative; height:100%; overflow:hidden; display:flex; align-items:center; justify-content:center; background:url("/art/menu-war-room-v1.png") center / cover no-repeat; }
 .login-screen::before { content:""; position:absolute; inset:0; background:radial-gradient(ellipse at 50% 46%, rgba(242,219,159,.18), rgba(19,12,8,.68) 74%); }
-.login-screen__panel { position:relative; z-index:1; width:268px; padding:18px 22px 14px; border:1px solid rgba(210,163,67,.72); border-radius:7px; background:linear-gradient(145deg, rgba(58,30,14,.94), rgba(24,14,10,.96)); box-shadow:0 10px 28px rgba(0,0,0,.6), inset 0 0 0 1px rgba(255,232,166,.15); color:#f7e1ad; }
-.login-screen__eyebrow { margin:0 0 1px; text-align:center; font-size:9px; letter-spacing:.26em; color:#d9b867; }
-.login-screen h2 { margin:0; text-align:center; font-size:18px; letter-spacing:.08em; text-shadow:0 2px 2px #160b05; }
-.login-screen__guide { margin:6px 0 12px; text-align:center; color:#d8c29a; font-size:10px; }
+.login-screen__panel { position:relative; z-index:1; width:268px; padding:17px 22px 13px; border:1px solid rgba(210,163,67,.72); border-radius:7px; background:linear-gradient(145deg, rgba(58,30,14,.94), rgba(24,14,10,.96)); box-shadow:0 10px 28px rgba(0,0,0,.6), inset 0 0 0 1px rgba(255,232,166,.15); color:#f7e1ad; }
 .login-screen label { display:block; margin:7px 0; }
 .login-screen label span { display:block; margin:0 0 3px 2px; font-size:10px; font-weight:700; color:#e5c986; }
 .login-screen input { box-sizing:border-box; width:100%; height:30px; border:1px solid rgba(194,148,68,.72); border-radius:3px; padding:0 8px; background:rgba(11,24,27,.84); color:#fff0c5; font-size:11px; outline:none; }
@@ -328,7 +325,7 @@ footer small { margin-left:auto; color:#71898b; }
 .login-screen__message { min-height:13px; margin:5px 0 0; text-align:center; color:#f1aaa1; font-size:10px; }
 .login-screen__submit { width:100%; margin-top:9px; border-color:#c99e4d !important; background:linear-gradient(#6f4c21,#3b2513) !important; color:#fff1c2 !important; }
 .login-screen__register { display:block; width:100%; margin:8px 0 0; border:0; background:none; color:#e4c77e; font-size:11px; text-decoration:underline; cursor:pointer; }
-.login-screen__footer { display:flex; align-items:center; justify-content:center; gap:10px; margin-top:13px; padding-top:9px; border-top:1px solid rgba(223,186,103,.25); }
+.login-screen__footer { display:flex; align-items:center; justify-content:center; margin-top:13px; padding-top:9px; border-top:1px solid rgba(223,186,103,.25); }
 .login-screen__footer button { border:0; background:none; color:#bea979; font-size:10px; cursor:pointer; }
 .login-screen__footer span { width:1px; height:10px; background:rgba(223,186,103,.36); }
 .faction-charter-screen {

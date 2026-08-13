@@ -171,7 +171,6 @@ export function GameEntry() {
               }
               return result;
             }}
-            onSettings={() => setScreen({ name: "settings", returnTo: { name: "login" } })}
             onGoToTitle={() => setScreen({ name: "title" })}
           />
         );
