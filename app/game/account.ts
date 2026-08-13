@@ -52,7 +52,9 @@ function translateAuthError(message: string): string {
   for (const [pattern, translated] of KNOWN_ERROR_PATTERNS) {
     if (pattern.test(message)) return translated;
   }
-  return message;
+  // The provider's detail is logged separately; it must not become an
+  // English player-facing message when a new provider error is introduced.
+  return "계정 처리 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.";
 }
 
 export type AccountStatus = { linked: false } | { linked: true; email: string };
