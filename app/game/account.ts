@@ -43,7 +43,9 @@ const KNOWN_ERROR_PATTERNS: [RegExp, string][] = [
   [/email not confirmed/i, "이메일 인증이 필요합니다."],
   [/auth session missing/i, "로그인 세션을 찾을 수 없습니다. 페이지를 새로고침한 뒤 다시 시도해주세요."],
   [/user from sub claim in jwt does not exist/i, "로그인 세션이 만료되었습니다. 페이지를 새로고침한 뒤 다시 시도해주세요."],
-  [/new password should be different/i, "이전과 다른 비밀번호를 입력해주세요."],
+  // During a guest-to-account upgrade Supabase reports this when the email
+  // is already occupied. It is not a password-change flow in this screen.
+  [/new password should be different/i, "이미 등록된 이메일입니다. 로그인해 주세요."],
 ];
 
 function translateAuthError(message: string): string {

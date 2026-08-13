@@ -47,7 +47,7 @@ export function MainMenuScreen({ onGoToTitle, onSignIn, onRegister, hasSave: _ha
   }
 
   function openRegister() {
-    setRegisterEmail(email);
+    setRegisterEmail("");
     setRegisterPassword("");
     setRegisterMessage(null);
     setRegisterOpen(true);
