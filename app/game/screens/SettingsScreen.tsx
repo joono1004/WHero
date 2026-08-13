@@ -366,7 +366,7 @@ export function SettingsScreen({
     <ScreenShell header={<h2 className="text-lg font-bold text-[#f3dfaa]">설정</h2>}>
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 pb-3">
         <div className="grid grid-cols-2 gap-4">
-          <section className="rounded-md border border-[#43606a] bg-[#17343e] p-3">
+          <section className="hidden rounded-md border border-[#43606a] bg-[#17343e] p-3" aria-hidden="true">
             <h3 className="mb-2 text-sm font-bold text-[#f3dfaa]">계정</h3>
             {linked ? (
               <div className="flex items-center justify-between">

@@ -30,6 +30,7 @@ import { FactionNameScreen } from "./screens/FactionNameScreen.tsx";
 import { GameLobbyScreen } from "./screens/GameLobbyScreen.tsx";
 import { HeroSelectScreen } from "./screens/HeroSelectScreen.tsx";
 import { MainMenuScreen } from "./screens/MainMenuScreen.tsx";
+import { LoginScreen } from "./screens/LoginScreen.tsx";
 import { MapPlayScreen } from "./screens/MapPlayScreen.tsx";
 import { BattleBriefingScreen } from "./screens/BattleBriefingScreen.tsx";
 import { SettingsScreen } from "./screens/SettingsScreen.tsx";
@@ -41,6 +42,7 @@ import { TitleScreen } from "./screens/TitleScreen.tsx";
 // return to on 뒤로가기, instead of always landing back on the main menu.
 type Screen =
   | { name: "title" }
+  | { name: "login" }
   | { name: "menu" }
   | { name: "settings"; returnTo: Screen }
   | { name: "faction-name" }
@@ -146,7 +148,33 @@ export function GameEntry() {
   function renderScreen() {
     switch (screen.name) {
       case "title":
-        return <TitleScreen onStart={() => setScreen({ name: "menu" })} />;
+        return <TitleScreen onStart={() => setScreen({ name: "login" })} />;
+
+      case "login":
+        return (
+          <LoginScreen
+            onSignIn={async (email, password) => {
+              const result = await signInWithEmail(email, password);
+              if (result.ok) {
+                setAccountStatus(await getAccountStatus());
+                enableAutoBackup();
+                setScreen({ name: "menu" });
+              }
+              return result;
+            }}
+            onRegister={async (email, password) => {
+              const result = await linkAccountWithEmail(email, password);
+              if (result.ok) {
+                setAccountStatus(await getAccountStatus());
+                enableAutoBackup();
+                setScreen({ name: "menu" });
+              }
+              return result;
+            }}
+            onSettings={() => setScreen({ name: "settings", returnTo: { name: "login" } })}
+            onGoToTitle={() => setScreen({ name: "title" })}
+          />
+        );
 
       case "menu": {
         const [existingSlot] = storage ? listSaveSlots(storage) : [];
