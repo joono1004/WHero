@@ -232,16 +232,12 @@ export function GameLobbyScreen({
   };
 
   const selectCountry = (countryId: number) => {
-    if (countryId === 1 && conqueredCountries.has(1)) {
-      setOpenedCountryId(1);
-      setShowWorldMap(false);
-      return;
-    }
-    const candidateIndex = countryId === 2 ? 0 : countryId === 3 ? 1 : 0;
-    const candidate = save.nextMapCandidates[candidateIndex];
-    const leadHero = entries[0];
-    if (!candidate || !leadHero) return;
-    onEnterCandidate(candidateIndex, [leadHero.state.heroId], countryId);
+    // A world-map flag represents a country, not a battle target. Always
+    // open that country's map first; only a castle's battle button is
+    // allowed to continue into the briefing screen.
+    setTutorialIslandSelected(false);
+    setOpenedCountryId(countryId);
+    setShowWorldMap(false);
   };
 
   const playerFaction = save.factions[PLAYER_FACTION_ID];
@@ -251,6 +247,11 @@ export function GameLobbyScreen({
   const reopenedTutorialCountry = openedCountryId === 1
     ? clearedWorlds.find((record) => record.worldIndex === 1) ?? null
     : null;
+  const openedCountryCandidate = openedCountryId === null
+    ? null
+    : openedCountryId === 1
+      ? reopenedTutorialCountry ?? save.nextMapCandidates[0]
+      : save.nextMapCandidates[openedCountryId === 3 ? 1 : 0] ?? save.nextMapCandidates[0];
 
   // Keep the newly-offered world candidates in view by default rather than
   // requiring a scroll every visit - they always sit at the right end of
@@ -547,7 +548,7 @@ export function GameLobbyScreen({
                   onMoveCountryFlag={(id, x, y) => setWorldCountryAnchors((flags) => flags.map((flag) => (flag.id === id ? { ...flag, x, y } : flag)))}
                   onMoveDeveloperFlag={(id, x, y) => setDeveloperFlags((flags) => flags.map((flag) => (flag.id === id ? { ...flag, x, y } : flag)))}
                 />
-              ) : (clearedWorlds.length === 0 && save.nextMapCandidates.length === 1) || reopenedTutorialCountry ? (
+              ) : ((clearedWorlds.length === 0 && save.nextMapCandidates.length === 1) || openedCountryCandidate) ? (
                 showWorldMap ? (
                   <TutorialWorldMap
                     developerMode={developerMode}
@@ -560,15 +561,16 @@ export function GameLobbyScreen({
                   />
                 ) : (
                   <TutorialIslandCandidate
-                    candidate={reopenedTutorialCountry ?? save.nextMapCandidates[0]}
+                    candidate={openedCountryCandidate ?? save.nextMapCandidates[0]}
                     isSelected={tutorialIslandSelected}
                     onSelect={() => setTutorialIslandSelected((selected) => !selected)}
                     availableHeroCount={entries.length}
-                    isConquered={conqueredCountries.has(1)}
+                    isConquered={conqueredCountries.has(openedCountryId ?? 1)}
                     onBattle={() => {
                       const leadHero = entries[0];
                       if (!leadHero) return;
-                      onEnterCandidate(0, [leadHero.state.heroId], 1);
+                      const candidateIndex = openedCountryId === 3 ? 1 : 0;
+                      onEnterCandidate(candidateIndex, [leadHero.state.heroId], openedCountryId ?? 1);
                     }}
                     onOpenWorldMap={() => {
                       setOpenedCountryId(null);
