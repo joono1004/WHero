@@ -78,6 +78,25 @@ export async function linkAccountWithEmail(email: string, password: string): Pro
   return { ok: true };
 }
 
+// Registration is intentionally different from linking a guest account.
+// `updateUser` changes the email/password of whichever anonymous session is
+// currently open, which made an existing email and a reused password look
+// like contradictory registration results. The main-menu registration flow
+// must always create a separate email/password account instead.
+export async function registerAccountWithEmail(email: string, password: string): Promise<AccountActionResult> {
+  if (!supabase) return { ok: false, error: "클라우드 백업을 사용할 수 없습니다." };
+  const { data, error } = await supabase.auth.signUp({ email, password });
+  if (error) return { ok: false, error: translateAuthError(error.message) };
+
+  // With email confirmation enabled, Supabase deliberately avoids exposing
+  // whether an address exists through an error. An empty identities list is
+  // its documented signal for that case, so keep the game message clear.
+  if (data.user && data.user.identities?.length === 0) {
+    return { ok: false, error: "이미 등록된 이메일입니다. 로그인해 주세요." };
+  }
+  return { ok: true };
+}
+
 // Signs into an existing linked account on this device (e.g. after
 // reinstalling, or on a second device) - replaces the local guest session.
 export async function signInWithEmail(email: string, password: string): Promise<AccountActionResult> {

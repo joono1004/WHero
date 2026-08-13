@@ -11,6 +11,7 @@ import {
   getAccountStatus,
   linkAccountWithEmail,
   listCloudBackups,
+  registerAccountWithEmail,
   restoreCloudBackup,
   signInWithEmail,
   signOutAccount,
@@ -180,7 +181,7 @@ export function GameEntry() {
               return result;
             }}
             onRegister={async (email, password) => {
-              const result = await linkAccountWithEmail(email, password);
+              const result = await registerAccountWithEmail(email, password);
               if (result.ok) {
                 setAccountStatus(await getAccountStatus());
                 enableAutoBackup();
