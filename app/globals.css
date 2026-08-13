@@ -384,7 +384,7 @@ footer small { margin-left:auto; color:#71898b; }
 .faction-charter-screen__welcome p { margin:0; max-height:62px; overflow:hidden; }
 .faction-charter-screen__heading {
   position:absolute;
-  top:148px;
+  top:124px;
   width:500px;
   margin:0;
   color:#1f0d05;
@@ -398,9 +398,9 @@ footer small { margin-left:auto; color:#71898b; }
   -webkit-text-stroke:.16px rgba(31,13,5,.78);
   white-space:nowrap;
 }
-.faction-charter-screen__content > .relative { position:absolute !important; top:193px; width:256px !important; }
+.faction-charter-screen__content > .relative { position:absolute !important; top:169px; width:256px !important; }
 .faction-charter-screen__content input { height:40px; box-sizing:border-box; box-shadow:0 5px 16px rgba(47,27,11,.32); }
-.faction-charter-screen__content > p { position:absolute; top:235px; margin:0; }
+.faction-charter-screen__content > p { position:absolute; top:211px; margin:0; }
 .faction-charter-screen__actions {
   position:absolute;
   z-index:2;
