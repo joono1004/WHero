@@ -315,17 +315,17 @@ footer small { margin-left:auto; color:#71898b; }
 .main-menu-screen__button + .main-menu-screen__button { margin-top:-25px; }
 .main-menu-screen__button:hover { transform:scale(1.035); filter:brightness(1.18); }
 .main-menu-screen__button:active { transform:translateY(3px) scale(.985); filter:brightness(.86); box-shadow:0 1px 0 #0a1b1d !important; }
-.main-menu-login { width:282px; padding:11px 13px 9px; border:1px solid rgba(181,137,60,.72); background:linear-gradient(145deg,rgba(62,35,18,.92),rgba(28,16,10,.94)); box-shadow:0 3px 10px rgba(0,0,0,.48),inset 0 0 0 1px rgba(255,225,151,.1); }
-.main-menu-login__row { display:flex; align-items:center; gap:6px; margin-bottom:6px; }
-.main-menu-login__row label { width:20px; font-size:11px; font-weight:800; color:#f0d99e; text-shadow:0 1px 1px #1d0f07; }
-.main-menu-login__row input { flex:1; min-width:0; height:27px; border:1px solid rgba(192,150,77,.74); border-radius:2px; padding:0 7px; background:rgba(10,25,27,.86); color:#fff1c7; font-size:10px; outline:none; }
+.main-menu-login { width:294px; padding:22px 28px 18px; background:url("/art/menu-login-panel-v1.png") center / 100% 100% no-repeat; box-sizing:border-box; }
+.main-menu-login__row { display:flex; align-items:center; gap:6px; margin-bottom:7px; }
+.main-menu-login__row label { width:21px; font-size:11px; font-weight:800; color:#f4dca0; text-shadow:0 1px 1px #1d0f07; }
+.main-menu-login__row input { flex:1; min-width:0; height:29px; border:1px solid rgba(217,174,84,.82); border-radius:2px; padding:0 8px; background:rgba(8,22,24,.93); color:#fff1c7; font-size:10px; outline:none; }
 .main-menu-login__row input:focus { border-color:#f1cf76; box-shadow:0 0 0 1px rgba(241,207,118,.22); }
-.main-menu-login__submit { width:49px; height:27px; border:1px solid #c69a4d; border-radius:2px; background:linear-gradient(#765326,#3c2512); color:#fff0bd; font-size:10px; font-weight:800; cursor:pointer; text-shadow:0 1px 1px #211005; }
+.main-menu-login__submit { width:63px; min-width:63px; height:29px; border:1px solid #d6aa55; border-radius:2px; background:linear-gradient(#85602c,#432813); color:#fff3c5; font-size:11px; font-weight:800; cursor:pointer; text-shadow:0 1px 1px #211005; }
 .main-menu-login__submit:disabled { opacity:.48; cursor:default; }
-.main-menu-login__remember { display:flex; align-items:center; gap:4px; margin:0 0 5px 26px; color:#d8bf86; font-size:9px; }
+.main-menu-login__remember { display:flex; align-items:center; gap:4px; margin:1px 0 6px 27px; color:#dfc98f; font-size:9px; }
 .main-menu-login__remember input { width:11px; height:11px; accent-color:#c99a47; }
 .main-menu-login__message { margin:0 0 4px; text-align:center; color:#f0aca0; font-size:9px; }
-.main-menu-login__register { display:block; width:100%; border:0; background:none; color:#e8c875; font-size:10px; text-decoration:underline; cursor:pointer; }
+.main-menu-login__register { display:block; width:100%; border:0; background:none; color:#ffe08a; font-size:11px; font-weight:800; text-decoration:underline; cursor:pointer; text-shadow:0 1px 2px #190c05; }
 .main-menu-login__register:disabled { opacity:.5; cursor:default; }
 .login-screen { position:relative; height:100%; overflow:hidden; display:flex; align-items:center; justify-content:center; background:url("/art/menu-war-room-v1.png") center / cover no-repeat; }
 .login-screen::before { content:""; position:absolute; inset:0; background:radial-gradient(ellipse at 50% 46%, rgba(242,219,159,.18), rgba(19,12,8,.68) 74%); }
