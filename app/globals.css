@@ -367,7 +367,7 @@ footer small { margin-left:auto; color:#71898b; }
 }
 .faction-charter-screen__welcome {
   position:absolute;
-  top:51px;
+  top:58px;
   width:430px;
   height:62px;
   margin:0;
@@ -384,7 +384,7 @@ footer small { margin-left:auto; color:#71898b; }
 .faction-charter-screen__welcome p { margin:0; max-height:62px; overflow:hidden; }
 .faction-charter-screen__heading {
   position:absolute;
-  top:154px;
+  top:148px;
   width:500px;
   margin:0;
   color:#1f0d05;
@@ -398,14 +398,14 @@ footer small { margin-left:auto; color:#71898b; }
   -webkit-text-stroke:.16px rgba(31,13,5,.78);
   white-space:nowrap;
 }
-.faction-charter-screen__content > .relative { position:absolute !important; top:202px; width:256px !important; }
+.faction-charter-screen__content > .relative { position:absolute !important; top:193px; width:256px !important; }
 .faction-charter-screen__content input { height:40px; box-sizing:border-box; box-shadow:0 5px 16px rgba(47,27,11,.32); }
-.faction-charter-screen__content > p { position:absolute; top:244px; margin:0; }
+.faction-charter-screen__content > p { position:absolute; top:235px; margin:0; }
 .faction-charter-screen__actions {
   position:absolute;
   z-index:2;
   right:0;
-  bottom:22px;
+  bottom:25px;
   left:0;
   height:124px;
   display:flex;
