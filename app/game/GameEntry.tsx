@@ -150,10 +150,15 @@ export function GameEntry() {
 
       case "menu": {
         const [existingSlot] = storage ? listSaveSlots(storage) : [];
+        const continueFromLocalSave = () => {
+          if (!storage || !existingSlot) return false;
+          const result = readSaveGame(storage, existingSlot.slotId);
+          if (!result.ok) return false;
+          setScreen({ name: "main", slotId: existingSlot.slotId, save: result.save });
+          return true;
+        };
         return (
           <MainMenuScreen
-            hasSave={!!existingSlot}
-            onNewGame={() => setScreen({ name: "faction-name" })}
             onContinue={() => {
               if (!storage || !existingSlot) return;
               const result = readSaveGame(storage, existingSlot.slotId);
@@ -170,6 +175,7 @@ export function GameEntry() {
               if (result.ok) {
                 setAccountStatus(await getAccountStatus());
                 enableAutoBackup();
+                if (!continueFromLocalSave()) setScreen({ name: "faction-name" });
               }
               return result;
             }}
@@ -178,6 +184,7 @@ export function GameEntry() {
               if (result.ok) {
                 setAccountStatus(await getAccountStatus());
                 enableAutoBackup();
+                setScreen({ name: "faction-name" });
               }
               return result;
             }}
