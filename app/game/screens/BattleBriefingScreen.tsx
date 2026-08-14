@@ -37,9 +37,6 @@ export function BattleBriefingScreen({ candidate, heroes, initialHeroId, country
   const location = briefingLocation(candidate, countryId);
   const onHexSelected = (_diagnostic: HexDiagnostic) => undefined;
   const loadingMessages = ["영웅들이 전투 지역으로 이동 중입니다.", "병사들이 이동 중입니다.", "진형을 갖춥니다."];
-  const terrainPreview = countryId === 1
-    ? "/art/briefing/terrain-preview-island-mini-v2.png"
-    : "/art/briefing/terrain-preview-island-mini-v2.png";
 
   useEffect(() => {
     if (mapReady) return;
@@ -49,11 +46,10 @@ export function BattleBriefingScreen({ candidate, heroes, initialHeroId, country
 
   return (
     <div className="battle-briefing">
-      <img className="battle-briefing__tent" src="/art/briefing/command-tent-v1.png" alt="" />
+      <img className="battle-briefing__tent" src="/art/briefing/command-tent-terrain-v2.png" alt="" />
       <div className="battle-briefing__map-preload" aria-hidden="true">
         <GameWorldMap seed={candidate.generation.seed} mapTierId={candidate.generation.mapTier} mapTypeId={candidate.generation.mapType} turn={1} onHexSelected={onHexSelected} onReady={() => setMapReady(true)} />
       </div>
-      <div className="battle-briefing__table-map" aria-label={`${typeInfo.label} 작전 지도`}><img src={terrainPreview} alt="" /></div>
       <section className="battle-briefing__panel">
         <header className="battle-briefing__header"><span>전투 브리핑</span><Button size="sm" variant="secondary" onClick={onBack}>돌아가기</Button></header>
         <div className="battle-briefing__mission">
