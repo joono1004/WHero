@@ -280,7 +280,7 @@ export function GameEntry() {
           setScreen({ name: "main", slotId: screen.slotId, save: screen.save });
           return null;
         }
-        return <BattleBriefingScreen candidate={candidate} heroes={screen.save.heroes} initialHeroId={screen.heroId} onBack={() => setScreen({ name: "main", slotId: screen.slotId, save: screen.save })} onStart={(heroId) => {
+        return <BattleBriefingScreen candidate={candidate} heroes={screen.save.heroes} initialHeroId={screen.heroId} countryId={screen.countryId} onBack={() => setScreen({ name: "main", slotId: screen.slotId, save: screen.save })} onStart={(heroId) => {
           const entered = enterMapCandidate(screen.save, screen.candidateIndex, [heroId], new Date().toISOString());
           const updated = {
             ...entered,

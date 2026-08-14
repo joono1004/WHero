@@ -45,19 +45,21 @@ canvas { display:block; width:100%; height:calc(100vh - 148px); min-height:620px
 .battle-hero-rail__portrait { display:grid; width:27px; height:31px; place-items:center; border:1px solid #bb9550; border-radius:3px; background:linear-gradient(145deg,#233f4a,#10232b); color:#f3dfaa; font-size:12px; font-weight:900; box-shadow:0 1px 3px rgba(0,0,0,.5); }
 .battle-objectives__status { margin-top:2px; padding-top:3px; border-top:1px solid rgba(217,182,93,.24); color:#d9bd74; font-size:8px; }
 .battle-action-bar { min-height:35px; padding:3px 5px; border:1px solid rgba(129,100,56,.7); border-radius:4px; background:linear-gradient(180deg,rgba(46,29,13,.93),rgba(25,15,8,.94)); box-shadow:inset 0 1px rgba(255,229,158,.07); }
-.battle-briefing { position:relative; width:100%; height:100%; overflow:hidden; background:#172c31; }
-.battle-briefing__map { position:absolute; inset:0; filter:brightness(.46) saturate(.7) blur(.35px); }
-.battle-briefing__map .game-map-viewport { height:100%; border-radius:0; }
-.battle-briefing__shade { position:absolute; inset:0; background:radial-gradient(ellipse at center,rgba(26,15,5,.08),rgba(12,7,3,.62)); pointer-events:none; }
-.battle-briefing__panel { position:absolute; inset:12px 44px; display:flex; flex-direction:column; border:1px solid #b88d47; border-radius:7px; background:linear-gradient(135deg,rgba(57,34,14,.96),rgba(28,16,7,.97)); box-shadow:0 10px 34px rgba(0,0,0,.66),inset 0 0 0 1px rgba(255,230,163,.12); color:#f3dfaa; }
-.battle-briefing__header { display:flex; align-items:center; justify-content:space-between; min-height:37px; padding:5px 9px; border-bottom:1px solid rgba(224,183,99,.35); font-size:13px; font-weight:900; }
-.battle-briefing__body { flex:1; min-height:0; padding:8px 10px; overflow:auto; }
-.battle-briefing__mission { padding:5px 7px; border:1px solid rgba(211,168,85,.42); border-radius:4px; background:rgba(255,229,161,.08); }
-.battle-briefing__mission strong { font-size:12px; }.battle-briefing__mission span { margin-left:7px; color:#d9bd74; font-size:9px; }.battle-briefing__mission p { margin-top:3px; color:#f0dda8; font-size:9px; }
-.battle-briefing__grid { display:grid; grid-template-columns:1.15fr .85fr; gap:10px; margin-top:8px; }.battle-briefing__grid h2 { margin-bottom:4px; color:#e7c77c; font-size:10px; font-weight:900; }
+.battle-briefing { position:relative; width:100%; height:100%; overflow:hidden; background:#a66d2c; color:#35200f; }
+.battle-briefing__tent { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:center; }
+.battle-briefing__table-map { position:absolute; z-index:1; left:29.2%; top:42%; width:41.5%; height:30%; overflow:hidden; border-radius:50%; transform:perspective(620px) rotateX(46deg); box-shadow:0 4px 12px rgba(57,28,8,.45),inset 0 0 0 2px rgba(107,65,24,.6); filter:saturate(.9) sepia(.12) brightness(.97); }
+.battle-briefing__table-map .game-map-viewport { height:100%; border-radius:50%; background:transparent; }
+.battle-briefing__table-map canvas { border-radius:50%; }
+.battle-briefing__panel { position:absolute; z-index:3; inset:10px 18px; display:flex; flex-direction:column; pointer-events:none; color:#fff0c5; text-shadow:0 1px 2px rgba(38,17,5,.85); }
+.battle-briefing__panel button { pointer-events:auto; }
+.battle-briefing__header { display:flex; align-items:center; justify-content:space-between; min-height:28px; padding:0 3px; font-size:13px; font-weight:900; letter-spacing:.09em; }
+.battle-briefing__header button { border-color:#d6a952 !important; background:rgba(65,37,14,.88) !important; color:#fff0bf !important; }
+.battle-briefing__mission { width:270px; margin:1px auto 0; padding:5px 9px; border:1px solid rgba(128,80,29,.65); border-radius:4px; background:rgba(255,230,169,.74); color:#4a2811; text-align:center; text-shadow:0 1px 0 rgba(255,247,214,.8); box-shadow:0 2px 5px rgba(62,31,9,.25); }
+.battle-briefing__mission strong { font-size:12px; font-weight:900; }.battle-briefing__mission strong i { margin:0 4px; color:#9b632b; font-style:normal; }.battle-briefing__mission p { margin:3px 0 0; color:#68401f; font-size:9px; font-weight:800; }
+.battle-briefing__grid { display:grid; grid-template-columns:156px 156px; justify-content:space-between; gap:10px; margin-top:auto; margin-bottom:28px; }.battle-briefing__grid h2 { margin-bottom:4px; color:#fff0bc; font-size:10px; font-weight:900; }
 .battle-briefing__heroes { display:flex; gap:5px; }.battle-briefing__hero { width:52px; padding:2px; border:1px solid rgba(178,132,56,.62); border-radius:4px; background:rgba(13,25,29,.7); color:#e8d5a3; font-size:8px; cursor:pointer; }.battle-briefing__hero--selected { border-color:#f5d36c; box-shadow:0 0 7px rgba(246,203,86,.55); }.battle-briefing__hero img { display:block; width:100%; height:35px; object-fit:cover; border-radius:2px; }.battle-briefing__hero span { display:block; padding-top:2px; font-weight:800; text-align:center; }
 .battle-briefing__hint { margin-top:4px; color:#acb6a1; font-size:8px; }.battle-briefing__enemy,.battle-briefing__events { padding:6px; border:1px solid rgba(178,132,56,.42); border-radius:4px; background:rgba(12,23,28,.58); }.battle-briefing__enemy b { display:block; color:#ecb17f; font-size:9px; }.battle-briefing__enemy span,.battle-briefing__events p { color:#c6d0bf; font-size:8px; }.battle-briefing__events { display:flex; align-items:center; gap:5px; }.battle-briefing__events > span { color:#e5c568; font-size:15px; font-weight:900; }
-.battle-briefing__footer { display:flex; align-items:center; justify-content:space-between; min-height:40px; padding:5px 9px; border-top:1px solid rgba(224,183,99,.35); }.battle-briefing__loading { color:#d9bd74; font-size:9px; }.battle-briefing__ready { color:#bff29a; font-size:9px; font-weight:900; }
+.battle-briefing__footer { display:flex; align-items:center; justify-content:space-between; min-height:27px; padding:0 3px; }.battle-briefing__footer button { border-color:#e3ba5e !important; background:linear-gradient(#a97732,#583713) !important; color:#fff4cb !important; }.battle-briefing__loading { color:#ffe2a0; font-size:9px; }.battle-briefing__ready { color:#e5ffd0; font-size:9px; font-weight:900; }
 .world-loading {
   position:absolute;
   z-index:120;
