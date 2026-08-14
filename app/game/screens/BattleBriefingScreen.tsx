@@ -31,6 +31,7 @@ export function BattleBriefingScreen({ candidate, heroes, initialHeroId, country
   const [selectedHeroId, setSelectedHeroId] = useState(initialHeroId);
   const [mapReady, setMapReady] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
+  const [shouldPreloadMap, setShouldPreloadMap] = useState(false);
   const entries = buildHeroListEntries(heroes);
   const typeInfo = MAP_TYPE_INFO[candidate.generation.mapType];
   const tierInfo = MAP_TIER_INFO[candidate.generation.mapTier];
@@ -44,11 +45,21 @@ export function BattleBriefingScreen({ candidate, heroes, initialHeroId, country
     return () => window.clearInterval(timer);
   }, [mapReady, loadingMessages.length]);
 
+  useEffect(() => {
+    // Let the tent briefing paint first. WorldScene creation is deliberately
+    // deferred because its terrain work is heavy enough to otherwise block
+    // the browser's first visible frame.
+    const frame = window.requestAnimationFrame(() => {
+      window.setTimeout(() => setShouldPreloadMap(true), 80);
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
+
   return (
     <div className="battle-briefing">
       <img className="battle-briefing__tent" src="/art/briefing/command-tent-terrain-v2.png" alt="" />
       <div className="battle-briefing__map-preload" aria-hidden="true">
-        <GameWorldMap seed={candidate.generation.seed} mapTierId={candidate.generation.mapTier} mapTypeId={candidate.generation.mapType} turn={1} onHexSelected={onHexSelected} onReady={() => setMapReady(true)} />
+        {shouldPreloadMap ? <GameWorldMap seed={candidate.generation.seed} mapTierId={candidate.generation.mapTier} mapTypeId={candidate.generation.mapType} turn={1} onHexSelected={onHexSelected} onReady={() => setMapReady(true)} /> : null}
       </div>
       <section className="battle-briefing__panel">
         <header className="battle-briefing__header"><span>전투 브리핑</span><Button size="sm" variant="secondary" onClick={onBack}>돌아가기</Button></header>
