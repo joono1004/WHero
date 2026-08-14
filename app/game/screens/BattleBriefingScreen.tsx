@@ -57,7 +57,7 @@ export function BattleBriefingScreen({ candidate, heroes, initialHeroId, country
 
   return (
     <div className="battle-briefing">
-      <img className="battle-briefing__tent" src="/art/briefing/command-tent-terrain-v2.png" alt="" />
+      <img className="battle-briefing__tent" src="/art/briefing/command-tent-terrain-mini-v3.png" alt="" />
       <div className="battle-briefing__map-preload" aria-hidden="true">
         {shouldPreloadMap ? <GameWorldMap seed={candidate.generation.seed} mapTierId={candidate.generation.mapTier} mapTypeId={candidate.generation.mapType} turn={1} onHexSelected={onHexSelected} onReady={() => setMapReady(true)} /> : null}
       </div>
