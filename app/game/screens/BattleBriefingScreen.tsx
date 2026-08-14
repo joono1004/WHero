@@ -38,8 +38,8 @@ export function BattleBriefingScreen({ candidate, heroes, initialHeroId, country
   const onHexSelected = (_diagnostic: HexDiagnostic) => undefined;
   const loadingMessages = ["영웅들이 전투 지역으로 이동 중입니다.", "병사들이 이동 중입니다.", "진형을 갖춥니다."];
   const terrainPreview = countryId === 1
-    ? "/art/briefing/terrain-preview-island-mini-v1.png"
-    : "/art/briefing/terrain-preview-island-mini-v1.png";
+    ? "/art/briefing/terrain-preview-island-mini-v2.png"
+    : "/art/briefing/terrain-preview-island-mini-v2.png";
 
   useEffect(() => {
     if (mapReady) return;
