@@ -21,6 +21,7 @@ const SORT_ICON: Record<SortMode, string> = { grade: "✦", archetype: "♜", le
 const EQUIPMENT_SLOTS = [
   { key: "weapon", label: "무기", icon: "/art/ui/equipment-weapon-slot-v1.svg" },
   { key: "armor", label: "방어구", icon: "/art/ui/equipment-armor-slot-v1.svg" },
+  { key: "mount", label: "탈것", icon: "/art/ui/equipment-mount-slot-v1.svg" },
   { key: "other", label: "기타", icon: "/art/ui/equipment-other-slot-v1.svg" },
 ] as const;
 const BAG_GRID_COLUMNS = 4;
