@@ -17,6 +17,7 @@ const SORT_COMPARATORS: Record<SortMode, (a: HeroListEntry, b: HeroListEntry) =>
   level: compareByLevel,
 };
 const SORT_LABEL: Record<SortMode, string> = { grade: "등급순", archetype: "유형순", level: "레벨순" };
+const SORT_ICON: Record<SortMode, string> = { grade: "✦", archetype: "♜", level: "Lv" };
 const MAX_TREASURE_SLOTS = 4;
 const BAG_GRID_COLUMNS = 4;
 const BAG_EMPTY_PREVIEW_ROWS = 4;
@@ -43,7 +44,7 @@ export function HeroRosterScreen({
   return (
     <section className="hero-ledger" aria-label="영웅 기록첩">
       <header className="hero-ledger__header">
-        <button className="hero-ledger__back" onClick={onBack} aria-label="로비로 돌아가기">‹</button>
+        <button className="hero-ledger__back" onClick={onBack} aria-label="로비로 돌아가기" title="뒤로가기">←</button>
         <div><p className="hero-ledger__eyebrow">영웅 기록첩</p><h2>영웅</h2></div>
       </header>
 
@@ -51,7 +52,9 @@ export function HeroRosterScreen({
         <aside className="hero-ledger__roster" aria-label="보유 영웅 목록">
           <div className="hero-ledger__sorts">
             {(Object.keys(SORT_LABEL) as SortMode[]).map((mode) => (
-              <button key={mode} onClick={() => setSortMode(mode)} className={sortMode === mode ? "is-active" : ""}>{SORT_LABEL[mode]}</button>
+              <button key={mode} onClick={() => setSortMode(mode)} className={sortMode === mode ? "is-active" : ""} aria-label={SORT_LABEL[mode]} title={SORT_LABEL[mode]}>
+                <span className={`hero-ledger__sort-icon hero-ledger__sort-icon--${mode}`}>{SORT_ICON[mode]}</span>
+              </button>
             ))}
           </div>
           <div className="hero-ledger__cards">
