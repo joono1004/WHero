@@ -186,6 +186,19 @@ canvas { display:block; width:100%; height:calc(100vh - 148px); min-height:620px
 .hero-dossier__rank{width:30px;height:30px;border:0;border-radius:0;background:transparent}
 .hero-dossier__rank img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 1px 1px rgba(38,17,5,.55))}
 @media(max-width:700px){.hero-ledger__body{grid-template-columns:158px minmax(245px,1fr) 100px 160px;gap:4px}.hero-ledger__card-portrait{width:45px;flex-basis:45px;height:44px}.hero-ledger__cards{grid-auto-rows:52px}.hero-ledger__treasure-slot small{font-size:6px}}
+.hero-ledger__body{grid-template-columns:178px minmax(300px,1fr) 88px 212px}
+.hero-ledger__treasures>p{margin-bottom:4px;font-size:8px}
+.hero-ledger__treasures>div{display:flex;flex:1;flex-direction:column;gap:5px}
+.hero-ledger__treasure-slot{width:100%;aspect-ratio:1;flex:0 0 auto}
+.hero-ledger__bag-grid{grid-template-columns:repeat(4,1fr)}
+.hero-dossier__identity{flex:0 0 158px;min-height:158px}
+.hero-dossier__name-row{padding-bottom:1px}.hero-dossier__name-row h3{margin:0}
+.hero-dossier__class{margin:1px 0}
+.hero-dossier__stats dl{margin:0;gap:1px}
+.hero-dossier__stats dl .hero-dossier__stat{padding:0}
+.hero-dossier__details{margin-top:2px}
+.hero-dossier__traits{margin-top:2px;padding-top:3px}
+@media(max-width:700px){.hero-ledger__body{grid-template-columns:158px minmax(245px,1fr) 75px 185px}.hero-dossier__identity{flex-basis:154px;min-height:154px}}
 .hero-detail-heading { display:flex; gap:11px; align-items:center; }
 .hero-detail-heading img { width:74px; height:74px; object-fit:cover; object-position:center 24%; border:1px solid rgba(239,216,154,.48); border-radius:6px; background:#1b292b; }
 .hero-detail-heading span { display:grid; gap:2px; }

@@ -35,7 +35,7 @@ export function HeroInfoPanel({ hero }: { hero: HeroDefinition; selected?: boole
         </div>
         <div className="hero-dossier__stats">
           <div className="hero-dossier__name-row">
-            <div><p className="hero-dossier__label">선택 영웅</p><h3>{hero.name}</h3></div>
+            <div><h3>{hero.name}</h3></div>
             <span className="hero-dossier__rank" title={`종합 ${grade}등급`}>
               <img src={GRADE_BADGE[grade]} alt={`${grade}등급`} />
             </span>
