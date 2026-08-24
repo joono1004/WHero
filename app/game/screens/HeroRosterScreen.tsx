@@ -9,15 +9,17 @@ import { HeroInfoPanel } from "../HeroInfoPanel.tsx";
 import { ARCHETYPE_LABEL, UNIT_TYPE_LABEL } from "../heroLabels.ts";
 import { HERO_PORTRAIT } from "../heroPortraits.ts";
 
-type SortMode = "grade" | "archetype" | "level";
+type SortMode = "grade" | "name" | "level" | "archetype";
 
 const SORT_COMPARATORS: Record<SortMode, (a: HeroListEntry, b: HeroListEntry) => number> = {
   grade: compareByGrade,
+  name: (a, b) => a.definition.name.localeCompare(b.definition.name, "ko"),
   archetype: compareByArchetype,
   level: compareByLevel,
 };
-const SORT_LABEL: Record<SortMode, string> = { grade: "등급순", archetype: "유형순", level: "레벨순" };
-const SORT_LABEL_SHORT: Record<SortMode, string> = { grade: "등급", archetype: "병과", level: "레벨" };
+const SORT_ORDER: SortMode[] = ["grade", "name", "level", "archetype"];
+const SORT_LABEL: Record<SortMode, string> = { grade: "등급순", name: "이름순", level: "레벨순", archetype: "병과순" };
+const SORT_LABEL_SHORT: Record<SortMode, string> = { grade: "등급", name: "이름", level: "레벨", archetype: "병과" };
 const HERO_LOBBY_FACE: Partial<Record<string, string>> = {
   "zhang-bao": "/art/heroes/zhang-bao-lobby-face-v1.png",
   "wei-yan": "/art/heroes/wei-yan-lobby-face-v1.png",
@@ -61,7 +63,7 @@ export function HeroRosterScreen({
       <div className="hero-ledger__body">
         <aside className="hero-ledger__roster" aria-label="보유 영웅 목록">
           <div className="hero-ledger__sorts">
-            {(Object.keys(SORT_LABEL) as SortMode[]).map((mode) => (
+            {SORT_ORDER.map((mode) => (
               <button key={mode} onClick={() => setSortMode(mode)} className={sortMode === mode ? "is-active" : ""} aria-label={SORT_LABEL[mode]} title={SORT_LABEL[mode]}>
                 <span className="hero-ledger__sort-label">{SORT_LABEL_SHORT[mode]}</span>
               </button>
@@ -82,8 +84,8 @@ export function HeroRosterScreen({
                   </span>
                   <span className="hero-ledger__card-copy">
                     <span className="hero-ledger__card-title"><b>{definition.name}</b><small>Lv.{state.level}</small><em style={{ color: GRADE_COLOR[grade] }}>{grade}</em></span>
-                    <span className="hero-ledger__card-type">{UNIT_TYPE_LABEL[definition.unitType]} · {ARCHETYPE_LABEL[archetype]}{governorLabel ? ` · ${governorLabel}` : ""}</span>
-                    <span className="hero-ledger__card-attributes">통 {definition.attributes.leadership} · 무 {definition.attributes.force} · 지 {definition.attributes.intelligence} · 체 {definition.attributes.vitality} · 매 {definition.attributes.charisma}</span>
+                    <span className="hero-ledger__card-type">{UNIT_TYPE_LABEL[definition.unitType]} · {ARCHETYPE_LABEL[archetype]}</span>
+                    <span className={`hero-ledger__card-governor${governorLabel ? " is-governor" : ""}`}>{governorLabel ?? "일반"}</span>
                   </span>
                   <button type="button" aria-label={`${definition.name} 출전 우선 표시`} className={`hero-ledger__deploy${state.deploymentPriority ? " is-active" : ""}`} onClick={(event) => { event.stopPropagation(); onToggleDeploymentPriority(state.heroId); }}>★</button>
                 </div>

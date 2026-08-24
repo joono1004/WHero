@@ -204,7 +204,7 @@ canvas { display:block; width:100%; height:calc(100vh - 148px); min-height:620px
 .hero-ledger__treasures>div{justify-content:space-between;gap:0}
 .hero-ledger__treasure-slot{width:100%;flex:0 0 auto}
 @media(max-width:700px){.hero-ledger__body{grid-template-columns:158px minmax(245px,1fr) 64px 196px}.hero-ledger__treasures{padding:4px}.hero-ledger__treasure-slot small{font-size:5px}}
-.hero-ledger__sorts button{font-size:9px}.hero-ledger__sort-label{color:#d0ad6b;font-weight:800;letter-spacing:.03em}.hero-ledger__sorts button.is-active .hero-ledger__sort-label{color:#ffe08c;text-shadow:0 0 5px rgba(255,210,97,.75)}
+.hero-ledger__sorts{grid-template-columns:repeat(4,1fr)}.hero-ledger__sorts button{font-size:9px}.hero-ledger__sort-label{color:#d0ad6b;font-weight:800;letter-spacing:.03em}.hero-ledger__sorts button.is-active .hero-ledger__sort-label{color:#ffe08c;text-shadow:0 0 5px rgba(255,210,97,.75)}
 .hero-ledger__cards{grid-auto-rows:68px;gap:5px}
 .hero-ledger__card{gap:6px;padding:4px;padding-right:15px}
 .hero-ledger__card-portrait{width:57px;flex-basis:57px;height:58px}
@@ -214,10 +214,10 @@ canvas { display:block; width:100%; height:calc(100vh - 148px); min-height:620px
 .hero-ledger__card-title b{overflow:hidden;text-overflow:ellipsis;color:#f0d9a2;font-size:12px;font-weight:900}
 .hero-ledger__card-title small{color:#c6a774;font-size:8px;font-weight:700}
 .hero-ledger__card-title em{font-size:10px;font-style:normal;font-weight:900}
-.hero-ledger__card-type,.hero-ledger__card-attributes{overflow:hidden;color:#b99762;text-overflow:ellipsis;white-space:nowrap;font-size:8px;line-height:1.25}
-.hero-ledger__card-attributes{color:#d9bd82;font-size:7.5px;letter-spacing:-.02em}
+.hero-ledger__card-type,.hero-ledger__card-governor{overflow:hidden;color:#b99762;text-overflow:ellipsis;white-space:nowrap;font-size:8px;line-height:1.25}
+.hero-ledger__card-governor{color:#9f8358}.hero-ledger__card-governor.is-governor{color:#e4c173;font-weight:800}
 .hero-ledger__deploy{right:3px;bottom:3px}
-@media(max-width:700px){.hero-ledger__cards{grid-auto-rows:66px}.hero-ledger__card-portrait{width:53px;flex-basis:53px;height:56px}.hero-ledger__card-title b{font-size:11px}.hero-ledger__card-type{font-size:7.5px}.hero-ledger__card-attributes{font-size:7px}}
+@media(max-width:700px){.hero-ledger__cards{grid-auto-rows:66px}.hero-ledger__card-portrait{width:53px;flex-basis:53px;height:56px}.hero-ledger__card-title b{font-size:11px}.hero-ledger__card-type,.hero-ledger__card-governor{font-size:7.5px}}
 .hero-detail-heading { display:flex; gap:11px; align-items:center; }
 .hero-detail-heading img { width:74px; height:74px; object-fit:cover; object-position:center 24%; border:1px solid rgba(239,216,154,.48); border-radius:6px; background:#1b292b; }
 .hero-detail-heading span { display:grid; gap:2px; }

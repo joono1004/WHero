@@ -296,7 +296,7 @@ export function GameLobbyScreen({
     const worldId = governedWorldId(hero);
     if (!worldId) return null;
     const region = save.clearedWorlds[worldId];
-    return region ? `${worldLabel(region)} 영주` : "영주";
+    return region ? `영주 · ${worldLabel(region)}` : "영주";
   };
 
   if (enlistingCandidateIndex !== null) {
