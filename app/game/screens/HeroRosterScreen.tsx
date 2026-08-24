@@ -6,7 +6,7 @@ import type { HeroListEntry } from "../../../lib/game/hero-roster.ts";
 import { compareByArchetype, compareByGrade, compareByLevel } from "../../../lib/game/hero-roster.ts";
 import { GRADE_COLOR } from "../gradeColors.ts";
 import { HeroInfoPanel } from "../HeroInfoPanel.tsx";
-import { ARCHETYPE_LABEL } from "../heroLabels.ts";
+import { ARCHETYPE_LABEL, UNIT_TYPE_LABEL } from "../heroLabels.ts";
 import { HERO_PORTRAIT } from "../heroPortraits.ts";
 
 type SortMode = "grade" | "archetype" | "level";
@@ -17,7 +17,12 @@ const SORT_COMPARATORS: Record<SortMode, (a: HeroListEntry, b: HeroListEntry) =>
   level: compareByLevel,
 };
 const SORT_LABEL: Record<SortMode, string> = { grade: "등급순", archetype: "유형순", level: "레벨순" };
-const SORT_ICON: Record<SortMode, string> = { grade: "✦", archetype: "♜", level: "Lv" };
+const SORT_LABEL_SHORT: Record<SortMode, string> = { grade: "등급", archetype: "병과", level: "레벨" };
+const HERO_LOBBY_FACE: Partial<Record<string, string>> = {
+  "zhang-bao": "/art/heroes/zhang-bao-lobby-face-v1.png",
+  "wei-yan": "/art/heroes/wei-yan-lobby-face-v1.png",
+  "xu-shu": "/art/heroes/xu-shu-lobby-face-v1.png",
+};
 const EQUIPMENT_SLOTS = [
   { key: "weapon", label: "무기", icon: "/art/ui/equipment-weapon-slot-v1.svg" },
   { key: "armor", label: "방어구", icon: "/art/ui/equipment-armor-slot-v1.svg" },
@@ -58,7 +63,7 @@ export function HeroRosterScreen({
           <div className="hero-ledger__sorts">
             {(Object.keys(SORT_LABEL) as SortMode[]).map((mode) => (
               <button key={mode} onClick={() => setSortMode(mode)} className={sortMode === mode ? "is-active" : ""} aria-label={SORT_LABEL[mode]} title={SORT_LABEL[mode]}>
-                <span className={`hero-ledger__sort-icon hero-ledger__sort-icon--${mode}`}>{SORT_ICON[mode]}</span>
+                <span className="hero-ledger__sort-label">{SORT_LABEL_SHORT[mode]}</span>
               </button>
             ))}
           </div>
@@ -67,7 +72,7 @@ export function HeroRosterScreen({
             {sorted.map(({ state, definition }) => {
               const grade = heroOverallGrade(definition.attributes);
               const archetype = heroArchetype(definition.attributes);
-              const portraitUrl = HERO_PORTRAIT[definition.id];
+              const portraitUrl = HERO_LOBBY_FACE[definition.id] ?? HERO_PORTRAIT[definition.id];
               const isSelected = state.heroId === selected?.state.heroId;
               const governorLabel = governorLabelFor(state);
               return (
@@ -76,9 +81,9 @@ export function HeroRosterScreen({
                     {portraitUrl ? <img src={portraitUrl} alt="" /> : <span>?</span>}
                   </span>
                   <span className="hero-ledger__card-copy">
-                    <span className="hero-ledger__card-name">{definition.name}</span>
-                    <span className="hero-ledger__card-meta"><b style={{ color: GRADE_COLOR[grade] }}>{grade}</b> · Lv.{state.level}</span>
-                    <span className="hero-ledger__card-type">{governorLabel ?? ARCHETYPE_LABEL[archetype]}</span>
+                    <span className="hero-ledger__card-title"><b>{definition.name}</b><small>Lv.{state.level}</small><em style={{ color: GRADE_COLOR[grade] }}>{grade}</em></span>
+                    <span className="hero-ledger__card-type">{UNIT_TYPE_LABEL[definition.unitType]} · {ARCHETYPE_LABEL[archetype]}{governorLabel ? ` · ${governorLabel}` : ""}</span>
+                    <span className="hero-ledger__card-attributes">통 {definition.attributes.leadership} · 무 {definition.attributes.force} · 지 {definition.attributes.intelligence} · 체 {definition.attributes.vitality} · 매 {definition.attributes.charisma}</span>
                   </span>
                   <button type="button" aria-label={`${definition.name} 출전 우선 표시`} className={`hero-ledger__deploy${state.deploymentPriority ? " is-active" : ""}`} onClick={(event) => { event.stopPropagation(); onToggleDeploymentPriority(state.heroId); }}>★</button>
                 </div>
