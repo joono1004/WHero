@@ -216,7 +216,7 @@ canvas { display:block; width:100%; height:calc(100vh - 148px); min-height:620px
 .hero-ledger__card-title em{font-size:10.5px;font-style:normal;font-weight:900}
 .hero-ledger__card-type,.hero-ledger__card-governor{overflow:hidden;color:#b99762;text-overflow:ellipsis;white-space:nowrap;font-size:8.5px;line-height:1.22}
 .hero-ledger__card-governor{color:#9f8358}.hero-ledger__card-governor.is-governor{color:#e4c173;font-weight:800}
-.hero-ledger__deploy{right:3px;bottom:3px}
+.hero-ledger__deploy{right:3px;bottom:3px;min-width:30px;height:16px;border:1px solid #705022;border-radius:3px;background:linear-gradient(#543419,#261307);color:#b99a62;font-size:7px;font-weight:900;line-height:1;letter-spacing:-.03em;cursor:pointer}.hero-ledger__deploy.is-active{border-color:#d5ad55;background:linear-gradient(#89602a,#3c210d);color:#ffe29a;text-shadow:0 1px #261305}.hero-ledger__deploy:disabled{cursor:default;filter:saturate(.65);opacity:.78}
 @media(max-width:700px){.hero-ledger__cards{grid-auto-rows:60px}.hero-ledger__card-portrait{width:49px;flex-basis:49px;height:51px}.hero-ledger__card-title b{font-size:11.5px}.hero-ledger__card-type,.hero-ledger__card-governor{font-size:8px}}
 .hero-detail-heading { display:flex; gap:11px; align-items:center; }
 .hero-detail-heading img { width:74px; height:74px; object-fit:cover; object-position:center 24%; border:1px solid rgba(239,216,154,.48); border-radius:6px; background:#1b292b; }

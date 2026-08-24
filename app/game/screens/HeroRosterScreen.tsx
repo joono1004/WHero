@@ -47,6 +47,7 @@ export function HeroRosterScreen({
   const [sortMode, setSortMode] = useState<SortMode>("grade");
   const [selectedId, setSelectedId] = useState<string | null>(initialHeroId);
   const sorted = [...entries].sort(SORT_COMPARATORS[sortMode]);
+  const deploymentHeroCount = entries.filter((entry) => entry.state.deploymentPriority).length;
   const selectedIndex = sorted.findIndex((entry) => entry.state.heroId === selectedId);
   const selected = selectedIndex >= 0 ? sorted[selectedIndex] : (sorted[0] ?? null);
   const activeIndex = selectedIndex >= 0 ? selectedIndex : 0;
@@ -77,6 +78,7 @@ export function HeroRosterScreen({
               const portraitUrl = HERO_LOBBY_FACE[definition.id] ?? HERO_PORTRAIT[definition.id];
               const isSelected = state.heroId === selected?.state.heroId;
               const governorLabel = governorLabelFor(state);
+              const isRequiredDeploymentHero = state.deploymentPriority && deploymentHeroCount <= 1;
               return (
                 <div key={state.heroId} role="button" tabIndex={0} className={`hero-ledger__card${isSelected ? " is-selected" : ""}`} onClick={() => setSelectedId(state.heroId)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setSelectedId(state.heroId); } }} aria-pressed={isSelected}>
                   <span className="hero-ledger__card-portrait" style={{ borderColor: isSelected ? "#67b8ef" : GRADE_COLOR[grade] }}>
@@ -87,7 +89,14 @@ export function HeroRosterScreen({
                     <span className="hero-ledger__card-type">{UNIT_TYPE_LABEL[definition.unitType]} · {ARCHETYPE_LABEL[archetype]}</span>
                     <span className={`hero-ledger__card-governor${governorLabel ? " is-governor" : ""}`}>{governorLabel ?? "일반"}</span>
                   </span>
-                  <button type="button" aria-label={`${definition.name} 출전 우선 표시`} className={`hero-ledger__deploy${state.deploymentPriority ? " is-active" : ""}`} onClick={(event) => { event.stopPropagation(); onToggleDeploymentPriority(state.heroId); }}>★</button>
+                  <button
+                    type="button"
+                    aria-label={state.deploymentPriority ? `${definition.name} 출전 해제` : `${definition.name} 출전 등록`}
+                    className={`hero-ledger__deploy${state.deploymentPriority ? " is-active" : ""}`}
+                    disabled={isRequiredDeploymentHero}
+                    title={isRequiredDeploymentHero ? "출전 영웅은 최소 1명이 필요합니다" : undefined}
+                    onClick={(event) => { event.stopPropagation(); onToggleDeploymentPriority(state.heroId); }}
+                  >{state.deploymentPriority ? "출전중" : "출전"}</button>
                 </div>
               );
             })}

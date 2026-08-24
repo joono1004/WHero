@@ -334,9 +334,12 @@ export function GameLobbyScreen({
         entries={entries}
         initialHeroId={heroScreenInitialId}
         onBack={() => setHeroScreenOpen(false)}
-        onToggleDeploymentPriority={(heroId) =>
-          updateHero(heroId, (hero) => setDeploymentPriority(hero, !hero.deploymentPriority))
-        }
+        onToggleDeploymentPriority={(heroId) => {
+          const hero = entries.find((entry) => entry.state.heroId === heroId)?.state;
+          const deploymentHeroCount = entries.filter((entry) => entry.state.deploymentPriority).length;
+          if (hero?.deploymentPriority && deploymentHeroCount <= 1) return;
+          updateHero(heroId, (target) => setDeploymentPriority(target, !target.deploymentPriority));
+        }}
         governorLabelFor={governorLabelFor}
       />
     );
