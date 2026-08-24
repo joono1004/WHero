@@ -44,8 +44,8 @@ export function HeroRosterScreen({
   return (
     <section className="hero-ledger" aria-label="영웅 기록첩">
       <header className="hero-ledger__header">
-        <button className="hero-ledger__back" onClick={onBack} aria-label="로비로 돌아가기" title="뒤로가기">←</button>
-        <div><p className="hero-ledger__eyebrow">영웅 기록첩</p><h2>영웅</h2></div>
+        <button className="hero-ledger__back" onClick={onBack} aria-label="로비로 돌아가기" title="뒤로가기" />
+        <div><h2>영웅정보</h2></div>
       </header>
 
       <div className="hero-ledger__body">
