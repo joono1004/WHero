@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { MouseEvent } from "react";
 import type { CoreGrade } from "../../lib/game/grade.ts";
+import { nextGrade, pipsRequiredForNextGrade } from "../../lib/game/grade.ts";
 import { heroArchetype, heroOverallGrade } from "../../lib/game/hero-definition.ts";
 import type { HeroDefinition } from "../../lib/game/hero-definition.ts";
 import { HERO_SKILL_CATALOG, MAX_HERO_SKILLS } from "../../lib/game/hero-skill.ts";
@@ -10,6 +11,15 @@ import { HERO_TRAIT_CATALOG, MAX_HERO_TRAITS } from "../../lib/game/hero-trait.t
 import { GRADE_COLOR } from "./gradeColors.ts";
 import { ARCHETYPE_LABEL, UNIT_TYPE_LABEL } from "./heroLabels.ts";
 import { HERO_PORTRAIT } from "./heroPortraits.ts";
+
+const GRADE_BADGE: Record<CoreGrade, string> = {
+  SS: "/art/heroes/grades-v2/grade-ss.png",
+  S: "/art/heroes/grades-v2/grade-s.png",
+  A: "/art/heroes/grades-v2/grade-a.png",
+  B: "/art/heroes/grades-v2/grade-b.png",
+  C: "/art/heroes/grades-v2/grade-c.png",
+  D: "/art/heroes/grades-v2/grade-d.png",
+};
 
 /** 중앙 양피지의 실제 영웅 데이터 영역. 배경 장식은 CSS, 정보는 HTML로 유지한다. */
 export function HeroInfoPanel({ hero }: { hero: HeroDefinition; selected?: boolean }) {
@@ -26,7 +36,9 @@ export function HeroInfoPanel({ hero }: { hero: HeroDefinition; selected?: boole
         <div className="hero-dossier__stats">
           <div className="hero-dossier__name-row">
             <div><p className="hero-dossier__label">선택 영웅</p><h3>{hero.name}</h3></div>
-            <span className="hero-dossier__rank" style={{ color: GRADE_COLOR[grade], borderColor: GRADE_COLOR[grade] }}>{grade}</span>
+            <span className="hero-dossier__rank" title={`종합 ${grade}등급`}>
+              <img src={GRADE_BADGE[grade]} alt={`${grade}등급`} />
+            </span>
           </div>
           <p className="hero-dossier__class">{UNIT_TYPE_LABEL[hero.unitType]} · {ARCHETYPE_LABEL[archetype]}</p>
           <dl>
@@ -74,5 +86,19 @@ function SkillModal({ hero, onClose }: { hero: HeroDefinition; onClose: (event: 
 }
 
 function GradeStat({ label, grade }: { label: string; grade: CoreGrade }) {
-  return <div><dt>{label}</dt><dd style={{ color: GRADE_COLOR[grade] }}>{grade}</dd></div>;
+  const required = pipsRequiredForNextGrade(grade);
+  const following = nextGrade(grade);
+  return (
+    <div className="hero-dossier__stat">
+      <dt>{label}</dt>
+      <dd>
+        <img src={GRADE_BADGE[grade]} alt={`${grade}등급`} />
+        <span className="hero-dossier__xp" aria-label={required ? `${label} 승급 경험치 0 / ${required}` : `${label} 최고 등급`}>
+          <i style={{ backgroundColor: GRADE_COLOR[grade], width: "0%" }} />
+          <small>{required ? `0 / ${required}` : "최고"}</small>
+        </span>
+        <em>{following ? `→ ${following}` : "MAX"}</em>
+      </dd>
+    </div>
+  );
 }

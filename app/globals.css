@@ -162,6 +162,30 @@ canvas { display:block; width:100%; height:calc(100vh - 148px); min-height:620px
 .hero-ledger__sorts button{display:grid;place-items:center;padding:0}
 .hero-ledger__sort-icon{display:grid;width:14px;height:14px;place-items:center;color:#b99660;font-size:14px;line-height:1;text-shadow:0 1px #110804}.hero-ledger__sort-icon--archetype{font-size:15px}.hero-ledger__sort-icon--level{font-size:9px;font-weight:900;letter-spacing:-.05em}.hero-ledger__sorts button.is-active .hero-ledger__sort-icon{color:#ffe08c;text-shadow:0 0 5px rgba(255,210,97,.75)}
 .hero-ledger__back{width:34px;height:34px;border:0;border-radius:0;background:transparent url('/art/ui-back-button-v2.png') center/contain no-repeat;box-shadow:none}.hero-ledger__back:active{transform:translateY(1px);filter:brightness(1.16)}
+.hero-ledger__body{grid-template-columns:178px minmax(300px,1fr) 116px 184px;gap:7px}
+.hero-ledger__cards{grid-auto-rows:56px;gap:5px}
+.hero-ledger__card{gap:6px;padding:4px}
+.hero-ledger__card-portrait{width:51px;flex-basis:51px;height:48px;border-radius:4px}
+.hero-ledger__card-portrait img{object-position:center 16%}
+.hero-ledger__card-name{font-size:12px}.hero-ledger__card-meta,.hero-ledger__card-type{font-size:8.5px}
+.hero-ledger__treasures{padding:6px}.hero-ledger__treasures>p{font-size:9px;letter-spacing:.04em;white-space:nowrap}
+.hero-ledger__treasures>div{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;align-content:start;flex:none}
+.hero-ledger__treasure-slot{position:relative;aspect-ratio:1;min-height:auto;border:1px solid #826034;border-radius:4px;background:radial-gradient(circle at 50% 35%,rgba(183,137,66,.2),rgba(17,8,3,.75));box-shadow:inset 0 0 0 1px rgba(234,194,105,.12)}
+.hero-ledger__treasure-slot img{width:66%;height:66%;object-fit:contain;opacity:.56;filter:drop-shadow(0 1px 1px #120803)}
+.hero-ledger__treasure-slot small{position:absolute;bottom:2px;left:0;width:100%;color:#c8a96f;text-align:center;font-size:7px;font-weight:800;line-height:1}
+.hero-ledger__bag{padding:6px}.hero-ledger__bag>p{font-size:10px}
+.hero-dossier__stats dl{display:flex;flex-direction:column;gap:2px;margin:2px 0}
+.hero-dossier__stats dl .hero-dossier__stat{display:grid;grid-template-columns:24px 1fr;gap:4px;align-items:center;border-bottom:1px dotted rgba(103,70,32,.38);padding:1px 0;font-size:10px}
+.hero-dossier__stats dl .hero-dossier__stat dt{color:#76552e;font-weight:800}
+.hero-dossier__stats dl .hero-dossier__stat dd{display:grid;grid-template-columns:19px minmax(38px,1fr) 24px;gap:3px;align-items:center;margin:0}
+.hero-dossier__stat dd>img{width:18px;height:16px;object-fit:contain;filter:drop-shadow(0 1px 1px rgba(55,29,8,.42))}
+.hero-dossier__xp{position:relative;height:8px;overflow:hidden;border:1px solid #9d7845;border-radius:4px;background:rgba(81,52,24,.18);box-shadow:inset 0 1px 2px rgba(47,25,8,.2)}
+.hero-dossier__xp i{position:absolute;inset:1px auto 1px 1px;border-radius:3px;box-shadow:0 0 4px currentColor}
+.hero-dossier__xp small{position:absolute;inset:0;display:grid;place-items:center;color:#60421f;font-size:6px;font-weight:900;line-height:1;text-shadow:0 1px rgba(255,239,194,.65)}
+.hero-dossier__stat em{color:#805a2b;font-size:7px;font-style:normal;font-weight:800;text-align:right;white-space:nowrap}
+.hero-dossier__rank{width:30px;height:30px;border:0;border-radius:0;background:transparent}
+.hero-dossier__rank img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 1px 1px rgba(38,17,5,.55))}
+@media(max-width:700px){.hero-ledger__body{grid-template-columns:158px minmax(245px,1fr) 100px 160px;gap:4px}.hero-ledger__card-portrait{width:45px;flex-basis:45px;height:44px}.hero-ledger__cards{grid-auto-rows:52px}.hero-ledger__treasure-slot small{font-size:6px}}
 .hero-detail-heading { display:flex; gap:11px; align-items:center; }
 .hero-detail-heading img { width:74px; height:74px; object-fit:cover; object-position:center 24%; border:1px solid rgba(239,216,154,.48); border-radius:6px; background:#1b292b; }
 .hero-detail-heading span { display:grid; gap:2px; }

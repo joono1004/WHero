@@ -18,7 +18,11 @@ const SORT_COMPARATORS: Record<SortMode, (a: HeroListEntry, b: HeroListEntry) =>
 };
 const SORT_LABEL: Record<SortMode, string> = { grade: "등급순", archetype: "유형순", level: "레벨순" };
 const SORT_ICON: Record<SortMode, string> = { grade: "✦", archetype: "♜", level: "Lv" };
-const MAX_TREASURE_SLOTS = 4;
+const EQUIPMENT_SLOTS = [
+  { key: "weapon", label: "무기", icon: "/art/ui/equipment-weapon-slot-v1.svg" },
+  { key: "armor", label: "방어구", icon: "/art/ui/equipment-armor-slot-v1.svg" },
+  { key: "other", label: "기타", icon: "/art/ui/equipment-other-slot-v1.svg" },
+] as const;
 const BAG_GRID_COLUMNS = 4;
 const BAG_EMPTY_PREVIEW_ROWS = 4;
 
@@ -42,7 +46,7 @@ export function HeroRosterScreen({
   const goNext = () => activeIndex < sorted.length - 1 && setSelectedId(sorted[activeIndex + 1].state.heroId);
 
   return (
-    <section className="hero-ledger" aria-label="영웅 기록첩">
+    <section className="hero-ledger" aria-label="영웅정보">
       <header className="hero-ledger__header">
         <button className="hero-ledger__back" onClick={onBack} aria-label="로비로 돌아가기" title="뒤로가기" />
         <div><h2>영웅정보</h2></div>
@@ -87,7 +91,17 @@ export function HeroRosterScreen({
           {selected && <nav className="hero-ledger__pager" aria-label="영웅 이동"><button onClick={goPrev} disabled={activeIndex <= 0}>‹</button><span>{activeIndex + 1} / {sorted.length}</span><button onClick={goNext} disabled={activeIndex >= sorted.length - 1}>›</button></nav>}
         </main>
 
-        <aside className="hero-ledger__treasures" aria-label="장착 보물"><p>보물</p><div>{Array.from({ length: MAX_TREASURE_SLOTS }, (_, index) => <span key={index} className="hero-ledger__treasure-slot">⌑</span>)}</div></aside>
+        <aside className="hero-ledger__treasures" aria-label="장착 장비">
+          <p>장착 장비</p>
+          <div>
+            {EQUIPMENT_SLOTS.map((slot) => (
+              <span key={slot.key} className="hero-ledger__treasure-slot" title={slot.label}>
+                <img src={slot.icon} alt="" />
+                <small>{slot.label}</small>
+              </span>
+            ))}
+          </div>
+        </aside>
         <aside className="hero-ledger__bag" aria-label="가방"><p>가방</p><div className="hero-ledger__bag-grid">{Array.from({ length: BAG_GRID_COLUMNS * BAG_EMPTY_PREVIEW_ROWS }, (_, index) => <span key={index} />)}</div></aside>
       </div>
     </section>
