@@ -10,6 +10,7 @@ import type { HeroTraitId } from "../../lib/game/hero-trait.ts";
 import { HERO_TRAIT_CATALOG } from "../../lib/game/hero-trait.ts";
 import { UNIT_TYPE_CATALOG } from "../../lib/game/unit-production.ts";
 import { HERO_PORTRAIT } from "../game/heroPortraits.ts";
+import { BUNDLED_HERO_DEFINITIONS } from "../game/heroCatalog.ts";
 import "./admin.css";
 
 type Availability = "starter" | "recruitable" | "hidden";
@@ -22,6 +23,11 @@ const DOMESTIC_FIELDS: { key: DomesticSpecialtyKind; label: string }[] = [
   { key: "troops", label: "병사" }, { key: "gold", label: "금" }, { key: "food", label: "식량" },
   { key: "iron", label: "철" }, { key: "recovery", label: "회복" }, { key: "defense", label: "방어" },
 ];
+const STARTER_HERO_IDS = new Set(["zhang-bao", "wei-yan", "xu-shu"]);
+
+function bundledRow(definition: HeroDefinition): AdminHeroRow {
+  return { id: definition.id, name: definition.name, availability: STARTER_HERO_IDS.has(definition.id) ? "starter" : "recruitable", portrait_path: HERO_PORTRAIT[definition.id] ?? null, definition };
+}
 function blankHero(): Draft {
   const id = `hero-${Date.now()}`;
   return {
@@ -80,7 +86,12 @@ export default function AdminPage() {
     const { data, error: heroesError } = await supabase.from("hero_catalog").select("id, name, availability, portrait_path, definition, updated_at").order("name");
     if (heroesError) setMessage(`영웅 데이터를 불러오지 못했습니다: ${heroesError.message}`);
     else {
-      const loaded = (data ?? []).map(parseRow).filter((row): row is AdminHeroRow => row !== null);
+      const published = (data ?? []).map(parseRow).filter((row): row is AdminHeroRow => row !== null);
+      const publishedById = new Map(published.map((row) => [row.id, row]));
+      const loaded = [
+        ...BUNDLED_HERO_DEFINITIONS.map((definition) => publishedById.get(definition.id) ?? bundledRow(definition)),
+        ...published.filter((row) => !BUNDLED_HERO_DEFINITIONS.some((definition) => definition.id === row.id)),
+      ];
       setRows(loaded); setSelectedId((current) => current && loaded.some((row) => row.id === current) ? current : (loaded[0]?.id ?? null));
       setMessage(`${loaded.length}명의 영웅 데이터를 불러왔습니다.`);
     }

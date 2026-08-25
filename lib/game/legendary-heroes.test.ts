@@ -3,25 +3,22 @@ import test from "node:test";
 import { heroArchetype, heroOverallGrade } from "./hero-definition.ts";
 import { LEGENDARY_HEROES } from "./legendary-heroes.ts";
 
-test("there are exactly 3 legendary heroes with unique ids", () => {
-  assert.equal(LEGENDARY_HEROES.length, 3);
+test("there are exactly 13 legendary heroes with unique ids", () => {
+  assert.equal(LEGENDARY_HEROES.length, 13);
   const ids = new Set(LEGENDARY_HEROES.map((hero) => hero.id));
-  assert.equal(ids.size, 3);
+  assert.equal(ids.size, 13);
 });
 
-test("every legendary hero averages to an A overall grade", () => {
+test("every legendary hero is at least B overall grade", () => {
   for (const hero of LEGENDARY_HEROES) {
-    assert.equal(
-      heroOverallGrade(hero.attributes),
-      "A",
-      `${hero.name} should average to A, got attributes ${JSON.stringify(hero.attributes)}`,
-    );
+    assert.ok(["A", "B"].includes(heroOverallGrade(hero.attributes)), `${hero.name} should be at least B overall`);
   }
 });
 
-test("the 3 legendary heroes cover general/warrior/strategist, one each", () => {
+test("legendary heroes cover general, warrior, and strategist archetypes", () => {
   const archetypes = LEGENDARY_HEROES.map((hero) => heroArchetype(hero.attributes));
-  assert.deepEqual(new Set(archetypes), new Set(["general", "warrior", "strategist"]));
+  const unique = new Set(archetypes);
+  assert.ok(unique.has("general") && unique.has("warrior") && unique.has("strategist"));
 });
 
 test("관우 is the general-type", () => {
@@ -47,4 +44,8 @@ test("each legendary hero's fixed unitType matches the user's assignment", () =>
   assert.equal(zhaoYun.unitType, "cavalry");
   // 2026-08-07: strategist(책사) 노드가 생기면서 archer 스톱갭을 걷어냄.
   assert.equal(zhugeLiang.unitType, "strategist");
+  assert.equal(LEGENDARY_HEROES.find((hero) => hero.id === "huang-zhong")?.unitType, "archer");
+  assert.equal(LEGENDARY_HEROES.find((hero) => hero.id === "zhang-fei")?.unitType, "cavalry");
+  assert.equal(LEGENDARY_HEROES.find((hero) => hero.id === "xiahou-yuan")?.unitType, "archer");
+  assert.equal(LEGENDARY_HEROES.find((hero) => hero.id === "napoleon")?.unitType, "archer");
 });

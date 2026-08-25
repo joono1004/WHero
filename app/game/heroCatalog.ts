@@ -1,5 +1,6 @@
 import type { HeroDefinition } from "../../lib/game/hero-definition.ts";
 import { ALL_HERO_DEFINITIONS } from "../../lib/game/hero-roster.ts";
+import { STARTING_HEROES } from "../../lib/game/starting-heroes.ts";
 import { HERO_PORTRAIT } from "./heroPortraits.ts";
 import { supabase } from "./supabaseClient.ts";
 
@@ -41,10 +42,19 @@ export async function loadPublishedHeroCatalog(): Promise<PublishedHeroCatalog |
   for (const row of rows) {
     if (row.portrait_path) HERO_PORTRAIT[row.id] = row.portrait_path;
   }
-  const definitions = rows.map((row) => row.definition as HeroDefinition);
+  // A published row overrides its bundled counterpart, but does not make
+  // newly added bundled heroes disappear when an older database only has
+  // the original six rows. This also preserves offline play as the full
+  // roster grows over time.
+  const publishedById = new Map(rows.map((row) => [row.id, row.definition as HeroDefinition]));
+  const definitions = [
+    ...ALL_HERO_DEFINITIONS.map((hero) => publishedById.get(hero.id) ?? hero),
+    ...rows.filter((row) => !ALL_HERO_DEFINITIONS.some((hero) => hero.id === row.id)).map((row) => row.definition as HeroDefinition),
+  ];
+  const starterIds = new Set(STARTING_HEROES.map((hero) => hero.id));
   return {
     definitions,
-    starterDefinitions: rows.filter((row) => row.availability === "starter").map((row) => row.definition as HeroDefinition),
+    starterDefinitions: definitions.filter((hero) => starterIds.has(hero.id)),
   };
 }
 
