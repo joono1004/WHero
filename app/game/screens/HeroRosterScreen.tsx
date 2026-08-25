@@ -113,7 +113,7 @@ export function HeroRosterScreen({
                       return (
                         <div key={`${hero.id}-${index}`} className={`recruit-hall__result-card${isFragment ? " is-fragment" : ""}`}>
                           <HeroCard hero={hero} />
-                          {isFragment && <span className="recruit-hall__fragment-result">{grade} 조각</span>}
+                          {isFragment && <span className="recruit-hall__fragment-result">{grade}결정</span>}
                         </div>
                       );
                     })}
@@ -219,7 +219,7 @@ export function HeroRosterScreen({
           </div>
         </aside>
         <aside className="hero-ledger__bag" aria-label="가방"><p>가방</p><div className="hero-ledger__bag-grid">
-          {fragmentItems.map(({ grade, count }) => <span key={grade} className="hero-ledger__fragment" data-grade={grade} title={`${HERO_FRAGMENT_LABEL[grade]} ${count}개`}><img src={HERO_FRAGMENT_ART[grade]} alt={`${grade}등급 영웅 조각`} /><small>×{count}</small></span>)}
+          {fragmentItems.map(({ grade, count }) => <span key={grade} className="hero-ledger__fragment" data-grade={grade} title={`${HERO_FRAGMENT_LABEL[grade]} ${count}개`}><img src={HERO_FRAGMENT_ART[grade]} alt={`${grade}결정`} /><small>×{count}</small></span>)}
           {Array.from({ length: Math.max(0, BAG_GRID_COLUMNS * BAG_EMPTY_PREVIEW_ROWS - fragmentItems.length) }, (_, index) => <span key={`empty-${index}`} />)}
         </div></aside>
       </div>
