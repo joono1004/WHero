@@ -58,7 +58,7 @@ export function HeroRosterScreen({
 
   if (recruitTab) {
     return (
-      <section className="recruit-hall" aria-label="영웅 모집과 보물 탐색">
+      <section className={`recruit-hall is-${recruitTab}`} aria-label="영웅 모집과 보물 탐색">
         <header className="recruit-hall__header">
           <button className="hero-ledger__back" onClick={() => setRecruitTab(null)} aria-label="영웅정보으로 돌아가기" title="뒤로가기" />
           <nav className="recruit-hall__tabs" aria-label="모집과 탐색 선택">
