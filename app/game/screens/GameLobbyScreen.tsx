@@ -7,6 +7,7 @@ import type { Faction } from "../../../lib/game/faction.ts";
 import { appointGovernor } from "../../../lib/game/governor.ts";
 import { heroOverallGrade } from "../../../lib/game/hero-definition.ts";
 import { createRecruitedHeroState, governedWorldId, setDeploymentPriority } from "../../../lib/game/hero.ts";
+import { HERO_FRAGMENT_ITEM_ID } from "../../../lib/game/hero-recruitment.ts";
 import type { HeroState } from "../../../lib/game/hero.ts";
 import { buildHeroListEntries } from "../../../lib/game/hero-roster.ts";
 import type { HeroListEntry } from "../../../lib/game/hero-roster.ts";
@@ -333,6 +334,7 @@ export function GameLobbyScreen({
       <HeroRosterScreen
         entries={entries}
         initialHeroId={heroScreenInitialId}
+        fragmentItemIds={playerFaction?.itemInventory ?? []}
         onBack={() => setHeroScreenOpen(false)}
         onToggleDeploymentPriority={(heroId) => {
           const hero = entries.find((entry) => entry.state.heroId === heroId)?.state;
@@ -340,9 +342,22 @@ export function GameLobbyScreen({
           if (hero?.deploymentPriority && deploymentHeroCount <= 1) return;
           updateHero(heroId, (target) => setDeploymentPriority(target, !target.deploymentPriority));
         }}
-        onRecruitHero={(definition) => {
-          if (save.heroes.some((hero) => hero.heroId === definition.id)) return;
-          onUpdateSave({ ...save, heroes: [...save.heroes, createRecruitedHeroState(definition)] });
+        onClaimRecruitment={(definitions, fragmentGrades) => {
+          const currentFaction = save.factions[PLAYER_FACTION_ID];
+          if (!currentFaction) return;
+          const alreadyOwned = new Set(save.heroes.map((hero) => hero.heroId));
+          const newHeroes = definitions.filter((definition) => !alreadyOwned.has(definition.id));
+          onUpdateSave({
+            ...save,
+            heroes: [...save.heroes, ...newHeroes.map(createRecruitedHeroState)],
+            factions: {
+              ...save.factions,
+              [PLAYER_FACTION_ID]: {
+                ...currentFaction,
+                itemInventory: [...currentFaction.itemInventory, ...fragmentGrades.map((grade) => HERO_FRAGMENT_ITEM_ID[grade])],
+              },
+            },
+          });
         }}
         governorLabelFor={governorLabelFor}
       />

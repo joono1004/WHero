@@ -3,13 +3,14 @@
 import { useState } from "react";
 import { heroArchetype, heroOverallGrade } from "../../../lib/game/hero-definition.ts";
 import type { HeroListEntry } from "../../../lib/game/hero-roster.ts";
-import { compareByArchetype, compareByGrade, compareByLevel } from "../../../lib/game/hero-roster.ts";
+import { compareByArchetype, compareByGrade, compareByLevel, currentHeroDefinitions } from "../../../lib/game/hero-roster.ts";
+import { HERO_FRAGMENT_ITEM_ID, HERO_FRAGMENT_LABEL, heroFragmentGrade, resolveRecruitmentDraws } from "../../../lib/game/hero-recruitment.ts";
+import type { CoreGrade } from "../../../lib/game/grade.ts";
 import { GRADE_COLOR } from "../gradeColors.ts";
 import { HeroCard } from "../HeroCard.tsx";
 import { HeroInfoPanel } from "../HeroInfoPanel.tsx";
 import { ARCHETYPE_LABEL, UNIT_TYPE_LABEL } from "../heroLabels.ts";
 import { HERO_PORTRAIT } from "../heroPortraits.ts";
-import { currentHeroDefinitions } from "../../../lib/game/hero-roster.ts";
 import type { HeroDefinition } from "../../../lib/game/hero-definition.ts";
 
 type SortMode = "grade" | "name" | "level" | "archetype";
@@ -40,19 +41,20 @@ const BAG_EMPTY_PREVIEW_ROWS = 4;
 
 /** 10명(2열×5행)을 한눈에 보여주는 모바일 가로용 영웅 기록첩. */
 export function HeroRosterScreen({
-  entries, initialHeroId, onBack, onToggleDeploymentPriority, onRecruitHero, governorLabelFor,
+  entries, initialHeroId, fragmentItemIds, onBack, onToggleDeploymentPriority, onClaimRecruitment, governorLabelFor,
 }: {
   entries: HeroListEntry[];
   initialHeroId: string | null;
+  fragmentItemIds: string[];
   onBack: () => void;
   onToggleDeploymentPriority: (heroId: string) => void;
-  onRecruitHero: (hero: HeroDefinition) => void;
+  onClaimRecruitment: (heroes: HeroDefinition[], fragmentGrades: CoreGrade[]) => void;
   governorLabelFor: (state: HeroListEntry["state"]) => string | null;
 }) {
   const [sortMode, setSortMode] = useState<SortMode>("grade");
   const [selectedId, setSelectedId] = useState<string | null>(initialHeroId);
   const [recruitTab, setRecruitTab] = useState<RecruitTab | null>(null);
-  const [recruitedHero, setRecruitedHero] = useState<HeroDefinition | null>(null);
+  const [drawnHeroes, setDrawnHeroes] = useState<HeroDefinition[]>([]);
   const sorted = [...entries].sort(SORT_COMPARATORS[sortMode]);
   const deploymentHeroCount = entries.filter((entry) => entry.state.deploymentPriority).length;
   const selectedIndex = sorted.findIndex((entry) => entry.state.heroId === selectedId);
@@ -60,18 +62,23 @@ export function HeroRosterScreen({
   const activeIndex = selectedIndex >= 0 ? selectedIndex : 0;
   const goPrev = () => activeIndex > 0 && setSelectedId(sorted[activeIndex - 1].state.heroId);
   const goNext = () => activeIndex < sorted.length - 1 && setSelectedId(sorted[activeIndex + 1].state.heroId);
-  const recruitableHeroes = currentHeroDefinitions().filter((hero) => !entries.some((entry) => entry.state.heroId === hero.id));
+  const recruitmentResult = resolveRecruitmentDraws(drawnHeroes, entries.map((entry) => entry.state.heroId));
+  const fragmentItems = (["SS", "S", "A", "B", "C", "D"] as CoreGrade[]).flatMap((grade) => {
+    const count = fragmentItemIds.filter((itemId) => itemId === HERO_FRAGMENT_ITEM_ID[grade]).length;
+    return count ? [{ grade, count }] : [];
+  });
 
-  const drawHero = () => {
-    if (recruitableHeroes.length === 0) return;
-    setRecruitedHero(recruitableHeroes[Math.floor(Math.random() * recruitableHeroes.length)]);
+  const drawHeroes = (count: number) => {
+    const candidates = currentHeroDefinitions();
+    if (candidates.length === 0) return;
+    setDrawnHeroes(Array.from({ length: count }, () => candidates[Math.floor(Math.random() * candidates.length)]));
   };
 
-  const welcomeRecruitedHero = () => {
-    if (!recruitedHero) return;
-    onRecruitHero(recruitedHero);
-    setSelectedId(recruitedHero.id);
-    setRecruitedHero(null);
+  const claimRecruitment = () => {
+    if (drawnHeroes.length === 0) return;
+    onClaimRecruitment(recruitmentResult.recruitedHeroes, recruitmentResult.fragmentGrades);
+    if (recruitmentResult.recruitedHeroes[0]) setSelectedId(recruitmentResult.recruitedHeroes[0].id);
+    setDrawnHeroes([]);
     setRecruitTab(null);
   };
 
@@ -88,13 +95,24 @@ export function HeroRosterScreen({
         <main className="recruit-hall__content">
           {recruitTab === "heroes" ? (
             <div className="recruit-hall__panel recruit-hall__panel--hero-draw is-heroes">
-              {recruitedHero ? (
+              {drawnHeroes.length > 0 ? (
                 <>
-                  <p className="recruit-hall__eyebrow">새로운 인연을 만났습니다</p>
-                  <HeroCard hero={recruitedHero} />
+                  <p className="recruit-hall__eyebrow">모집 결과 · {drawnHeroes.length}명</p>
+                  <div className={`recruit-hall__results${drawnHeroes.length >= 10 ? " is-ten" : ""}`}>
+                    {drawnHeroes.map((hero, index) => {
+                      const isFragment = recruitmentResult.resultKinds[index] === "fragment";
+                      const grade = heroOverallGrade(hero.attributes);
+                      return (
+                        <div key={`${hero.id}-${index}`} className={`recruit-hall__result-card${isFragment ? " is-fragment" : ""}`}>
+                          <HeroCard hero={hero} />
+                          {isFragment && <span className="recruit-hall__fragment-result">{grade} 조각</span>}
+                        </div>
+                      );
+                    })}
+                  </div>
                   <div className="recruit-hall__draw-actions">
-                    <button type="button" className="recruit-hall__action recruit-hall__action--subtle" onClick={drawHero}>다시 찾기</button>
-                    <button type="button" className="recruit-hall__action" onClick={welcomeRecruitedHero}>영웅단에 합류</button>
+                    <button type="button" className="recruit-hall__action recruit-hall__action--subtle" onClick={() => setDrawnHeroes([])}>다시 모집</button>
+                    <button type="button" className="recruit-hall__action" onClick={claimRecruitment}>결과 수령</button>
                   </div>
                 </>
               ) : (
@@ -102,8 +120,11 @@ export function HeroRosterScreen({
                   <span className="recruit-hall__emblem" aria-hidden="true">⚜</span>
                   <h2>영웅 모집</h2>
                   <p>재야에 묻힌 영웅을 찾아, 그대의 깃발 아래로 맞이하세요.</p>
-                  <small>{recruitableHeroes.length > 0 ? `만날 수 있는 영웅 ${recruitableHeroes.length}명` : "모든 영웅을 이미 영입했습니다."}</small>
-                  <button type="button" className="recruit-hall__action" onClick={drawHero} disabled={recruitableHeroes.length === 0}>영웅 찾기</button>
+                  <small className="recruit-hall__ticket">모집권 <b>∞</b> · 테스트 기간에는 소모되지 않습니다.</small>
+                  <div className="recruit-hall__draw-actions">
+                    <button type="button" className="recruit-hall__action recruit-hall__action--subtle" onClick={() => drawHeroes(1)}>1회 모집</button>
+                    <button type="button" className="recruit-hall__action" onClick={() => drawHeroes(10)}>10회 모집</button>
+                  </div>
                 </>
               )}
             </div>
@@ -189,7 +210,10 @@ export function HeroRosterScreen({
             ))}
           </div>
         </aside>
-        <aside className="hero-ledger__bag" aria-label="가방"><p>가방</p><div className="hero-ledger__bag-grid">{Array.from({ length: BAG_GRID_COLUMNS * BAG_EMPTY_PREVIEW_ROWS }, (_, index) => <span key={index} />)}</div></aside>
+        <aside className="hero-ledger__bag" aria-label="가방"><p>가방</p><div className="hero-ledger__bag-grid">
+          {fragmentItems.map(({ grade, count }) => <span key={grade} className="hero-ledger__fragment" data-grade={grade} title={`${HERO_FRAGMENT_LABEL[grade]} ${count}개`}><img src="/art/items/hero-fragment-v1.png" alt="" /><b>{grade}</b><small>×{count}</small></span>)}
+          {Array.from({ length: Math.max(0, BAG_GRID_COLUMNS * BAG_EMPTY_PREVIEW_ROWS - fragmentItems.length) }, (_, index) => <span key={`empty-${index}`} />)}
+        </div></aside>
       </div>
     </section>
   );
