@@ -85,22 +85,18 @@ export function HeroRosterScreen({
                     {portraitUrl ? <img src={portraitUrl} alt="" /> : <span>?</span>}
                   </span>
                   <span className="hero-ledger__card-copy">
-                    <span className="hero-ledger__card-title">
-                      <b>{definition.name}</b>
-                      <button
-                        type="button"
-                        aria-label={state.deploymentPriority ? `${definition.name} 출전 해제` : `${definition.name} 출전 등록`}
-                        className={`hero-ledger__deploy${state.deploymentPriority ? " is-active" : ""}`}
-                        disabled={isRequiredDeploymentHero}
-                        title={isRequiredDeploymentHero ? "출전 영웅은 최소 1명이 필요합니다" : undefined}
-                        onClick={(event) => { event.stopPropagation(); onToggleDeploymentPriority(state.heroId); }}
-                      >출전</button>
-                      <small>Lv.{state.level}</small>
-                      <em style={{ color: GRADE_COLOR[grade] }}>{grade}</em>
-                    </span>
-                    <span className="hero-ledger__card-type">{UNIT_TYPE_LABEL[definition.unitType]} · {ARCHETYPE_LABEL[archetype]}</span>
+                    <span className="hero-ledger__card-title"><b>{definition.name}</b></span>
+                    <span className="hero-ledger__card-type"><b style={{ color: GRADE_COLOR[grade] }}>{grade}등급</b> · Lv.{state.level} · {UNIT_TYPE_LABEL[definition.unitType]} · {ARCHETYPE_LABEL[archetype]}</span>
                     <span className={`hero-ledger__card-governor${governorLabel ? " is-governor" : ""}`}>{governorLabel ?? "일반"}</span>
                   </span>
+                  <button
+                    type="button"
+                    aria-label={state.deploymentPriority ? `${definition.name} 출전 해제` : `${definition.name} 출전 등록`}
+                    className={`hero-ledger__deploy${state.deploymentPriority ? " is-active" : ""}`}
+                    disabled={isRequiredDeploymentHero}
+                    title={isRequiredDeploymentHero ? "출전 영웅은 최소 1명이 필요합니다" : undefined}
+                    onClick={(event) => { event.stopPropagation(); onToggleDeploymentPriority(state.heroId); }}
+                  >출전</button>
                 </div>
               );
             })}
