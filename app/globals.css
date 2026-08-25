@@ -210,13 +210,13 @@ canvas { display:block; width:100%; height:calc(100vh - 148px); min-height:620px
 .hero-ledger__card-portrait{width:51px;flex-basis:51px;height:52px}
 .hero-ledger__card-portrait img{object-position:center center}
 .hero-ledger__card-copy{justify-content:flex-start;gap:2px;padding-top:1px}
-.hero-ledger__card-title{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:3px;align-items:baseline;line-height:1.05;white-space:nowrap}
+.hero-ledger__card-title{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;gap:3px;align-items:center;line-height:1.05;white-space:nowrap}
 .hero-ledger__card-title b{overflow:hidden;text-overflow:ellipsis;color:#f0d9a2;font-size:12.5px;font-weight:900}
 .hero-ledger__card-title small{color:#c6a774;font-size:8.5px;font-weight:700}
 .hero-ledger__card-title em{font-size:10.5px;font-style:normal;font-weight:900}
 .hero-ledger__card-type,.hero-ledger__card-governor{overflow:hidden;color:#b99762;text-overflow:ellipsis;white-space:nowrap;font-size:8.5px;line-height:1.22}
 .hero-ledger__card-governor{color:#9f8358}.hero-ledger__card-governor.is-governor{color:#e4c173;font-weight:800}
-.hero-ledger__deploy{right:3px;bottom:3px;min-width:30px;height:16px;border:1px solid #705022;border-radius:3px;background:linear-gradient(#543419,#261307);color:#b99a62;font-size:7px;font-weight:900;line-height:1;letter-spacing:-.03em;cursor:pointer}.hero-ledger__deploy.is-active{border-color:#d5ad55;background:linear-gradient(#89602a,#3c210d);color:#ffe29a;text-shadow:0 1px #261305}.hero-ledger__deploy:disabled{cursor:default;filter:saturate(.65);opacity:.78}
+.hero-ledger__deploy{min-width:28px;height:14px;border:1px solid #705f55;border-radius:3px;background:linear-gradient(#3a302c,#1e1713);color:#8f8175;font-size:7px;font-weight:900;line-height:1;letter-spacing:-.04em;cursor:pointer}.hero-ledger__deploy.is-active{border-color:#63bdf2;background:linear-gradient(#236fa9,#103451);color:#e3f4ff;text-shadow:0 1px #061624;box-shadow:0 0 4px rgba(67,172,239,.38)}.hero-ledger__deploy:disabled{cursor:default}.hero-ledger__deploy.is-active:disabled{filter:none;opacity:1}
 @media(max-width:700px){.hero-ledger__cards{grid-auto-rows:60px}.hero-ledger__card-portrait{width:49px;flex-basis:49px;height:51px}.hero-ledger__card-title b{font-size:11.5px}.hero-ledger__card-type,.hero-ledger__card-governor{font-size:8px}}
 .hero-detail-heading { display:flex; gap:11px; align-items:center; }
 .hero-detail-heading img { width:74px; height:74px; object-fit:cover; object-position:center 24%; border:1px solid rgba(239,216,154,.48); border-radius:6px; background:#1b292b; }
