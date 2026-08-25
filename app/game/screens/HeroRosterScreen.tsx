@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { heroArchetype, heroOverallGrade } from "../../../lib/game/hero-definition.ts";
 import type { HeroListEntry } from "../../../lib/game/hero-roster.ts";
 import { compareByArchetype, compareByGrade, compareByLevel, currentHeroDefinitions } from "../../../lib/game/hero-roster.ts";
@@ -15,6 +15,7 @@ import type { HeroDefinition } from "../../../lib/game/hero-definition.ts";
 
 type SortMode = "grade" | "name" | "level" | "archetype";
 type RecruitTab = "heroes" | "treasures";
+type RecruitmentPhase = "idle" | "revealing" | "result";
 
 const SORT_COMPARATORS: Record<SortMode, (a: HeroListEntry, b: HeroListEntry) => number> = {
   grade: compareByGrade,
@@ -63,6 +64,8 @@ export function HeroRosterScreen({
   const [selectedId, setSelectedId] = useState<string | null>(initialHeroId);
   const [recruitTab, setRecruitTab] = useState<RecruitTab | null>(null);
   const [drawnHeroes, setDrawnHeroes] = useState<HeroDefinition[]>([]);
+  const [recruitmentPhase, setRecruitmentPhase] = useState<RecruitmentPhase>("idle");
+  const [revealIndex, setRevealIndex] = useState(0);
   const sorted = [...entries].sort(SORT_COMPARATORS[sortMode]);
   const deploymentHeroCount = entries.filter((entry) => entry.state.deploymentPriority).length;
   const selectedIndex = sorted.findIndex((entry) => entry.state.heroId === selectedId);
@@ -76,10 +79,21 @@ export function HeroRosterScreen({
     return count ? [{ grade, count }] : [];
   });
 
+  useEffect(() => {
+    if (recruitmentPhase !== "revealing" || drawnHeroes.length === 0) return;
+    const timer = window.setTimeout(() => {
+      if (revealIndex + 1 < drawnHeroes.length) setRevealIndex((current) => current + 1);
+      else setRecruitmentPhase("result");
+    }, drawnHeroes.length === 1 ? 900 : 680);
+    return () => window.clearTimeout(timer);
+  }, [drawnHeroes.length, recruitmentPhase, revealIndex]);
+
   const drawHeroes = (count: number) => {
     const candidates = currentHeroDefinitions();
     if (candidates.length === 0) return;
     setDrawnHeroes(Array.from({ length: count }, () => candidates[Math.floor(Math.random() * candidates.length)]));
+    setRevealIndex(0);
+    setRecruitmentPhase("revealing");
   };
 
   const claimRecruitment = () => {
@@ -87,6 +101,7 @@ export function HeroRosterScreen({
     onClaimRecruitment(recruitmentResult.recruitedHeroes, recruitmentResult.fragmentGrades);
     if (recruitmentResult.recruitedHeroes[0]) setSelectedId(recruitmentResult.recruitedHeroes[0].id);
     setDrawnHeroes([]);
+    setRecruitmentPhase("idle");
     setRecruitTab(null);
   };
 
@@ -102,10 +117,20 @@ export function HeroRosterScreen({
         </header>
         <main className="recruit-hall__content">
           {recruitTab === "heroes" ? (
-            <div className="recruit-hall__panel recruit-hall__panel--hero-draw is-heroes">
-              {drawnHeroes.length > 0 ? (
+            <div className="recruit-hall__hero-stage">
+              {recruitmentPhase === "revealing" && drawnHeroes[revealIndex] ? (
+                <div className="recruit-hall__reveal" key={`${drawnHeroes[revealIndex].id}-${revealIndex}`}>
+                  <span className="recruit-hall__reveal-count">{drawnHeroes.length > 1 ? `${revealIndex + 1} / ${drawnHeroes.length}` : "새로운 인연"}</span>
+                  <div className="recruit-hall__summon-portal">
+                    <span className="recruit-hall__summon-flash" />
+                    <span className="recruit-hall__summon-cloud" />
+                    <HeroCard hero={drawnHeroes[revealIndex]} />
+                  </div>
+                  <p>안개가 걷히며 새로운 영웅이 모습을 드러냅니다.</p>
+                </div>
+              ) : recruitmentPhase === "result" && drawnHeroes.length > 0 ? (
                 <>
-                  <p className="recruit-hall__eyebrow">모집 결과 · {drawnHeroes.length}명</p>
+                  <p className="recruit-hall__eyebrow">{drawnHeroes.length === 1 ? "새로운 인연을 맞이했습니다" : `모집 결과 · ${drawnHeroes.length}명`}</p>
                   <div className={`recruit-hall__results${drawnHeroes.length >= 10 ? " is-ten" : ""}`}>
                     {drawnHeroes.map((hero, index) => {
                       const isFragment = recruitmentResult.resultKinds[index] === "fragment";
@@ -119,15 +144,14 @@ export function HeroRosterScreen({
                     })}
                   </div>
                   <div className="recruit-hall__draw-actions">
-                    <button type="button" className="recruit-hall__action recruit-hall__action--subtle" onClick={() => setDrawnHeroes([])}>다시 모집</button>
-                    <button type="button" className="recruit-hall__action" onClick={claimRecruitment}>결과 수령</button>
+                    <button type="button" className="recruit-hall__action recruit-hall__action--subtle" onClick={() => { setDrawnHeroes([]); setRecruitmentPhase("idle"); }}>다시 모집</button>
+                    <button type="button" className="recruit-hall__action" onClick={claimRecruitment}>영웅단에 합류</button>
                   </div>
                 </>
               ) : (
                 <>
-                  <span className="recruit-hall__emblem" aria-hidden="true">⚜</span>
-                  <h2>영웅 모집</h2>
-                  <p>재야에 묻힌 영웅을 찾아, 그대의 깃발 아래로 맞이하세요.</p>
+                  <div className="recruit-hall__mystery-card" aria-hidden="true"><span>?</span></div>
+                  <p className="recruit-hall__intro">재야에 묻힌 영웅을 찾아, 그대의 깃발 아래로 맞이하세요.</p>
                   <small className="recruit-hall__ticket">모집권 <b>∞</b> · 테스트 기간에는 소모되지 않습니다.</small>
                   <div className="recruit-hall__draw-actions">
                     <button type="button" className="recruit-hall__action recruit-hall__action--subtle" onClick={() => drawHeroes(1)}>1회 모집</button>
