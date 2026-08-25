@@ -5,9 +5,12 @@ import { heroArchetype, heroOverallGrade } from "../../../lib/game/hero-definiti
 import type { HeroListEntry } from "../../../lib/game/hero-roster.ts";
 import { compareByArchetype, compareByGrade, compareByLevel } from "../../../lib/game/hero-roster.ts";
 import { GRADE_COLOR } from "../gradeColors.ts";
+import { HeroCard } from "../HeroCard.tsx";
 import { HeroInfoPanel } from "../HeroInfoPanel.tsx";
 import { ARCHETYPE_LABEL, UNIT_TYPE_LABEL } from "../heroLabels.ts";
 import { HERO_PORTRAIT } from "../heroPortraits.ts";
+import { currentHeroDefinitions } from "../../../lib/game/hero-roster.ts";
+import type { HeroDefinition } from "../../../lib/game/hero-definition.ts";
 
 type SortMode = "grade" | "name" | "level" | "archetype";
 type RecruitTab = "heroes" | "treasures";
@@ -37,17 +40,19 @@ const BAG_EMPTY_PREVIEW_ROWS = 4;
 
 /** 10명(2열×5행)을 한눈에 보여주는 모바일 가로용 영웅 기록첩. */
 export function HeroRosterScreen({
-  entries, initialHeroId, onBack, onToggleDeploymentPriority, governorLabelFor,
+  entries, initialHeroId, onBack, onToggleDeploymentPriority, onRecruitHero, governorLabelFor,
 }: {
   entries: HeroListEntry[];
   initialHeroId: string | null;
   onBack: () => void;
   onToggleDeploymentPriority: (heroId: string) => void;
+  onRecruitHero: (hero: HeroDefinition) => void;
   governorLabelFor: (state: HeroListEntry["state"]) => string | null;
 }) {
   const [sortMode, setSortMode] = useState<SortMode>("grade");
   const [selectedId, setSelectedId] = useState<string | null>(initialHeroId);
   const [recruitTab, setRecruitTab] = useState<RecruitTab | null>(null);
+  const [recruitedHero, setRecruitedHero] = useState<HeroDefinition | null>(null);
   const sorted = [...entries].sort(SORT_COMPARATORS[sortMode]);
   const deploymentHeroCount = entries.filter((entry) => entry.state.deploymentPriority).length;
   const selectedIndex = sorted.findIndex((entry) => entry.state.heroId === selectedId);
@@ -55,6 +60,20 @@ export function HeroRosterScreen({
   const activeIndex = selectedIndex >= 0 ? selectedIndex : 0;
   const goPrev = () => activeIndex > 0 && setSelectedId(sorted[activeIndex - 1].state.heroId);
   const goNext = () => activeIndex < sorted.length - 1 && setSelectedId(sorted[activeIndex + 1].state.heroId);
+  const recruitableHeroes = currentHeroDefinitions().filter((hero) => !entries.some((entry) => entry.state.heroId === hero.id));
+
+  const drawHero = () => {
+    if (recruitableHeroes.length === 0) return;
+    setRecruitedHero(recruitableHeroes[Math.floor(Math.random() * recruitableHeroes.length)]);
+  };
+
+  const welcomeRecruitedHero = () => {
+    if (!recruitedHero) return;
+    onRecruitHero(recruitedHero);
+    setSelectedId(recruitedHero.id);
+    setRecruitedHero(null);
+    setRecruitTab(null);
+  };
 
   if (recruitTab) {
     return (
@@ -67,12 +86,35 @@ export function HeroRosterScreen({
           </nav>
         </header>
         <main className="recruit-hall__content">
-          <div className={`recruit-hall__panel ${recruitTab === "heroes" ? "is-heroes" : "is-treasures"}`}>
-            <span className="recruit-hall__emblem" aria-hidden="true">{recruitTab === "heroes" ? "⚜" : "✦"}</span>
-            <h2>{recruitTab === "heroes" ? "영웅 모집" : "보물 탐색"}</h2>
-            <p>{recruitTab === "heroes" ? "시대를 이끌 새로운 영웅을 맞이할 준비를 하고 있습니다." : "전장에서 빛날 귀중한 보물을 찾을 준비를 하고 있습니다."}</p>
-            <small>세부 획득 방식과 연출은 다음 단계에서 추가됩니다.</small>
-          </div>
+          {recruitTab === "heroes" ? (
+            <div className="recruit-hall__panel recruit-hall__panel--hero-draw is-heroes">
+              {recruitedHero ? (
+                <>
+                  <p className="recruit-hall__eyebrow">새로운 인연을 만났습니다</p>
+                  <HeroCard hero={recruitedHero} />
+                  <div className="recruit-hall__draw-actions">
+                    <button type="button" className="recruit-hall__action recruit-hall__action--subtle" onClick={drawHero}>다시 찾기</button>
+                    <button type="button" className="recruit-hall__action" onClick={welcomeRecruitedHero}>영웅단에 합류</button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <span className="recruit-hall__emblem" aria-hidden="true">⚜</span>
+                  <h2>영웅 모집</h2>
+                  <p>재야에 묻힌 영웅을 찾아, 그대의 깃발 아래로 맞이하세요.</p>
+                  <small>{recruitableHeroes.length > 0 ? `만날 수 있는 영웅 ${recruitableHeroes.length}명` : "모든 영웅을 이미 영입했습니다."}</small>
+                  <button type="button" className="recruit-hall__action" onClick={drawHero} disabled={recruitableHeroes.length === 0}>영웅 찾기</button>
+                </>
+              )}
+            </div>
+          ) : (
+            <div className="recruit-hall__panel is-treasures">
+              <span className="recruit-hall__emblem" aria-hidden="true">✦</span>
+              <h2>보물 탐색</h2>
+              <p>전장에서 빛날 귀중한 보물을 찾을 준비를 하고 있습니다.</p>
+              <small>보물 획득 방식과 연출은 다음 단계에서 추가됩니다.</small>
+            </div>
+          )}
         </main>
       </section>
     );

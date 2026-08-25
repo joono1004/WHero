@@ -1,3 +1,4 @@
+import { heroCombatStats } from "./hero-definition.ts";
 import type { HeroAttributes, HeroDefinition, HeroUnitTypeKind } from "./hero-definition.ts";
 import type { HexCoordinate } from "./hex.ts";
 import type { CityId, HeroId, ItemId, WorldId } from "./ids.ts";
@@ -98,6 +99,23 @@ export type HeroState = {
   // 이 이 필드와 definition.unitType 중 실제로 쓸 값을 골라준다.
   evolvedUnitType: HeroUnitTypeKind | null;
 };
+
+// 모집, 이벤트 등으로 새 영웅을 영입할 때는 항상 같은 초기 상태로
+// 로스터에 들어간다. 화면에서 객체를 직접 조립하지 않도록 규칙 쪽에
+// 생성 기준을 한 곳으로 모았다.
+export function createRecruitedHeroState(hero: HeroDefinition): HeroState {
+  return {
+    heroId: hero.id,
+    level: 1,
+    experience: 0,
+    health: heroCombatStats(hero.attributes, hero.unitType).maxHealth,
+    items: [],
+    assignment: { mode: "solo", position: GARRISON_RETURN_POSITION },
+    attributeProgress: { ...ZERO_ATTRIBUTE_PROGRESS },
+    deploymentPriority: false,
+    evolvedUnitType: null,
+  };
+}
 
 // 이 영웅이 지금 실제로 쓰는 병과 - 진화했으면 evolvedUnitType, 아니면
 // definition.unitType. heroCombatStats/heroBaseMovement를 부르는 곳(전투/

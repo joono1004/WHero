@@ -77,17 +77,19 @@ export function HeroCard({
           <h3>{hero.name}</h3>
         </div>
         <p>{ARCHETYPE_LABEL[archetype]}</p>
-        <button
-          type="button"
-          className="hero-appointment-card__details"
-          onClick={(event) => {
-            event.stopPropagation();
-            onDetails?.(hero);
-          }}
-          aria-label={`${hero.name} 상세보기`}
-        >
-          <span aria-hidden="true">i</span>
-        </button>
+        {onDetails && (
+          <button
+            type="button"
+            className="hero-appointment-card__details"
+            onClick={(event) => {
+              event.stopPropagation();
+              onDetails(hero);
+            }}
+            aria-label={`${hero.name} 상세보기`}
+          >
+            <span aria-hidden="true">i</span>
+          </button>
+        )}
       </div>
     </div>
   );

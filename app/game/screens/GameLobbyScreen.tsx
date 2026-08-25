@@ -6,7 +6,7 @@ import { PLAYER_FACTION_ID } from "../../../lib/game/faction.ts";
 import type { Faction } from "../../../lib/game/faction.ts";
 import { appointGovernor } from "../../../lib/game/governor.ts";
 import { heroOverallGrade } from "../../../lib/game/hero-definition.ts";
-import { governedWorldId, setDeploymentPriority } from "../../../lib/game/hero.ts";
+import { createRecruitedHeroState, governedWorldId, setDeploymentPriority } from "../../../lib/game/hero.ts";
 import type { HeroState } from "../../../lib/game/hero.ts";
 import { buildHeroListEntries } from "../../../lib/game/hero-roster.ts";
 import type { HeroListEntry } from "../../../lib/game/hero-roster.ts";
@@ -339,6 +339,10 @@ export function GameLobbyScreen({
           const deploymentHeroCount = entries.filter((entry) => entry.state.deploymentPriority).length;
           if (hero?.deploymentPriority && deploymentHeroCount <= 1) return;
           updateHero(heroId, (target) => setDeploymentPriority(target, !target.deploymentPriority));
+        }}
+        onRecruitHero={(definition) => {
+          if (save.heroes.some((hero) => hero.heroId === definition.id)) return;
+          onUpdateSave({ ...save, heroes: [...save.heroes, createRecruitedHeroState(definition)] });
         }}
         governorLabelFor={governorLabelFor}
       />
