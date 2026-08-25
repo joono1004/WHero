@@ -20,6 +20,7 @@ create table if not exists public.saves (
 
 alter table public.saves enable row level security;
 
+drop policy if exists "Users can manage their own saves" on public.saves;
 create policy "Users can manage their own saves"
   on public.saves for all
   using (auth.uid() = user_id)
