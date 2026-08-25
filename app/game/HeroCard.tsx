@@ -20,7 +20,7 @@ const UNIT_EMBLEM: Record<HeroDefinition["unitType"], string> = {
   infantry: "/art/units/infantry-emblem-v4.webp",
   archer: "/art/units/archer-emblem-v4.webp",
   siege: "/art/units/infantry-emblem-v4.webp",
-  strategist: "/art/units/strategist-emblem-v2.png",
+  strategist: "/art/units/strategist-emblem-v3.png",
 };
 
 // New-game hero selection uses an intentionally light information footprint:
