@@ -41,7 +41,7 @@ const BAG_EMPTY_PREVIEW_ROWS = 4;
 const HERO_FRAGMENT_ART: Record<CoreGrade, string> = {
   SS: "/art/items/hero-fragment-ss-v1.png",
   S: "/art/items/hero-fragment-s-v1.png",
-  A: "/art/items/hero-fragment-a-v2.png",
+  A: "/art/items/hero-fragment-a-v3.png",
   B: "/art/items/hero-fragment-b-v1.png",
   C: "/art/items/hero-fragment-c-v1.png",
   D: "/art/items/hero-fragment-d-v1.png",
