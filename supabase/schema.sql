@@ -129,10 +129,10 @@ insert into public.hero_catalog (id, name, availability, portrait_path, definiti
  '{"id":"wei-yan","name":"위연","description":"뛰어난 지휘 재능을 지녔으나 반골이라는 평가로 끝내 신뢰받지 못한 비운의 장수. 자오곡 기습안을 건의한 장군형 영웅.","attributes":{"leadership":"S","force":"B","intelligence":"C","charisma":"C","vitality":"B"},"unitType":"infantry","domesticSpecialties":{"troops":"A","gold":"없음","food":"없음","iron":"없음","recovery":"없음","defense":"없음"},"traits":["talent"],"skills":[],"evolution":null}'::jsonb),
 ('xu-shu', '서서', 'starter', '/art/heroes/xu-shu-council-portrait-v1.png',
  '{"id":"xu-shu","name":"서서","description":"유비를 섬기다 어머니가 인질로 잡혀 조조 진영으로 떠난 비운의 책사. 재능을 다 펼치지 못했다는 지략형 영웅.","attributes":{"leadership":"C","force":"C","intelligence":"S","charisma":"B","vitality":"C"},"unitType":"archer","domesticSpecialties":{"troops":"없음","gold":"B","food":"B","iron":"없음","recovery":"없음","defense":"없음"},"traits":["trade","farming"],"skills":[],"evolution":null}'::jsonb),
-('guan-yu', '관우', 'recruitable', null,
+('guan-yu', '관우', 'recruitable', '/art/heroes/guan-yu-lobby-face-v1.png',
  '{"id":"guan-yu","name":"관우","description":"형주를 지키며 수군을 운용한 촉한의 명장. 통솔력과 무력을 겸비한 장군형 영웅.","attributes":{"leadership":"S","force":"A","intelligence":"B","charisma":"A","vitality":"S"},"unitType":"cavalry","domesticSpecialties":{"troops":"A","food":"B","gold":"없음","iron":"없음","recovery":"없음","defense":"B"},"traits":["talent","farming"],"skills":["ironwall"],"evolution":{"targetUnitType":"cavalry_ironclad","requiredLevel":5,"requiredItemId":"evolution-item-cavalry-ironclad"}}'::jsonb),
-('zhao-yun', '조운', 'recruitable', null,
+('zhao-yun', '조운', 'recruitable', '/art/heroes/zhao-yun-lobby-face-v1.png',
  '{"id":"zhao-yun","name":"조운","description":"장판파에서 단신으로 적진을 돌파한 촉한의 맹장. 압도적인 무력을 지닌 무력형 영웅.","attributes":{"leadership":"B","force":"S","intelligence":"B","charisma":"A","vitality":"A"},"unitType":"cavalry","domesticSpecialties":{"troops":"B","food":"C","gold":"없음","iron":"없음","recovery":"B","defense":"없음"},"traits":["talent","farming"],"skills":[],"evolution":null}'::jsonb),
-('zhuge-liang', '제갈량', 'recruitable', null,
+('zhuge-liang', '제갈량', 'recruitable', '/art/heroes/zhuge-liang-lobby-face-v1.png',
  '{"id":"zhuge-liang","name":"제갈량","description":"오장원과 기산에서 지략을 펼친 촉한의 승상. 내정과 계략에 능한 지략형 영웅.","attributes":{"leadership":"B","force":"C","intelligence":"SS","charisma":"A","vitality":"B"},"unitType":"strategist","domesticSpecialties":{"troops":"B","food":"S","gold":"A","iron":"B","recovery":"없음","defense":"없음"},"traits":["farming","trade","talent"],"skills":[],"evolution":null}'::jsonb)
 on conflict (id) do nothing;

@@ -10,6 +10,9 @@ export const HERO_PORTRAIT: Partial<Record<HeroId, string>> = {
   "zhang-bao": "/art/heroes/zhang-bao-council-portrait-v1.png",
   "wei-yan": "/art/heroes/wei-yan-council-portrait-v1.png",
   "xu-shu": "/art/heroes/xu-shu-council-portrait-v1.png",
+  "guan-yu": "/art/heroes/guan-yu-lobby-face-v1.png",
+  "zhuge-liang": "/art/heroes/zhuge-liang-lobby-face-v1.png",
+  "zhao-yun": "/art/heroes/zhao-yun-lobby-face-v1.png",
 };
 
 // 영웅 초상 아트 스펙 (2026-08-xx 작성, 2026-08-07 갱신 - Codex 참고용):
