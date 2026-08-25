@@ -13,6 +13,16 @@ export const HERO_PORTRAIT: Partial<Record<HeroId, string>> = {
   "guan-yu": "/art/heroes/guan-yu-lobby-face-v1.png",
   "zhuge-liang": "/art/heroes/zhuge-liang-lobby-face-v1.png",
   "zhao-yun": "/art/heroes/zhao-yun-lobby-face-v1.png",
+  "huang-zhong": "/art/heroes/huang-zhong-classic-face-v4.webp",
+  "zhang-fei": "/art/title/heroes/zhang-fei-v1.png",
+  "xiahou-yuan": "/art/heroes/xiahou-yuan-lobby-face-v1.png",
+  "xiahou-dun": "/art/heroes/xiahou-dun-lobby-face-v1.png",
+  "xu-chu": "/art/heroes/xu-chu-lobby-face-v1.png",
+  "xu-huang": "/art/heroes/xu-huang-lobby-face-v1.png",
+  "yi-sun-sin": "/art/title/heroes/yi-sun-sin-v1.png",
+  "king-sejong": "/art/title/heroes/king-sejong-v1.png",
+  "joan-of-arc": "/art/title/heroes/joan-of-arc-v1.png",
+  "napoleon": "/art/title/heroes/napoleon-v1.png",
 };
 
 // 영웅 초상 아트 스펙 (2026-08-xx 작성, 2026-08-07 갱신 - Codex 참고용):
