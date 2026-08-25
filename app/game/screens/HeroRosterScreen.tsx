@@ -38,6 +38,14 @@ const EQUIPMENT_SLOTS = [
 ] as const;
 const BAG_GRID_COLUMNS = 4;
 const BAG_EMPTY_PREVIEW_ROWS = 4;
+const HERO_FRAGMENT_ART: Record<CoreGrade, string> = {
+  SS: "/art/items/hero-fragment-ss-v1.png",
+  S: "/art/items/hero-fragment-s-v1.png",
+  A: "/art/items/hero-fragment-a-v1.png",
+  B: "/art/items/hero-fragment-b-v1.png",
+  C: "/art/items/hero-fragment-c-v1.png",
+  D: "/art/items/hero-fragment-d-v1.png",
+};
 
 /** 10명(2열×5행)을 한눈에 보여주는 모바일 가로용 영웅 기록첩. */
 export function HeroRosterScreen({
@@ -211,7 +219,7 @@ export function HeroRosterScreen({
           </div>
         </aside>
         <aside className="hero-ledger__bag" aria-label="가방"><p>가방</p><div className="hero-ledger__bag-grid">
-          {fragmentItems.map(({ grade, count }) => <span key={grade} className="hero-ledger__fragment" data-grade={grade} title={`${HERO_FRAGMENT_LABEL[grade]} ${count}개`}><img src="/art/items/hero-fragment-v3.png" alt="" /><b>{grade}</b><small>×{count}</small></span>)}
+          {fragmentItems.map(({ grade, count }) => <span key={grade} className="hero-ledger__fragment" data-grade={grade} title={`${HERO_FRAGMENT_LABEL[grade]} ${count}개`}><img src={HERO_FRAGMENT_ART[grade]} alt={`${grade}등급 영웅 조각`} /><small>×{count}</small></span>)}
           {Array.from({ length: Math.max(0, BAG_GRID_COLUMNS * BAG_EMPTY_PREVIEW_ROWS - fragmentItems.length) }, (_, index) => <span key={`empty-${index}`} />)}
         </div></aside>
       </div>
