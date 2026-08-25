@@ -11,7 +11,7 @@ export const HERO_PORTRAIT: Partial<Record<HeroId, string>> = {
   "wei-yan": "/art/heroes/wei-yan-council-portrait-v1.png",
   "xu-shu": "/art/heroes/xu-shu-council-portrait-v1.png",
   "guan-yu": "/art/heroes/guan-yu-lobby-face-v1.png",
-  "zhuge-liang": "/art/heroes/zhuge-liang-lobby-face-v1.png",
+  "zhuge-liang": "/art/heroes/zhuge-liang-lobby-face-v2.png",
   "zhao-yun": "/art/heroes/zhao-yun-lobby-face-v1.png",
   "huang-zhong": "/art/heroes/huang-zhong-lobby-face-v2.png",
   "zhang-fei": "/art/heroes/zhang-fei-lobby-face-v2.png",
