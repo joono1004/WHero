@@ -9,6 +9,7 @@ import { HERO_SKILL_CATALOG } from "../../lib/game/hero-skill.ts";
 import type { HeroTraitId } from "../../lib/game/hero-trait.ts";
 import { HERO_TRAIT_CATALOG } from "../../lib/game/hero-trait.ts";
 import { UNIT_TYPE_CATALOG } from "../../lib/game/unit-production.ts";
+import { HERO_PORTRAIT } from "../game/heroPortraits.ts";
 import "./admin.css";
 
 type Availability = "starter" | "recruitable" | "hidden";
@@ -148,7 +149,7 @@ export default function AdminPage() {
       <section className="admin-content">
         <div className="admin-content__heading"><div><p className="admin-kicker">영웅정보</p><h2>영웅 목록 <b>{rows.length}</b></h2><span>영웅을 클릭하면 수정 창이 열립니다.</span></div><button type="button" onClick={createHero}>+ 영웅 추가</button></div>
         <p className="admin-message">{message}</p>
-        <div className="admin-hero-list">{rows.map((row) => <button key={row.id} type="button" onClick={() => openHero(row.id)}><span className="admin-hero-list__portrait">{row.portrait_path ? <img src={row.portrait_path} alt="" /> : "?"}</span><span><strong>{row.name}</strong><small>{row.availability === "starter" ? "첫 영웅" : row.availability === "recruitable" ? "영입 가능" : "비공개"} · {UNIT_TYPE_CATALOG[row.definition.unitType]?.label ?? row.definition.unitType}</small></span><i>수정</i></button>)}</div>
+        <div className="admin-hero-list">{rows.map((row) => { const portraitUrl = row.portrait_path ?? HERO_PORTRAIT[row.id]; return <button key={row.id} type="button" onClick={() => openHero(row.id)}><span className="admin-hero-list__portrait">{portraitUrl ? <img src={portraitUrl} alt="" /> : "?"}</span><span><strong>{row.name}</strong><small>{row.availability === "starter" ? "첫 영웅" : row.availability === "recruitable" ? "영입 가능" : "비공개"} · {UNIT_TYPE_CATALOG[row.definition.unitType]?.label ?? row.definition.unitType}</small></span><i>수정</i></button>; })}</div>
       </section>
     </div>
     {isEditorOpen && selected ? <div className="admin-modal" role="dialog" aria-modal="true" aria-label={`${selected.name} 수정`}><div className="admin-modal__backdrop" onClick={() => setEditorOpen(false)} /><div className="admin-modal__panel"><button type="button" className="admin-modal__close" aria-label="수정 창 닫기" onClick={() => setEditorOpen(false)}>×</button><HeroEditor draft={selected} onChange={updateSelected} onSave={saveSelected} /></div></div> : null}
