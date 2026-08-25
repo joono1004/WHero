@@ -65,6 +65,7 @@ export default function AdminPage() {
   const [authorized, setAuthorized] = useState(false);
   const [rows, setRows] = useState<AdminHeroRow[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [isEditorOpen, setEditorOpen] = useState(false);
   const [message, setMessage] = useState("관리자 권한을 확인하고 있습니다.");
   const selected = useMemo(() => rows.find((row) => row.id === selectedId) ?? null, [rows, selectedId]);
 
@@ -98,6 +99,29 @@ export default function AdminPage() {
     await checkAdmin();
   }
 
+  async function signOut() {
+    if (!supabase) return;
+    await supabase.auth.signOut();
+    setAuthorized(false);
+    setRows([]);
+    setSelectedId(null);
+    setEditorOpen(false);
+    setMessage("로그아웃했습니다. 관리자 계정으로 다시 로그인해 주세요.");
+  }
+
+  function openHero(id: string) {
+    setSelectedId(id);
+    setEditorOpen(true);
+  }
+
+  function createHero() {
+    const hero = blankHero();
+    setRows((current) => [...current, hero]);
+    setSelectedId(hero.id);
+    setEditorOpen(true);
+    setMessage("새 영웅 초안을 만들었습니다. 저장 전까지 게임에는 반영되지 않습니다.");
+  }
+
   function updateSelected(change: (current: Draft) => Draft) {
     if (!selected) return;
     setRows((current) => current.map((row) => row.id === selected.id ? change(row) : row));
@@ -119,12 +143,16 @@ export default function AdminPage() {
   if (!authorized) return <main className="admin-gate"><section><p className="admin-kicker">HERO STORY · ADMIN</p><h1>관리자 로그인</h1><p>{message}</p><form onSubmit={signIn}><label>이메일<input value={email} onChange={(event) => setEmail(event.target.value)} type="email" autoComplete="email" required /></label><label>비밀번호<input value={password} onChange={(event) => setPassword(event.target.value)} type="password" autoComplete="current-password" required /></label><button>관리자 로그인</button></form><small>관리자 권한은 `ljhs1004@gmail.com` 계정에만 부여됩니다.</small></section></main>;
 
   return <main className="admin-shell">
-    <header className="admin-header"><div><p className="admin-kicker">HERO STORY · ADMIN</p><h1>영웅 관리</h1><span>수정 후 반영을 눌러야 게임 데이터에 저장됩니다.</span></div><button type="button" onClick={() => { const hero = blankHero(); setRows((current) => [...current, hero]); setSelectedId(hero.id); setMessage("새 영웅 초안을 만들었습니다. 저장 전까지 게임에는 반영되지 않습니다."); }}>+ 영웅 추가</button></header>
-    <p className="admin-message">{message}</p>
-    <div className="admin-workspace">
-      <aside className="admin-list"><h2>영웅 목록 <b>{rows.length}</b></h2>{rows.map((row) => <button key={row.id} className={row.id === selectedId ? "is-selected" : ""} onClick={() => setSelectedId(row.id)}><strong>{row.name}</strong><span>{row.availability === "starter" ? "첫 영웅" : row.availability === "recruitable" ? "영입 가능" : "비공개"} · {row.definition.unitType}</span></button>)}</aside>
-      {selected ? <HeroEditor draft={selected} onChange={updateSelected} onSave={saveSelected} /> : <section className="admin-empty">왼쪽에서 영웅을 선택하거나 새 영웅을 추가하세요.</section>}
+    <header className="admin-header"><div><p className="admin-kicker">HERO STORY · ADMIN</p><h1>관리자 화면</h1><span>관리 항목을 선택해 데이터를 확인·수정합니다.</span></div><button type="button" className="admin-logout" onClick={signOut}>로그아웃</button></header>
+    <div className="admin-layout">
+      <aside className="admin-nav" aria-label="관리자 메뉴"><p>관리 메뉴</p><button type="button" className="is-active">영웅정보</button></aside>
+      <section className="admin-content">
+        <div className="admin-content__heading"><div><p className="admin-kicker">영웅정보</p><h2>영웅 목록 <b>{rows.length}</b></h2><span>영웅을 클릭하면 수정 창이 열립니다.</span></div><button type="button" onClick={createHero}>+ 영웅 추가</button></div>
+        <p className="admin-message">{message}</p>
+        <div className="admin-hero-list">{rows.map((row) => <button key={row.id} type="button" onClick={() => openHero(row.id)}><span className="admin-hero-list__portrait">{row.portrait_path ? <img src={row.portrait_path} alt="" /> : "?"}</span><span><strong>{row.name}</strong><small>{row.availability === "starter" ? "첫 영웅" : row.availability === "recruitable" ? "영입 가능" : "비공개"} · {UNIT_TYPE_CATALOG[row.definition.unitType]?.label ?? row.definition.unitType}</small></span><i>수정</i></button>)}</div>
+      </section>
     </div>
+    {isEditorOpen && selected ? <div className="admin-modal" role="dialog" aria-modal="true" aria-label={`${selected.name} 수정`}><div className="admin-modal__backdrop" onClick={() => setEditorOpen(false)} /><div className="admin-modal__panel"><button type="button" className="admin-modal__close" aria-label="수정 창 닫기" onClick={() => setEditorOpen(false)}>×</button><HeroEditor draft={selected} onChange={updateSelected} onSave={saveSelected} /></div></div> : null}
   </main>;
 }
 
