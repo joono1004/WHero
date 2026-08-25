@@ -10,6 +10,7 @@ import { ARCHETYPE_LABEL, UNIT_TYPE_LABEL } from "../heroLabels.ts";
 import { HERO_PORTRAIT } from "../heroPortraits.ts";
 
 type SortMode = "grade" | "name" | "level" | "archetype";
+type RecruitTab = "heroes" | "treasures";
 
 const SORT_COMPARATORS: Record<SortMode, (a: HeroListEntry, b: HeroListEntry) => number> = {
   grade: compareByGrade,
@@ -46,6 +47,7 @@ export function HeroRosterScreen({
 }) {
   const [sortMode, setSortMode] = useState<SortMode>("grade");
   const [selectedId, setSelectedId] = useState<string | null>(initialHeroId);
+  const [recruitTab, setRecruitTab] = useState<RecruitTab | null>(null);
   const sorted = [...entries].sort(SORT_COMPARATORS[sortMode]);
   const deploymentHeroCount = entries.filter((entry) => entry.state.deploymentPriority).length;
   const selectedIndex = sorted.findIndex((entry) => entry.state.heroId === selectedId);
@@ -54,11 +56,37 @@ export function HeroRosterScreen({
   const goPrev = () => activeIndex > 0 && setSelectedId(sorted[activeIndex - 1].state.heroId);
   const goNext = () => activeIndex < sorted.length - 1 && setSelectedId(sorted[activeIndex + 1].state.heroId);
 
+  if (recruitTab) {
+    return (
+      <section className="recruit-hall" aria-label="영웅 모집과 보물 탐색">
+        <header className="recruit-hall__header">
+          <button className="hero-ledger__back" onClick={() => setRecruitTab(null)} aria-label="영웅정보으로 돌아가기" title="뒤로가기" />
+          <nav className="recruit-hall__tabs" aria-label="모집과 탐색 선택">
+            <button className={recruitTab === "heroes" ? "is-active" : ""} onClick={() => setRecruitTab("heroes")}>영웅 모집</button>
+            <button className={recruitTab === "treasures" ? "is-active" : ""} onClick={() => setRecruitTab("treasures")}>보물 탐색</button>
+          </nav>
+        </header>
+        <main className="recruit-hall__content">
+          <div className={`recruit-hall__panel ${recruitTab === "heroes" ? "is-heroes" : "is-treasures"}`}>
+            <span className="recruit-hall__emblem" aria-hidden="true">{recruitTab === "heroes" ? "⚜" : "✦"}</span>
+            <h2>{recruitTab === "heroes" ? "영웅 모집" : "보물 탐색"}</h2>
+            <p>{recruitTab === "heroes" ? "시대를 이끌 새로운 영웅을 맞이할 준비를 하고 있습니다." : "전장에서 빛날 귀중한 보물을 찾을 준비를 하고 있습니다."}</p>
+            <small>세부 획득 방식과 연출은 다음 단계에서 추가됩니다.</small>
+          </div>
+        </main>
+      </section>
+    );
+  }
+
   return (
     <section className="hero-ledger" aria-label="영웅정보">
       <header className="hero-ledger__header">
         <button className="hero-ledger__back" onClick={onBack} aria-label="로비로 돌아가기" title="뒤로가기" />
         <div><h2>영웅정보</h2></div>
+        <div className="hero-ledger__recruit-actions">
+          <button className="hero-ledger__recruit hero-ledger__recruit--heroes" onClick={() => setRecruitTab("heroes")} aria-label="영웅 모집" title="영웅 모집" />
+          <button className="hero-ledger__recruit hero-ledger__recruit--treasures" onClick={() => setRecruitTab("treasures")} aria-label="보물 탐색" title="보물 탐색" />
+        </div>
       </header>
 
       <div className="hero-ledger__body">
