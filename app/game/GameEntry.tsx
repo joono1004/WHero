@@ -18,6 +18,9 @@ import {
 } from "./account.ts";
 import type { AccountStatus } from "./account.ts";
 import { createNewSaveGame } from "../../lib/game/new-game.ts";
+import type { HeroDefinition } from "../../lib/game/hero-definition.ts";
+import { setActiveHeroDefinitions } from "../../lib/game/hero-roster.ts";
+import { STARTING_HEROES } from "../../lib/game/starting-heroes.ts";
 import type { SaveGame } from "../../lib/game/save.ts";
 import { deleteSaveGame, listSaveSlots, readSaveGame, writeSaveGame } from "../../lib/game/storage.ts";
 import type { KeyValueStorage } from "../../lib/game/storage.ts";
@@ -35,6 +38,7 @@ import { MapPlayScreen } from "./screens/MapPlayScreen.tsx";
 import { BattleBriefingScreen } from "./screens/BattleBriefingScreen.tsx";
 import { SettingsScreen } from "./screens/SettingsScreen.tsx";
 import { TitleScreen } from "./screens/TitleScreen.tsx";
+import { loadPublishedHeroCatalog } from "./heroCatalog.ts";
 
 // The game only ever tracks one faction at a time (see MainMenuScreen's
 // 새 게임/이어하기 toggle) - there's no save-slot picker, so "settings"
@@ -61,6 +65,7 @@ export function GameEntry() {
     typeof window === "undefined" ? null : window.localStorage,
   );
   const [accountStatus, setAccountStatus] = useState<AccountStatus | null>(null);
+  const [startingHeroes, setStartingHeroes] = useState<HeroDefinition[]>(STARTING_HEROES);
   // Same lazy-initializer trick as `storage` above: reads localStorage once,
   // on the client, without needing an effect just to seed this from it.
   const [autoBackupEnabled, setAutoBackupEnabled] = useState(() =>
@@ -73,6 +78,17 @@ export function GameEntry() {
     if (!storage) return;
     void ensureGuestSession().then(() => getAccountStatus()).then(setAccountStatus);
   }, [storage]);
+
+  // Published administrator changes replace only the bundled catalogue at
+  // runtime.  If the database is unavailable, the safe local defaults stay
+  // in place and the player can continue normally.
+  useEffect(() => {
+    void loadPublishedHeroCatalog().then((catalog) => {
+      if (!catalog || !catalog.starterDefinitions.length) return;
+      setActiveHeroDefinitions(catalog.definitions);
+      setStartingHeroes(catalog.starterDefinitions);
+    });
+  }, []);
 
   // Refreshes account state whenever Settings is opened, so it reflects a
   // link/sign-in that may have happened moments ago.
@@ -96,14 +112,15 @@ export function GameEntry() {
     storage?.setItem(AUTO_BACKUP_KEY, "true");
   }
 
-  function startNewGame(factionName: string, heroId: string) {
+  function startNewGame(factionName: string, heroDefinition: HeroDefinition) {
     if (!storage) return;
     // Campaign country progress belongs to the current save.  It is stored
     // separately only for the world-map presentation, so it must be cleared
     // before creating a new save as well.
     const save = createNewSaveGame({
       factionName,
-      heroId,
+      heroId: heroDefinition.id,
+      heroDefinition,
       seed: Math.floor(Math.random() * 99999999),
       now: new Date().toISOString(),
     });
@@ -270,7 +287,11 @@ export function GameEntry() {
         return (
           <HeroSelectScreen
             onBack={() => setScreen({ name: "faction-name" })}
-            onConfirm={(heroId) => startNewGame(screen.factionName, heroId)}
+            heroes={startingHeroes}
+            onConfirm={(heroId) => {
+              const hero = startingHeroes.find((candidate) => candidate.id === heroId);
+              if (hero) startNewGame(screen.factionName, hero);
+            }}
           />
         );
 

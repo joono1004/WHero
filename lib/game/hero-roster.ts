@@ -14,8 +14,22 @@ import type { HeroId } from "./ids.ts";
 // come from LEGENDARY_HEROES.
 export const ALL_HERO_DEFINITIONS: HeroDefinition[] = [...STARTING_HEROES, ...LEGENDARY_HEROES];
 
+// The bundled roster is the safe offline fallback.  The administrator
+// catalogue may replace it after the client has fetched a validated,
+// published set from Supabase.  Rules keep using this module rather than a
+// React component, so rendering and game logic stay separated.
+let activeHeroDefinitions: HeroDefinition[] = ALL_HERO_DEFINITIONS;
+
+export function setActiveHeroDefinitions(definitions: HeroDefinition[] | null): void {
+  activeHeroDefinitions = definitions?.length ? definitions : ALL_HERO_DEFINITIONS;
+}
+
+export function currentHeroDefinitions(): HeroDefinition[] {
+  return activeHeroDefinitions;
+}
+
 export function findHeroDefinition(heroId: HeroId): HeroDefinition | undefined {
-  return ALL_HERO_DEFINITIONS.find((hero) => hero.id === heroId);
+  return activeHeroDefinitions.find((hero) => hero.id === heroId);
 }
 
 // A hero the player has (live state) paired with its static template, which

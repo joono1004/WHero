@@ -6,10 +6,15 @@ import { generateInitialMapCandidates } from "./map-candidates.ts";
 import type { SaveGame } from "./save.ts";
 import { SAVE_SCHEMA_VERSION } from "./save.ts";
 import { STARTING_HEROES } from "./starting-heroes.ts";
+import type { HeroDefinition } from "./hero-definition.ts";
 
 export type NewGameParams = {
   factionName: string;
   heroId: string;
+  // A published administrator definition is supplied by the UI when the
+  // catalogue is online.  Keeping it optional preserves deterministic,
+  // offline tests using the bundled starting roster.
+  heroDefinition?: HeroDefinition;
   seed: number;
   now: string;
 };
@@ -24,8 +29,8 @@ export type NewGameParams = {
 // this function reaching for Math.random()/Date.now() itself (keeps it
 // testable without a clock).
 export function createNewSaveGame(params: NewGameParams): SaveGame {
-  const heroDefinition = STARTING_HEROES.find((hero) => hero.id === params.heroId);
-  if (!heroDefinition) {
+  const heroDefinition = params.heroDefinition ?? STARTING_HEROES.find((hero) => hero.id === params.heroId);
+  if (!heroDefinition || heroDefinition.id !== params.heroId) {
     throw new Error(`unknown starting hero id: ${params.heroId}`);
   }
 
