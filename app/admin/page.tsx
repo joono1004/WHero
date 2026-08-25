@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "../game/supabaseClient.ts";
 import type { CoreGrade, SpecialtyGrade } from "../../lib/game/grade.ts";
 import type { DomesticSpecialtyKind, HeroDefinition } from "../../lib/game/hero-definition.ts";
@@ -21,6 +21,36 @@ const DOMESTIC_FIELDS: { key: DomesticSpecialtyKind; label: string }[] = [
   { key: "troops", label: "병사" }, { key: "gold", label: "금" }, { key: "food", label: "식량" },
   { key: "iron", label: "철" }, { key: "recovery", label: "회복" }, { key: "defense", label: "방어" },
 ];
+const CSV_HEADERS = ["id", "name", "availability", "portrait_path", "description", "unit_type", "leadership", "force", "intelligence", "vitality", "charisma", "traits", "skills", "troops", "gold", "food", "iron", "recovery", "defense"] as const;
+
+function csvEscape(value: string) { return `"${value.replaceAll('"', '""')}"`; }
+function splitValues(value: string) { return value.split("|").map((entry) => entry.trim()).filter(Boolean); }
+function parseCsv(text: string): string[][] {
+  const output: string[][] = []; let row: string[] = []; let value = ""; let quoted = false;
+  for (let index = 0; index < text.length; index += 1) {
+    const character = text[index];
+    if (quoted && character === '"' && text[index + 1] === '"') { value += '"'; index += 1; }
+    else if (character === '"') quoted = !quoted;
+    else if (!quoted && character === ",") { row.push(value); value = ""; }
+    else if (!quoted && (character === "\n" || character === "\r")) { if (character === "\r" && text[index + 1] === "\n") index += 1; row.push(value); if (row.some(Boolean)) output.push(row); row = []; value = ""; }
+    else value += character;
+  }
+  row.push(value); if (row.some(Boolean)) output.push(row);
+  return output;
+}
+
+function rowToCsv(row: AdminHeroRow) {
+  const definition = row.definition;
+  const values = [row.id, row.name, row.availability, row.portrait_path ?? "", definition.description, definition.unitType, definition.attributes.leadership, definition.attributes.force, definition.attributes.intelligence, definition.attributes.vitality, definition.attributes.charisma, definition.traits.join("|"), definition.skills.join("|"), definition.domesticSpecialties.troops, definition.domesticSpecialties.gold, definition.domesticSpecialties.food, definition.domesticSpecialties.iron, definition.domesticSpecialties.recovery, definition.domesticSpecialties.defense];
+  return values.map((value) => csvEscape(String(value))).join(",");
+}
+
+function csvToHero(values: Record<string, string>): Draft {
+  const grade = (value: string) => GRADES.includes(value as CoreGrade) ? value as CoreGrade : "D";
+  const specialty = (value: string) => SPECIALTY_GRADES.includes(value as SpecialtyGrade) ? value as SpecialtyGrade : "없음";
+  const id = values.id.trim(); const name = values.name.trim();
+  return { id, name, availability: values.availability as Availability, portrait_path: values.portrait_path.trim() || null, definition: { id, name, description: values.description.trim(), unitType: values.unit_type, attributes: { leadership: grade(values.leadership), force: grade(values.force), intelligence: grade(values.intelligence), vitality: grade(values.vitality), charisma: grade(values.charisma) }, domesticSpecialties: { troops: specialty(values.troops), gold: specialty(values.gold), food: specialty(values.food), iron: specialty(values.iron), recovery: specialty(values.recovery), defense: specialty(values.defense) }, traits: splitValues(values.traits) as HeroTraitId[], skills: splitValues(values.skills) as HeroSkillId[], evolution: null } };
+}
 
 function blankHero(): Draft {
   const id = `hero-${Date.now()}`;
@@ -66,6 +96,7 @@ export default function AdminPage() {
   const [rows, setRows] = useState<AdminHeroRow[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isEditorOpen, setEditorOpen] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [message, setMessage] = useState("관리자 권한을 확인하고 있습니다.");
   const selected = useMemo(() => rows.find((row) => row.id === selectedId) ?? null, [rows, selectedId]);
 
@@ -122,6 +153,40 @@ export default function AdminPage() {
     setMessage("새 영웅 초안을 만들었습니다. 저장 전까지 게임에는 반영되지 않습니다.");
   }
 
+  function exportCsv() {
+    const csv = `\uFEFF${CSV_HEADERS.join(",")}\n${rows.map(rowToCsv).join("\n")}`;
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    const anchor = document.createElement("a");
+    anchor.href = url; anchor.download = "hero-story-heroes.csv"; anchor.click();
+    URL.revokeObjectURL(url);
+    setMessage(`${rows.length}명의 영웅 데이터를 CSV 파일로 내려받았습니다.`);
+  }
+
+  async function importCsv(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file || !supabase) return;
+    if (!file.name.toLowerCase().endsWith(".csv")) { setMessage("CSV 파일만 업로드할 수 있습니다."); return; }
+    try {
+      const parsed = parseCsv((await file.text()).replace(/^\uFEFF/, ""));
+      const headers = parsed[0] ?? [];
+      if (CSV_HEADERS.some((header, index) => headers[index] !== header)) { setMessage("CSV 열 구성이 맞지 않습니다. 먼저 CSV 내보내기로 만든 파일을 사용해 주세요."); return; }
+      const imported = parsed.slice(1).map((cells) => csvToHero(Object.fromEntries(CSV_HEADERS.map((header, index) => [header, cells[index] ?? ""]))));
+      if (!imported.length) { setMessage("업로드할 영웅 데이터가 없습니다."); return; }
+      if (new Set(imported.map((hero) => hero.id)).size !== imported.length) { setMessage("CSV 안에 같은 영웅 ID가 중복되어 있습니다."); return; }
+      const invalid = imported.map(validate).find((message): message is string => Boolean(message));
+      if (invalid) { setMessage(`CSV 검증 실패: ${invalid}`); return; }
+      setMessage(`${imported.length}명의 영웅 데이터를 반영 중입니다.`);
+      const payload = imported.map((hero) => ({ ...hero, definition: { ...hero.definition, id: hero.id, name: hero.name }, updated_at: new Date().toISOString() }));
+      const { error } = await supabase.from("hero_catalog").upsert(payload, { onConflict: "id" });
+      if (error) { setMessage(`CSV를 반영하지 못했습니다: ${error.message}`); return; }
+      await checkAdmin();
+      setMessage(`${payload.length}명의 영웅 데이터를 CSV에서 반영했습니다. 같은 ID는 수정되고, 새 ID는 추가되었습니다.`);
+    } catch {
+      setMessage("CSV 파일을 읽지 못했습니다. 내보낸 파일 형식을 유지해 다시 업로드해 주세요.");
+    }
+  }
+
   function updateSelected(change: (current: Draft) => Draft) {
     if (!selected) return;
     setRows((current) => current.map((row) => row.id === selected.id ? change(row) : row));
@@ -147,7 +212,7 @@ export default function AdminPage() {
     <div className="admin-layout">
       <aside className="admin-nav" aria-label="관리자 메뉴"><p>관리 메뉴</p><button type="button" className="is-active">영웅정보</button></aside>
       <section className="admin-content">
-        <div className="admin-content__heading"><div><p className="admin-kicker">영웅정보</p><h2>영웅 목록 <b>{rows.length}</b></h2><span>영웅을 클릭하면 수정 창이 열립니다.</span></div><button type="button" onClick={createHero}>+ 영웅 추가</button></div>
+        <div className="admin-content__heading"><div><p className="admin-kicker">영웅정보</p><h2>영웅 목록 <b>{rows.length}</b></h2><span>영웅을 클릭하면 수정 창이 열립니다.</span></div><div className="admin-content__actions"><input ref={fileInputRef} type="file" accept=".csv,text/csv" onChange={importCsv} hidden /><button type="button" className="admin-secondary" onClick={exportCsv}>CSV 내보내기</button><button type="button" className="admin-secondary" onClick={() => fileInputRef.current?.click()}>CSV 업로드</button><button type="button" onClick={createHero}>+ 영웅 추가</button></div></div>
         <p className="admin-message">{message}</p>
         <div className="admin-hero-list">{rows.map((row) => <button key={row.id} type="button" onClick={() => openHero(row.id)}><span className="admin-hero-list__portrait">{row.portrait_path ? <img src={row.portrait_path} alt="" /> : "?"}</span><span><strong>{row.name}</strong><small>{row.availability === "starter" ? "첫 영웅" : row.availability === "recruitable" ? "영입 가능" : "비공개"} · {UNIT_TYPE_CATALOG[row.definition.unitType]?.label ?? row.definition.unitType}</small></span><i>수정</i></button>)}</div>
       </section>
