@@ -118,6 +118,14 @@ export function HeroRosterScreen({
         <main className="recruit-hall__content">
           {recruitTab === "heroes" ? (
             <div className="recruit-hall__hero-stage">
+              <aside className="recruit-hall__side-note recruit-hall__side-note--l" aria-label="영웅 모집 안내">
+                <strong>재야의 영웅</strong>
+                <span>그대의 깃발을<br />기다립니다.</span>
+              </aside>
+              <aside className="recruit-hall__side-note recruit-hall__side-note--r" aria-label="모집 결과 안내" data-promo-slot="recruitment">
+                <strong>모집 안내</strong>
+                <span>중복 영웅은<br />등급별 결정으로 전환됩니다.</span>
+              </aside>
               {recruitmentPhase === "revealing" && drawnHeroes[revealIndex] ? (
                 <div className="recruit-hall__reveal" key={`${drawnHeroes[revealIndex].id}-${revealIndex}`}>
                   <span className="recruit-hall__reveal-count">{drawnHeroes.length > 1 ? `${revealIndex + 1} / ${drawnHeroes.length}` : "새로운 인연"}</span>
@@ -150,7 +158,6 @@ export function HeroRosterScreen({
                 </>
               ) : (
                 <>
-                  <p className="recruit-hall__intro">재야에 묻힌 영웅을 찾아, 그대의 깃발 아래로 맞이하세요.</p>
                   <div className="hero-appointment-card recruit-hall__mystery-card" aria-label="아직 모습을 드러내지 않은 영웅 카드">
                     <div className="hero-appointment-card__portrait hero-appointment-card__portrait--empty"><span>?</span></div>
                     <div className="hero-appointment-card__portrait-shade" aria-hidden="true" />
