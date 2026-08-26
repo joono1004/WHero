@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { CSSProperties } from "react";
 import { heroArchetype, heroOverallGrade } from "../../../lib/game/hero-definition.ts";
 import type { HeroListEntry } from "../../../lib/game/hero-roster.ts";
 import { compareByArchetype, compareByGrade, compareByLevel, currentHeroDefinitions } from "../../../lib/game/hero-roster.ts";
@@ -16,6 +17,7 @@ import type { HeroDefinition } from "../../../lib/game/hero-definition.ts";
 type SortMode = "grade" | "name" | "level" | "archetype";
 type RecruitTab = "heroes" | "treasures";
 type RecruitmentPhase = "idle" | "revealing" | "result";
+type CrystalFlight = { id: number; grade: CoreGrade; startX: number; startY: number; endX: number; endY: number };
 
 const SORT_COMPARATORS: Record<SortMode, (a: HeroListEntry, b: HeroListEntry) => number> = {
   grade: compareByGrade,
@@ -66,6 +68,10 @@ export function HeroRosterScreen({
   const [drawnHeroes, setDrawnHeroes] = useState<HeroDefinition[]>([]);
   const [recruitmentPhase, setRecruitmentPhase] = useState<RecruitmentPhase>("idle");
   const [revealIndex, setRevealIndex] = useState(0);
+  const [crystalFlights, setCrystalFlights] = useState<CrystalFlight[]>([]);
+  const [isClaimingRecruitment, setIsClaimingRecruitment] = useState(false);
+  const resultCardRefs = useRef(new Map<number, HTMLDivElement>());
+  const claimButtonRef = useRef<HTMLButtonElement>(null);
   const sorted = [...entries].sort(SORT_COMPARATORS[sortMode]);
   const deploymentHeroCount = entries.filter((entry) => entry.state.deploymentPriority).length;
   const selectedIndex = sorted.findIndex((entry) => entry.state.heroId === selectedId);
@@ -105,13 +111,49 @@ export function HeroRosterScreen({
     setRecruitmentPhase("revealing");
   };
 
-  const claimRecruitment = () => {
+  const finishRecruitmentClaim = () => {
     if (drawnHeroes.length === 0) return;
     onClaimRecruitment(recruitmentResult.recruitedHeroes, recruitmentResult.fragmentGrades);
     if (recruitmentResult.recruitedHeroes[0]) setSelectedId(recruitmentResult.recruitedHeroes[0].id);
     setDrawnHeroes([]);
     setRecruitmentPhase("idle");
     setRecruitTab(null);
+    setCrystalFlights([]);
+    setIsClaimingRecruitment(false);
+  };
+
+  const claimRecruitment = () => {
+    if (drawnHeroes.length === 0 || isClaimingRecruitment) return;
+    const targetBounds = claimButtonRef.current?.getBoundingClientRect();
+    const fragmentIndexes = recruitmentResult.resultKinds
+      .map((kind, index) => kind === "fragment" ? index : -1)
+      .filter((index) => index >= 0);
+    if (!targetBounds || fragmentIndexes.length === 0) {
+      finishRecruitmentClaim();
+      return;
+    }
+    const endX = targetBounds.left + targetBounds.width / 2;
+    const endY = targetBounds.top + targetBounds.height / 2;
+    const flights = fragmentIndexes.flatMap((index, flightIndex) => {
+      const cardBounds = resultCardRefs.current.get(index)?.getBoundingClientRect();
+      const hero = drawnHeroes[index];
+      if (!cardBounds || !hero) return [];
+      return [{
+        id: index * 10 + flightIndex,
+        grade: heroOverallGrade(hero.attributes),
+        startX: cardBounds.left + cardBounds.width / 2,
+        startY: cardBounds.top + cardBounds.height * .57,
+        endX,
+        endY,
+      }];
+    });
+    if (flights.length === 0) {
+      finishRecruitmentClaim();
+      return;
+    }
+    setIsClaimingRecruitment(true);
+    setCrystalFlights(flights);
+    window.setTimeout(finishRecruitmentClaim, 820);
   };
 
   if (recruitTab) {
@@ -152,7 +194,7 @@ export function HeroRosterScreen({
                       const isFragment = recruitmentResult.resultKinds[index] === "fragment";
                       const grade = heroOverallGrade(hero.attributes);
                       return (
-                        <div key={`${hero.id}-${index}`} className={`recruit-hall__result-card${isFragment ? " is-fragment" : ""}`}>
+                        <div key={`${hero.id}-${index}`} ref={(node) => { if (node) resultCardRefs.current.set(index, node); else resultCardRefs.current.delete(index); }} className={`recruit-hall__result-card${isFragment ? " is-fragment" : ""}`}>
                           <HeroCard hero={hero} />
                           {isFragment && <span className="recruit-hall__fragment-result">{grade}결정</span>}
                         </div>
@@ -161,8 +203,9 @@ export function HeroRosterScreen({
                   </div>
                   <div className="recruit-hall__draw-actions">
                     {drawnHeroes.length < 5 && <button type="button" className="recruit-hall__action recruit-hall__action--subtle" onClick={continueRecruiting}>계속 모집</button>}
-                    <button type="button" className="recruit-hall__action" onClick={claimRecruitment}>영웅단에 합류</button>
+                    <button ref={claimButtonRef} type="button" className={`recruit-hall__action${isClaimingRecruitment ? " is-claiming" : ""}`} disabled={isClaimingRecruitment} onClick={claimRecruitment}>영웅 영입</button>
                   </div>
+                  {crystalFlights.map((flight) => <span key={flight.id} className="recruit-hall__crystal-flight" style={{ "--crystal-start-x": `${flight.startX}px`, "--crystal-start-y": `${flight.startY}px`, "--crystal-end-x": `${flight.endX}px`, "--crystal-end-y": `${flight.endY}px` } as CSSProperties}><img src={HERO_FRAGMENT_ART[flight.grade]} alt="" /></span>)}
                 </>
               ) : (
                 <>
