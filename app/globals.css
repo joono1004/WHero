@@ -704,7 +704,6 @@ footer small { margin-left:auto; color:#71898b; }
 @media(max-width:700px){.recruit-hall__hero-stage{width:94%}.recruit-hall__mystery-card{width:120px;height:176px}.recruit-hall__mystery-card .hero-appointment-card__portrait span{font-size:76px}.recruit-hall__intro{margin-top:7px!important;font-size:10px!important}.recruit-hall__summon-portal{width:200px;height:190px}.recruit-hall__summon-portal .hero-appointment-card{width:120px;height:176px}.recruit-hall__hero-stage>.recruit-hall__results{min-height:181px}.recruit-hall__hero-stage>.recruit-hall__results:not(.is-ten) .hero-appointment-card{width:120px;height:176px}.recruit-hall__hero-stage>.recruit-hall__results.is-ten{min-height:184px}.recruit-hall__hero-stage .recruit-hall__action{min-width:128px}}
 /* The recruitment prompt and result title share the same fixed line above the card. */
 .recruit-hall__intro{margin:0 0 5px!important}
-.recruit-hall__ticket--reserved{visibility:hidden}
 @media(max-width:700px){.recruit-hall__intro{margin:0 0 4px!important}}
 /* A single recruitment card is shown at the same ceremony size as the first-hero selection cards. */
 .recruit-hall__mystery-card,.recruit-hall__summon-portal .hero-appointment-card,.recruit-hall__hero-stage>.recruit-hall__results:not(.is-ten) .hero-appointment-card{width:178px;height:260px}

@@ -143,7 +143,6 @@ export function HeroRosterScreen({
                       );
                     })}
                   </div>
-                  <small className="recruit-hall__ticket recruit-hall__ticket--reserved" aria-hidden="true">모집권 ∞</small>
                   <div className="recruit-hall__draw-actions">
                     <button type="button" className="recruit-hall__action recruit-hall__action--subtle" onClick={() => { setDrawnHeroes([]); setRecruitmentPhase("idle"); }}>다시 모집</button>
                     <button type="button" className="recruit-hall__action" onClick={claimRecruitment}>영웅단에 합류</button>
@@ -157,7 +156,6 @@ export function HeroRosterScreen({
                     <div className="hero-appointment-card__portrait-shade" aria-hidden="true" />
                     <div className="hero-appointment-card__frame" aria-hidden="true" />
                   </div>
-                  <small className="recruit-hall__ticket">모집권 <b>∞</b> · 테스트 기간에는 소모되지 않습니다.</small>
                   <div className="recruit-hall__draw-actions">
                     <button type="button" className="recruit-hall__action recruit-hall__action--subtle" onClick={() => drawHeroes(1)}>1회 모집</button>
                     <button type="button" className="recruit-hall__action" onClick={() => drawHeroes(10)}>10회 모집</button>
