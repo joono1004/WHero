@@ -42,12 +42,12 @@ const EQUIPMENT_SLOTS = [
 const BAG_GRID_COLUMNS = 4;
 const BAG_EMPTY_PREVIEW_ROWS = 4;
 const HERO_FRAGMENT_ART: Record<CoreGrade, string> = {
-  SS: "/art/items/hero-fragment-ss-v2.png",
-  S: "/art/items/hero-fragment-s-v2.png",
+  SS: "/art/items/hero-fragment-ss-v3.png",
+  S: "/art/items/hero-fragment-s-v3.png",
   A: "/art/items/hero-fragment-a-v3.png",
-  B: "/art/items/hero-fragment-b-v2.png",
+  B: "/art/items/hero-fragment-b-v3.png",
   C: "/art/items/hero-fragment-c-v2.png",
-  D: "/art/items/hero-fragment-d-v2.png",
+  D: "/art/items/hero-fragment-d-v3.png",
 };
 
 /** 10명(2열×5행)을 한눈에 보여주는 모바일 가로용 영웅 기록첩. */
