@@ -91,8 +91,17 @@ export function HeroRosterScreen({
   const drawHeroes = (count: number) => {
     const candidates = currentHeroDefinitions();
     if (candidates.length === 0) return;
-    setDrawnHeroes(Array.from({ length: count }, () => candidates[Math.floor(Math.random() * candidates.length)]));
+    setDrawnHeroes(Array.from({ length: Math.min(count, 5) }, () => candidates[Math.floor(Math.random() * candidates.length)]));
     setRevealIndex(0);
+    setRecruitmentPhase("revealing");
+  };
+
+  const continueRecruiting = () => {
+    const candidates = currentHeroDefinitions();
+    if (drawnHeroes.length >= 5 || candidates.length === 0) return;
+    const nextHero = candidates[Math.floor(Math.random() * candidates.length)];
+    setDrawnHeroes((current) => [...current, nextHero]);
+    setRevealIndex(drawnHeroes.length);
     setRecruitmentPhase("revealing");
   };
 
@@ -118,14 +127,16 @@ export function HeroRosterScreen({
         <main className="recruit-hall__content">
           {recruitTab === "heroes" ? (
             <div className="recruit-hall__hero-stage">
-              <aside className="recruit-hall__side-note recruit-hall__side-note--l" aria-label="영웅 모집 안내">
-                <strong>재야의 영웅</strong>
-                <span>그대의 깃발을<br />기다립니다.</span>
-              </aside>
-              <aside className="recruit-hall__side-note recruit-hall__side-note--r" aria-label="모집 결과 안내" data-promo-slot="recruitment">
-                <strong>모집 안내</strong>
-                <span>중복 영웅은<br />등급별 결정으로 전환됩니다.</span>
-              </aside>
+              {recruitmentPhase === "idle" && <>
+                <aside className="recruit-hall__side-note recruit-hall__side-note--l" aria-label="영웅 모집 안내">
+                  <strong>재야의 영웅</strong>
+                  <span>그대의 깃발을<br />기다립니다.</span>
+                </aside>
+                <aside className="recruit-hall__side-note recruit-hall__side-note--r" aria-label="모집 결과 안내" data-promo-slot="recruitment">
+                  <strong>모집 안내</strong>
+                  <span>중복 영웅은<br />등급별 결정으로 전환됩니다.</span>
+                </aside>
+              </>}
               {recruitmentPhase === "revealing" && drawnHeroes[revealIndex] ? (
                 <div className="recruit-hall__reveal" key={`${drawnHeroes[revealIndex].id}-${revealIndex}`}>
                   <span className="recruit-hall__reveal-count">{drawnHeroes.length > 1 ? `${revealIndex + 1} / ${drawnHeroes.length}` : "새로운 인연"}</span>
@@ -138,8 +149,7 @@ export function HeroRosterScreen({
                 </div>
               ) : recruitmentPhase === "result" && drawnHeroes.length > 0 ? (
                 <>
-                  <p className="recruit-hall__eyebrow">{drawnHeroes.length === 1 ? "새로운 인연을 맞이했습니다" : `모집 결과 · ${drawnHeroes.length}명`}</p>
-                  <div className={`recruit-hall__results${drawnHeroes.length >= 10 ? " is-ten" : ""}`}>
+                  <div className={`recruit-hall__results${drawnHeroes.length > 1 ? " is-multi" : ""}`}>
                     {drawnHeroes.map((hero, index) => {
                       const isFragment = recruitmentResult.resultKinds[index] === "fragment";
                       const grade = heroOverallGrade(hero.attributes);
@@ -152,7 +162,7 @@ export function HeroRosterScreen({
                     })}
                   </div>
                   <div className="recruit-hall__draw-actions">
-                    <button type="button" className="recruit-hall__action recruit-hall__action--subtle" onClick={() => { setDrawnHeroes([]); setRecruitmentPhase("idle"); }}>다시 모집</button>
+                    {drawnHeroes.length < 5 && <button type="button" className="recruit-hall__action recruit-hall__action--subtle" onClick={continueRecruiting}>계속 모집</button>}
                     <button type="button" className="recruit-hall__action" onClick={claimRecruitment}>영웅단에 합류</button>
                   </div>
                 </>
@@ -165,7 +175,7 @@ export function HeroRosterScreen({
                   </div>
                   <div className="recruit-hall__draw-actions">
                     <button type="button" className="recruit-hall__action recruit-hall__action--subtle" onClick={() => drawHeroes(1)}>1회 모집</button>
-                    <button type="button" className="recruit-hall__action" onClick={() => drawHeroes(10)}>10회 모집</button>
+                    <button type="button" className="recruit-hall__action" onClick={() => drawHeroes(5)}>5회 모집</button>
                   </div>
                 </>
               )}
