@@ -139,13 +139,11 @@ export function HeroRosterScreen({
               </>}
               {recruitmentPhase === "revealing" && drawnHeroes[revealIndex] ? (
                 <div className="recruit-hall__reveal" key={`${drawnHeroes[revealIndex].id}-${revealIndex}`}>
-                  <span className="recruit-hall__reveal-count">{drawnHeroes.length > 1 ? `${revealIndex + 1} / ${drawnHeroes.length}` : "새로운 인연"}</span>
                   <div className="recruit-hall__summon-portal">
                     <span className="recruit-hall__summon-flash" />
                     <span className="recruit-hall__summon-cloud" />
                     <HeroCard hero={drawnHeroes[revealIndex]} />
                   </div>
-                  <p>안개가 걷히며 새로운 영웅이 모습을 드러냅니다.</p>
                 </div>
               ) : recruitmentPhase === "result" && drawnHeroes.length > 0 ? (
                 <>
