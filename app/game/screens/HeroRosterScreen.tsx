@@ -147,7 +147,7 @@ export function HeroRosterScreen({
                 </div>
               ) : recruitmentPhase === "result" && drawnHeroes.length > 0 ? (
                 <>
-                  <div className={`recruit-hall__results${drawnHeroes.length > 1 ? " is-multi" : ""}`}>
+                  <div className={`recruit-hall__results${drawnHeroes.length > 1 ? ` is-multi is-count-${drawnHeroes.length}` : ""}`}>
                     {drawnHeroes.map((hero, index) => {
                       const isFragment = recruitmentResult.resultKinds[index] === "fragment";
                       const grade = heroOverallGrade(hero.attributes);
