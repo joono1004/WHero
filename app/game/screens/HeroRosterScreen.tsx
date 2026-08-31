@@ -13,10 +13,12 @@ import { HeroInfoPanel } from "../HeroInfoPanel.tsx";
 import { ARCHETYPE_LABEL, UNIT_TYPE_LABEL } from "../heroLabels.ts";
 import { HERO_PORTRAIT } from "../heroPortraits.ts";
 import type { HeroDefinition } from "../../../lib/game/hero-definition.ts";
+import { BUNDLED_TREASURE_DEFINITIONS, TREASURE_CATEGORY_LABEL, treasureEffectText, type TreasureDefinition } from "../../../lib/game/treasure-definition.ts";
 
 type SortMode = "grade" | "name" | "level" | "archetype";
 type RecruitTab = "heroes" | "treasures";
 type RecruitmentPhase = "idle" | "revealing" | "result";
+type TreasureExplorePhase = "idle" | "opening" | "result";
 type CrystalFlight = { id: number; grade: CoreGrade; startX: number; startY: number; endX: number; endY: number };
 
 const SORT_COMPARATORS: Record<SortMode, (a: HeroListEntry, b: HeroListEntry) => number> = {
@@ -49,6 +51,12 @@ const HERO_FRAGMENT_ART: Record<CoreGrade, string> = {
   C: "/art/items/hero-fragment-c-v2.png",
   D: "/art/items/hero-fragment-d-v3.png",
 };
+const TREASURE_CATEGORY_ART: Record<TreasureDefinition["category"], string> = {
+  weapon: "/art/ui/equipment-weapon-empty-v2.png",
+  armor: "/art/ui/equipment-armor-empty-v2.png",
+  mount: "/art/ui/equipment-mount-empty-v2.png",
+  other: "/art/ui/equipment-other-empty-v2.png",
+};
 
 /** 10명(2열×5행)을 한눈에 보여주는 모바일 가로용 영웅 기록첩. */
 export function HeroRosterScreen({
@@ -70,6 +78,9 @@ export function HeroRosterScreen({
   const [revealIndex, setRevealIndex] = useState(0);
   const [crystalFlights, setCrystalFlights] = useState<CrystalFlight[]>([]);
   const [isClaimingRecruitment, setIsClaimingRecruitment] = useState(false);
+  const [treasureExplorePhase, setTreasureExplorePhase] = useState<TreasureExplorePhase>("idle");
+  const [drawnTreasures, setDrawnTreasures] = useState<TreasureDefinition[]>([]);
+  const [treasureRevealIndex, setTreasureRevealIndex] = useState(0);
   const resultCardRefs = useRef(new Map<number, HTMLDivElement>());
   const claimButtonRef = useRef<HTMLButtonElement>(null);
   const sorted = [...entries].sort(SORT_COMPARATORS[sortMode]);
@@ -94,6 +105,15 @@ export function HeroRosterScreen({
     return () => window.clearTimeout(timer);
   }, [drawnHeroes.length, recruitmentPhase, revealIndex]);
 
+  useEffect(() => {
+    if (treasureExplorePhase !== "opening" || drawnTreasures.length === 0) return;
+    const timer = window.setTimeout(() => {
+      if (treasureRevealIndex + 1 < drawnTreasures.length) setTreasureRevealIndex((current) => current + 1);
+      else setTreasureExplorePhase("result");
+    }, 820);
+    return () => window.clearTimeout(timer);
+  }, [drawnTreasures.length, treasureExplorePhase, treasureRevealIndex]);
+
   const drawHeroes = (count: number) => {
     const candidates = currentHeroDefinitions();
     if (candidates.length === 0) return;
@@ -109,6 +129,12 @@ export function HeroRosterScreen({
     setDrawnHeroes((current) => [...current, nextHero]);
     setRevealIndex(drawnHeroes.length);
     setRecruitmentPhase("revealing");
+  };
+
+  const exploreTreasures = (count: number) => {
+    setDrawnTreasures(Array.from({ length: Math.min(count, 5) }, () => BUNDLED_TREASURE_DEFINITIONS[Math.floor(Math.random() * BUNDLED_TREASURE_DEFINITIONS.length)]));
+    setTreasureRevealIndex(0);
+    setTreasureExplorePhase("opening");
   };
 
   const finishRecruitmentClaim = () => {
@@ -222,24 +248,16 @@ export function HeroRosterScreen({
               )}
             </div>
           ) : (
-            <div className="recruit-hall__treasure-stage" aria-label="보물 탐색 준비">
+            <div className="recruit-hall__treasure-stage" aria-label="보물 탐색">
               <aside className="recruit-hall__side-note recruit-hall__side-note--l recruit-hall__side-note--treasure">
                 <strong>잊힌 유적</strong>
                 <span>시대를 건너온<br />보물이 잠들어 있습니다.</span>
               </aside>
-              <div className="recruit-hall__treasure-mystery" aria-label="아직 발견되지 않은 보물">
-                <span className="recruit-hall__treasure-glow" aria-hidden="true" />
-                <span className="recruit-hall__treasure-relic" aria-hidden="true">✦</span>
-                <b>?</b>
-              </div>
               <aside className="recruit-hall__side-note recruit-hall__side-note--r recruit-hall__side-note--treasure">
                 <strong>탐색 안내</strong>
                 <span>발견한 보물은<br />가방에서 확인합니다.</span>
               </aside>
-              <div className="recruit-hall__draw-actions recruit-hall__treasure-actions">
-                <button type="button" className="recruit-hall__action recruit-hall__action--subtle" disabled title="보물 탐색 기능은 다음 단계에서 연결됩니다.">1회 탐색</button>
-                <button type="button" className="recruit-hall__action" disabled title="보물 탐색 기능은 다음 단계에서 연결됩니다.">5회 탐색</button>
-              </div>
+              {treasureExplorePhase === "opening" && drawnTreasures[treasureRevealIndex] ? <div className="recruit-hall__treasure-opening" aria-live="polite"><span className="recruit-hall__treasure-burst" /><img src="/art/recruit/treasure-chest-open-v1.png" alt="열리는 보물상자" /><TreasureRewardCard treasure={drawnTreasures[treasureRevealIndex]} isReveal /></div> : treasureExplorePhase === "result" ? <><div className={`recruit-hall__treasure-results is-count-${drawnTreasures.length}`}>{drawnTreasures.map((treasure, index) => <TreasureRewardCard key={`${treasure.id}-${index}`} treasure={treasure} />)}</div><div className="recruit-hall__draw-actions recruit-hall__treasure-actions"><button type="button" className="recruit-hall__action recruit-hall__action--subtle" onClick={() => { setTreasureExplorePhase("idle"); setDrawnTreasures([]); }}>계속 탐색</button><button type="button" className="recruit-hall__action" onClick={() => { setTreasureExplorePhase("idle"); setDrawnTreasures([]); }}>확인</button></div></> : <><button type="button" className="recruit-hall__treasure-chest" onClick={() => exploreTreasures(1)} aria-label="보물상자를 열어 1회 탐색"><img src="/art/recruit/treasure-chest-closed-v1.png" alt="닫힌 보물상자" /></button><div className="recruit-hall__draw-actions recruit-hall__treasure-actions"><button type="button" className="recruit-hall__action recruit-hall__action--subtle" onClick={() => exploreTreasures(1)}>1회 탐색</button><button type="button" className="recruit-hall__action" onClick={() => exploreTreasures(5)}>5회 탐색</button></div></>}
             </div>
           )}
         </main>
@@ -322,4 +340,12 @@ export function HeroRosterScreen({
       </div>
     </section>
   );
+}
+
+function TreasureRewardCard({ treasure, isReveal = false }: { treasure: TreasureDefinition; isReveal?: boolean }) {
+  return <article className={`recruit-hall__treasure-card${isReveal ? " is-reveal" : ""}`} aria-label={`${treasure.grade}등급 ${treasure.name}`}>
+    <span className={`recruit-hall__treasure-grade grade-${treasure.grade.toLowerCase()}`}>{treasure.grade}</span>
+    <img src={TREASURE_CATEGORY_ART[treasure.category]} alt="" />
+    <div><small>{TREASURE_CATEGORY_LABEL[treasure.category]}</small><strong>{treasure.name}</strong><b>{treasureEffectText(treasure)}</b></div>
+  </article>;
 }
