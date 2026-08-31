@@ -1255,3 +1255,12 @@ footer small { margin-left:auto; color:#71898b; }
     text-align:center;
   }
 }
+
+/* 보물 탐색: 미확인 보물은 항상 무대의 중앙에 둔다. */
+.recruit-hall__treasure-stage{display:block;width:min(840px,96%)}
+.recruit-hall__treasure-stage .recruit-hall__treasure-mystery{position:absolute;top:50%;left:50%;z-index:2;transform:translate(-50%,-56%)}
+.recruit-hall__treasure-stage .recruit-hall__side-note--treasure{position:absolute;top:50%;z-index:3;transform:translateY(-50%)}
+.recruit-hall__treasure-stage .recruit-hall__side-note--l{left:4px}
+.recruit-hall__treasure-stage .recruit-hall__side-note--r{right:4px}
+.recruit-hall__treasure-stage .recruit-hall__treasure-actions{position:absolute;z-index:4;bottom:7px;left:50%;margin:0;transform:translateX(-50%)}
+@media(max-width:700px){.recruit-hall__treasure-stage .recruit-hall__treasure-mystery{transform:translate(-50%,-54%)}.recruit-hall__treasure-stage .recruit-hall__treasure-actions{bottom:2px}}
