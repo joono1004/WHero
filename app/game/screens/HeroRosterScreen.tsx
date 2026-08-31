@@ -296,9 +296,8 @@ export function HeroRosterScreen({
           <p>장착 장비</p>
           <div>
             {EQUIPMENT_SLOTS.map((slot) => (
-              <span key={slot.key} className="hero-ledger__treasure-slot" title={slot.label}>
+              <span key={slot.key} className="hero-ledger__treasure-slot" aria-label={slot.label} title={slot.label}>
                 <img src={slot.icon} alt="" />
-                <small>{slot.label}</small>
               </span>
             ))}
           </div>
