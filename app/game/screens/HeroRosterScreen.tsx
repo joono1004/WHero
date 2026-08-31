@@ -347,5 +347,6 @@ function TreasureRewardCard({ treasure, isReveal = false }: { treasure: Treasure
     <span className={`recruit-hall__treasure-grade grade-${treasure.grade.toLowerCase()}`}>{treasure.grade}</span>
     <img src={TREASURE_CATEGORY_ART[treasure.category]} alt="" />
     <div><small>{TREASURE_CATEGORY_LABEL[treasure.category]}</small><strong>{treasure.name}</strong><b>{treasureEffectText(treasure)}</b></div>
+    <img className="recruit-hall__treasure-card-frame" src="/art/recruit/treasure-card-frame-v1.png" alt="" aria-hidden="true" />
   </article>;
 }
