@@ -222,11 +222,24 @@ export function HeroRosterScreen({
               )}
             </div>
           ) : (
-            <div className="recruit-hall__panel is-treasures">
-              <span className="recruit-hall__emblem" aria-hidden="true">✦</span>
-              <h2>보물 탐색</h2>
-              <p>전장에서 빛날 귀중한 보물을 찾을 준비를 하고 있습니다.</p>
-              <small>보물 획득 방식과 연출은 다음 단계에서 추가됩니다.</small>
+            <div className="recruit-hall__treasure-stage" aria-label="보물 탐색 준비">
+              <aside className="recruit-hall__side-note recruit-hall__side-note--l recruit-hall__side-note--treasure">
+                <strong>잊힌 유적</strong>
+                <span>시대를 건너온<br />보물이 잠들어 있습니다.</span>
+              </aside>
+              <div className="recruit-hall__treasure-mystery" aria-label="아직 발견되지 않은 보물">
+                <span className="recruit-hall__treasure-glow" aria-hidden="true" />
+                <span className="recruit-hall__treasure-relic" aria-hidden="true">✦</span>
+                <b>?</b>
+              </div>
+              <aside className="recruit-hall__side-note recruit-hall__side-note--r recruit-hall__side-note--treasure">
+                <strong>탐색 안내</strong>
+                <span>발견한 보물은<br />가방에서 확인합니다.</span>
+              </aside>
+              <div className="recruit-hall__draw-actions recruit-hall__treasure-actions">
+                <button type="button" className="recruit-hall__action recruit-hall__action--subtle" disabled title="보물 탐색 기능은 다음 단계에서 연결됩니다.">1회 탐색</button>
+                <button type="button" className="recruit-hall__action" disabled title="보물 탐색 기능은 다음 단계에서 연결됩니다.">5회 탐색</button>
+              </div>
             </div>
           )}
         </main>
