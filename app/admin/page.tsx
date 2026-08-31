@@ -11,11 +11,25 @@ import { HERO_TRAIT_CATALOG } from "../../lib/game/hero-trait.ts";
 import { UNIT_TYPE_CATALOG } from "../../lib/game/unit-production.ts";
 import { HERO_PORTRAIT } from "../game/heroPortraits.ts";
 import { BUNDLED_HERO_DEFINITIONS } from "../game/heroCatalog.ts";
+import {
+  BUNDLED_TREASURE_DEFINITIONS,
+  TREASURE_CATEGORY_LABEL,
+  TREASURE_EFFECT_LABEL,
+  TREASURE_TERRAIN_LABEL,
+  TREASURE_UNIT_TYPE_LABEL,
+  treasureEffectText,
+  type TreasureCategory,
+  type TreasureDefinition,
+  type TreasureEffectKind,
+  type TreasureUnitType,
+} from "../../lib/game/treasure-definition.ts";
 import "./admin.css";
 
 type Availability = "starter" | "recruitable" | "hidden";
 type AdminHeroRow = { id: string; name: string; availability: Availability; portrait_path: string | null; definition: HeroDefinition; updated_at?: string };
 type Draft = AdminHeroRow;
+type AdminTreasureRow = { id: string; name: string; category: TreasureCategory; grade: CoreGrade; definition: TreasureDefinition; published: boolean; updated_at?: string };
+type TreasureDraft = AdminTreasureRow;
 
 const GRADES: CoreGrade[] = ["D", "C", "B", "A", "S", "SS"];
 const SPECIALTY_GRADES: SpecialtyGrade[] = ["없음", ...GRADES];
@@ -24,6 +38,10 @@ const DOMESTIC_FIELDS: { key: DomesticSpecialtyKind; label: string }[] = [
   { key: "iron", label: "철" }, { key: "recovery", label: "회복" }, { key: "defense", label: "방어" },
 ];
 const STARTER_HERO_IDS = new Set(["zhang-bao", "wei-yan", "xu-shu"]);
+const TREASURE_CATEGORIES: TreasureCategory[] = ["weapon", "armor", "mount", "other"];
+const TREASURE_EFFECTS: TreasureEffectKind[] = ["attack", "defense", "movement", "health"];
+const TREASURE_UNIT_TYPES: TreasureUnitType[] = ["infantry", "cavalry", "archer", "strategist"];
+const TREASURE_TERRAINS = Object.keys(TREASURE_TERRAIN_LABEL);
 
 function bundledRow(definition: HeroDefinition): AdminHeroRow {
   return { id: definition.id, name: definition.name, availability: STARTER_HERO_IDS.has(definition.id) ? "starter" : "recruitable", portrait_path: HERO_PORTRAIT[definition.id] ?? null, definition };
@@ -47,11 +65,45 @@ function blankHero(): Draft {
   };
 }
 
+function bundledTreasureRow(definition: TreasureDefinition): AdminTreasureRow {
+  return { id: definition.id, name: definition.name, category: definition.category, grade: definition.grade, definition, published: true };
+}
+
+function blankTreasure(): TreasureDraft {
+  const id = `treasure-${Date.now()}`;
+  return {
+    id,
+    name: "새 보물",
+    category: "other",
+    grade: "D",
+    published: false,
+    definition: {
+      id,
+      name: "새 보물",
+      category: "other",
+      grade: "D",
+      allowedUnitTypes: [],
+      effectKind: "health",
+      effectValue: 3,
+      terrainBonuses: [],
+      history: "보물의 역사 설명을 입력하세요.",
+      description: "게임 안에서 표시할 보물 설명을 입력하세요.",
+    },
+  };
+}
+
 function parseRow(value: unknown): AdminHeroRow | null {
   if (!value || typeof value !== "object") return null;
   const row = value as Partial<AdminHeroRow>;
   if (!row.id || !row.name || !row.definition || !["starter", "recruitable", "hidden"].includes(String(row.availability))) return null;
   return { id: row.id, name: row.name, availability: row.availability as Availability, portrait_path: row.portrait_path ?? null, definition: row.definition, updated_at: row.updated_at };
+}
+
+function parseTreasureRow(value: unknown): AdminTreasureRow | null {
+  if (!value || typeof value !== "object") return null;
+  const row = value as Partial<AdminTreasureRow>;
+  if (!row.id || !row.name || !row.definition || !TREASURE_CATEGORIES.includes(row.category as TreasureCategory) || !GRADES.includes(row.grade as CoreGrade)) return null;
+  return { id: row.id, name: row.name, category: row.category as TreasureCategory, grade: row.grade as CoreGrade, definition: row.definition, published: row.published ?? true, updated_at: row.updated_at };
 }
 
 function validate(draft: Draft): string | null {
@@ -64,16 +116,31 @@ function validate(draft: Draft): string | null {
   return null;
 }
 
+function validateTreasure(draft: TreasureDraft): string | null {
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(draft.id)) return "보물 ID는 영문 소문자·숫자·하이픈만 사용할 수 있습니다.";
+  if (!draft.name.trim()) return "보물 이름을 입력해 주세요.";
+  if (!draft.definition.history.trim() || !draft.definition.description.trim()) return "역사 설명과 게임 설명을 모두 입력해 주세요.";
+  if (draft.category === "weapon" && draft.definition.allowedUnitTypes.length === 0) return "무기는 최소 한 가지 장착 가능 병과를 선택해 주세요.";
+  if (draft.category !== "weapon" && draft.definition.allowedUnitTypes.length > 0) return "방어구·탈것·기타 보물은 모든 영웅이 장착할 수 있습니다.";
+  if (draft.definition.effectValue < 0) return "효과 수치는 0 이상으로 입력해 주세요.";
+  return null;
+}
+
 export default function AdminPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [checking, setChecking] = useState(true);
   const [authorized, setAuthorized] = useState(false);
+  const [activeSection, setActiveSection] = useState<"heroes" | "treasures">("heroes");
   const [rows, setRows] = useState<AdminHeroRow[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isEditorOpen, setEditorOpen] = useState(false);
+  const [treasures, setTreasures] = useState<AdminTreasureRow[]>([]);
+  const [selectedTreasureId, setSelectedTreasureId] = useState<string | null>(null);
+  const [isTreasureEditorOpen, setTreasureEditorOpen] = useState(false);
   const [message, setMessage] = useState("관리자 권한을 확인하고 있습니다.");
   const selected = useMemo(() => rows.find((row) => row.id === selectedId) ?? null, [rows, selectedId]);
+  const selectedTreasure = useMemo(() => treasures.find((row) => row.id === selectedTreasureId) ?? null, [treasures, selectedTreasureId]);
 
   async function checkAdmin() {
     if (!supabase) { setMessage("Supabase 연결 정보가 없어 관리자 기능을 사용할 수 없습니다."); setChecking(false); return; }
@@ -93,7 +160,18 @@ export default function AdminPage() {
         ...published.filter((row) => !BUNDLED_HERO_DEFINITIONS.some((definition) => definition.id === row.id)),
       ];
       setRows(loaded); setSelectedId((current) => current && loaded.some((row) => row.id === current) ? current : (loaded[0]?.id ?? null));
-      setMessage(`${loaded.length}명의 영웅 데이터를 불러왔습니다.`);
+      const { data: treasureData, error: treasuresError } = await supabase.from("treasure_catalog").select("id, name, category, grade, definition, published, updated_at").order("name");
+      const publishedTreasures = (treasureData ?? []).map(parseTreasureRow).filter((row): row is AdminTreasureRow => row !== null);
+      const publishedTreasuresById = new Map(publishedTreasures.map((row) => [row.id, row]));
+      const loadedTreasures = [
+        ...BUNDLED_TREASURE_DEFINITIONS.map((definition) => publishedTreasuresById.get(definition.id) ?? bundledTreasureRow(definition)),
+        ...publishedTreasures.filter((row) => !BUNDLED_TREASURE_DEFINITIONS.some((definition) => definition.id === row.id)),
+      ];
+      setTreasures(loadedTreasures);
+      setSelectedTreasureId((current) => current && loadedTreasures.some((row) => row.id === current) ? current : (loadedTreasures[0]?.id ?? null));
+      setMessage(treasuresError
+        ? `${loaded.length}명의 영웅 데이터를 불러왔습니다. 보물 DB를 사용하려면 최신 schema.sql을 Supabase SQL Editor에서 실행해 주세요.`
+        : `${loaded.length}명의 영웅과 ${loadedTreasures.length}개의 보물 데이터를 불러왔습니다.`);
     }
     setChecking(false);
   }
@@ -116,7 +194,10 @@ export default function AdminPage() {
     setAuthorized(false);
     setRows([]);
     setSelectedId(null);
+    setTreasures([]);
+    setSelectedTreasureId(null);
     setEditorOpen(false);
+    setTreasureEditorOpen(false);
     setMessage("로그아웃했습니다. 관리자 계정으로 다시 로그인해 주세요.");
   }
 
@@ -138,6 +219,24 @@ export default function AdminPage() {
     setRows((current) => current.map((row) => row.id === selected.id ? change(row) : row));
   }
 
+  function openTreasure(id: string) {
+    setSelectedTreasureId(id);
+    setTreasureEditorOpen(true);
+  }
+
+  function createTreasure() {
+    const treasure = blankTreasure();
+    setTreasures((current) => [...current, treasure]);
+    setSelectedTreasureId(treasure.id);
+    setTreasureEditorOpen(true);
+    setMessage("새 보물 초안을 만들었습니다. 저장 전까지 게임에는 반영되지 않습니다.");
+  }
+
+  function updateSelectedTreasure(change: (current: TreasureDraft) => TreasureDraft) {
+    if (!selectedTreasure) return;
+    setTreasures((current) => current.map((row) => row.id === selectedTreasure.id ? change(row) : row));
+  }
+
   async function saveSelected() {
     if (!supabase || !selected) return;
     const errorMessage = validate(selected);
@@ -150,20 +249,48 @@ export default function AdminPage() {
     setMessage(`“${payload.name}” 변경사항을 게임용 영웅 데이터에 반영했습니다.`);
   }
 
+  async function saveSelectedTreasure() {
+    if (!supabase || !selectedTreasure) return;
+    const errorMessage = validateTreasure(selectedTreasure);
+    if (errorMessage) { setMessage(errorMessage); return; }
+    setMessage("변경사항을 검증·반영 중입니다.");
+    const payload = {
+      ...selectedTreasure,
+      name: selectedTreasure.name.trim(),
+      definition: {
+        ...selectedTreasure.definition,
+        id: selectedTreasure.id,
+        name: selectedTreasure.name.trim(),
+        category: selectedTreasure.category,
+        grade: selectedTreasure.grade,
+      },
+      updated_at: new Date().toISOString(),
+    };
+    const { error } = await supabase.from("treasure_catalog").upsert(payload, { onConflict: "id" });
+    if (error) { setMessage(`반영하지 못했습니다: ${error.message}`); return; }
+    setTreasures((current) => current.map((row) => row.id === selectedTreasure.id ? payload : row));
+    setMessage(`“${payload.name}” 변경사항을 게임용 보물 데이터에 반영했습니다.`);
+  }
+
   if (checking) return <main className="admin-gate"><p>{message}</p></main>;
   if (!authorized) return <main className="admin-gate"><section><p className="admin-kicker">HERO STORY · ADMIN</p><h1>관리자 로그인</h1><p>{message}</p><form onSubmit={signIn}><label>이메일<input value={email} onChange={(event) => setEmail(event.target.value)} type="email" autoComplete="email" required /></label><label>비밀번호<input value={password} onChange={(event) => setPassword(event.target.value)} type="password" autoComplete="current-password" required /></label><button>관리자 로그인</button></form><small>관리자 권한은 `ljhs1004@gmail.com` 계정에만 부여됩니다.</small></section></main>;
 
   return <main className="admin-shell">
     <header className="admin-header"><div><p className="admin-kicker">HERO STORY · ADMIN</p><h1>관리자 화면</h1><span>관리 항목을 선택해 데이터를 확인·수정합니다.</span></div><button type="button" className="admin-logout" onClick={signOut}>로그아웃</button></header>
     <div className="admin-layout">
-      <aside className="admin-nav" aria-label="관리자 메뉴"><p>관리 메뉴</p><button type="button" className="is-active">영웅정보</button></aside>
-      <section className="admin-content">
+      <aside className="admin-nav" aria-label="관리자 메뉴"><p>관리 메뉴</p><button type="button" className={activeSection === "heroes" ? "is-active" : ""} onClick={() => setActiveSection("heroes")}>영웅정보</button><button type="button" className={activeSection === "treasures" ? "is-active" : ""} onClick={() => setActiveSection("treasures")}>보물정보</button></aside>
+      {activeSection === "heroes" ? <section className="admin-content">
         <div className="admin-content__heading"><div><p className="admin-kicker">영웅정보</p><h2>영웅 목록 <b>{rows.length}</b></h2><span>영웅을 클릭하면 수정 창이 열립니다.</span></div><button type="button" onClick={createHero}>+ 영웅 추가</button></div>
         <p className="admin-message">{message}</p>
         <div className="admin-hero-list">{rows.map((row) => { const portraitUrl = row.portrait_path ?? HERO_PORTRAIT[row.id]; return <button key={row.id} type="button" onClick={() => openHero(row.id)}><span className="admin-hero-list__portrait">{portraitUrl ? <img src={portraitUrl} alt="" /> : "?"}</span><span><strong>{row.name}</strong><small>{row.availability === "starter" ? "첫 영웅" : row.availability === "recruitable" ? "영입 가능" : "비공개"} · {UNIT_TYPE_CATALOG[row.definition.unitType]?.label ?? row.definition.unitType}</small></span><i>수정</i></button>; })}</div>
-      </section>
+      </section> : <section className="admin-content">
+        <div className="admin-content__heading"><div><p className="admin-kicker">보물정보</p><h2>보물 목록 <b>{treasures.length}</b></h2><span>보물을 클릭하면 역사 설명과 효과를 수정할 수 있습니다.</span></div><button type="button" onClick={createTreasure}>+ 보물 추가</button></div>
+        <p className="admin-message">{message}</p>
+        <div className="admin-treasure-list">{treasures.map((row) => <button key={row.id} type="button" onClick={() => openTreasure(row.id)}><span className={`admin-treasure-list__grade grade-${row.grade.toLowerCase()}`}>{row.grade}</span><span><strong>{row.name}</strong><small>{TREASURE_CATEGORY_LABEL[row.category]} · {treasureEffectText(row.definition)}</small><em>{row.published ? "공개" : "비공개"}</em></span><i>수정</i></button>)}</div>
+      </section>}
     </div>
     {isEditorOpen && selected ? <div className="admin-modal" role="dialog" aria-modal="true" aria-label={`${selected.name} 수정`}><div className="admin-modal__backdrop" onClick={() => setEditorOpen(false)} /><div className="admin-modal__panel"><button type="button" className="admin-modal__close" aria-label="수정 창 닫기" onClick={() => setEditorOpen(false)}>×</button><HeroEditor draft={selected} onChange={updateSelected} onSave={saveSelected} /></div></div> : null}
+    {isTreasureEditorOpen && selectedTreasure ? <div className="admin-modal" role="dialog" aria-modal="true" aria-label={`${selectedTreasure.name} 수정`}><div className="admin-modal__backdrop" onClick={() => setTreasureEditorOpen(false)} /><div className="admin-modal__panel"><button type="button" className="admin-modal__close" aria-label="수정 창 닫기" onClick={() => setTreasureEditorOpen(false)}>×</button><TreasureEditor draft={selectedTreasure} onChange={updateSelectedTreasure} onSave={saveSelectedTreasure} /></div></div> : null}
   </main>;
 }
 
@@ -185,5 +312,31 @@ function HeroEditor({ draft, onChange, onSave }: { draft: Draft; onChange: (chan
     <fieldset><legend>특기 · 최대 5개</legend><div className="admin-check-grid">{Object.entries(HERO_TRAIT_CATALOG).map(([id, trait]) => <label key={id}><input type="checkbox" checked={definition.traits.includes(id as HeroTraitId)} onChange={() => setDefinition((current) => ({ ...current, traits: toggle(id as HeroTraitId, current.traits, 5) }))} />{trait.name}<small>{trait.effect}</small></label>)}</div></fieldset>
     <fieldset><legend>스킬 · 최대 2개</legend><div className="admin-check-grid">{Object.entries(HERO_SKILL_CATALOG).map(([id, skill]) => <label key={id}><input type="checkbox" checked={definition.skills.includes(id as HeroSkillId)} onChange={() => setDefinition((current) => ({ ...current, skills: toggle(id as HeroSkillId, current.skills, 2) }))} />{skill.name}<small>{skill.summary}</small></label>)}</div></fieldset>
     <fieldset><legend>도시 배속 특기</legend><div className="admin-stat-grid">{DOMESTIC_FIELDS.map(({ key, label }) => <label key={key}>{label}<select value={definition.domesticSpecialties[key]} onChange={(event) => setDefinition((current) => ({ ...current, domesticSpecialties: { ...current.domesticSpecialties, [key]: event.target.value as SpecialtyGrade } }))}>{SPECIALTY_GRADES.map((grade) => <option key={grade}>{grade}</option>)}</select></label>)}</div></fieldset>
+  </section>;
+}
+
+function TreasureEditor({ draft, onChange, onSave }: { draft: TreasureDraft; onChange: (change: (current: TreasureDraft) => TreasureDraft) => void; onSave: () => void }) {
+  const definition = draft.definition;
+  const setDefinition = (change: (value: TreasureDefinition) => TreasureDefinition) => onChange((current) => ({ ...current, definition: change(current.definition) }));
+  const toggle = <T extends string>(value: T, values: T[]) => values.includes(value) ? values.filter((entry) => entry !== value) : [...values, value];
+  const updateCategory = (category: TreasureCategory) => onChange((current) => {
+    const effectKind: TreasureEffectKind = category === "weapon" ? "attack" : category === "armor" ? "defense" : category === "mount" ? "movement" : "health";
+    return { ...current, category, definition: { ...current.definition, category, effectKind, allowedUnitTypes: category === "weapon" ? current.definition.allowedUnitTypes : [], terrainBonuses: category === "mount" ? current.definition.terrainBonuses : [] } };
+  });
+  return <section className="admin-editor">
+    <div className="admin-editor__heading"><div><p>선택 보물</p><h2>{draft.name}</h2></div><button type="button" onClick={onSave}>검증 후 반영</button></div>
+    <div className="admin-grid">
+      <label>보물 ID<input value={draft.id} onChange={(event) => onChange((current) => ({ ...current, id: event.target.value, definition: { ...current.definition, id: event.target.value } }))} /></label>
+      <label>이름<input value={draft.name} onChange={(event) => onChange((current) => ({ ...current, name: event.target.value, definition: { ...current.definition, name: event.target.value } }))} /></label>
+      <label>종류<select value={draft.category} onChange={(event) => updateCategory(event.target.value as TreasureCategory)}>{TREASURE_CATEGORIES.map((category) => <option key={category} value={category}>{TREASURE_CATEGORY_LABEL[category]}</option>)}</select></label>
+      <label>등급<select value={draft.grade} onChange={(event) => onChange((current) => ({ ...current, grade: event.target.value as CoreGrade, definition: { ...current.definition, grade: event.target.value as CoreGrade } }))}>{GRADES.map((grade) => <option key={grade}>{grade}</option>)}</select></label>
+      <label>효과<select value={definition.effectKind} disabled>{TREASURE_EFFECTS.map((effect) => <option key={effect} value={effect}>{TREASURE_EFFECT_LABEL[effect]}</option>)}</select></label>
+      <label>효과 수치<input type="number" min="0" value={definition.effectValue} onChange={(event) => setDefinition((current) => ({ ...current, effectValue: Number(event.target.value) || 0 }))} /></label>
+      <label className="admin-span-2 admin-toggle-row"><input type="checkbox" checked={draft.published} onChange={(event) => onChange((current) => ({ ...current, published: event.target.checked }))} />게임에 공개</label>
+      <label className="admin-span-2">역사 설명<textarea value={definition.history} onChange={(event) => setDefinition((current) => ({ ...current, history: event.target.value }))} /></label>
+      <label className="admin-span-2">게임 설명<textarea value={definition.description} onChange={(event) => setDefinition((current) => ({ ...current, description: event.target.value }))} /></label>
+    </div>
+    {draft.category === "weapon" ? <fieldset><legend>장착 가능 병과</legend><div className="admin-check-grid">{TREASURE_UNIT_TYPES.map((unitType) => <label key={unitType}><input type="checkbox" checked={definition.allowedUnitTypes.includes(unitType)} onChange={() => setDefinition((current) => ({ ...current, allowedUnitTypes: toggle(unitType, current.allowedUnitTypes) }))} />{TREASURE_UNIT_TYPE_LABEL[unitType]}</label>)}</div></fieldset> : <fieldset><legend>장착 가능 병과</legend><p className="admin-field-note">방어구·탈것·기타 보물은 병과 구분 없이 모든 영웅이 장착할 수 있습니다.</p></fieldset>}
+    {draft.category === "mount" ? <fieldset><legend>지형 이동 향상</legend><div className="admin-check-grid">{TREASURE_TERRAINS.map((terrain) => <label key={terrain}><input type="checkbox" checked={definition.terrainBonuses.includes(terrain)} onChange={() => setDefinition((current) => ({ ...current, terrainBonuses: toggle(terrain, current.terrainBonuses) }))} />{TREASURE_TERRAIN_LABEL[terrain]}</label>)}</div></fieldset> : null}
   </section>;
 }

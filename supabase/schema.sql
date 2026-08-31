@@ -120,6 +120,41 @@ create policy "Administrators can update heroes"
   using (public.is_admin())
   with check (public.is_admin());
 
+-- -------------------------------------------------------------------------
+-- Administrator-managed treasure catalogue
+-- -------------------------------------------------------------------------
+-- Treasure definitions are kept separately from player inventory.  A treasure
+-- being published here does not grant it to anyone; it only makes the
+-- historical description and gameplay definition available to future rewards.
+
+create table if not exists public.treasure_catalog (
+  id text primary key check (id ~ '^[a-z0-9]+(-[a-z0-9]+)*$'),
+  name text not null check (char_length(name) between 1 and 40),
+  category text not null check (category in ('weapon', 'armor', 'mount', 'other')),
+  grade text not null check (grade in ('D', 'C', 'B', 'A', 'S', 'SS')),
+  definition jsonb not null,
+  published boolean not null default true,
+  updated_at timestamptz not null default now()
+);
+
+alter table public.treasure_catalog enable row level security;
+
+drop policy if exists "Players can read published treasures" on public.treasure_catalog;
+create policy "Players can read published treasures"
+  on public.treasure_catalog for select
+  using (published or public.is_admin());
+
+drop policy if exists "Administrators can add treasures" on public.treasure_catalog;
+create policy "Administrators can add treasures"
+  on public.treasure_catalog for insert
+  with check (public.is_admin());
+
+drop policy if exists "Administrators can update treasures" on public.treasure_catalog;
+create policy "Administrators can update treasures"
+  on public.treasure_catalog for update
+  using (public.is_admin())
+  with check (public.is_admin());
+
 -- The first six definitions are seeded only when the catalogue is empty.
 -- Later edits in /admin are never overwritten by re-running this file.
 insert into public.hero_catalog (id, name, availability, portrait_path, definition) values
