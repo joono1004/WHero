@@ -34,10 +34,10 @@ const HERO_LOBBY_FACE: Partial<Record<string, string>> = {
   "xu-shu": "/art/heroes/xu-shu-lobby-face-v1.png",
 };
 const EQUIPMENT_SLOTS = [
-  { key: "weapon", label: "무기", icon: "/art/ui/equipment-weapon-slot-v1.svg" },
-  { key: "armor", label: "방어구", icon: "/art/ui/equipment-armor-slot-v1.svg" },
-  { key: "mount", label: "탈것", icon: "/art/ui/equipment-mount-slot-v1.svg" },
-  { key: "other", label: "기타", icon: "/art/ui/equipment-other-slot-v1.svg" },
+  { key: "weapon", label: "무기", icon: "/art/ui/equipment-weapon-empty-v2.png" },
+  { key: "armor", label: "방어구", icon: "/art/ui/equipment-armor-empty-v2.png" },
+  { key: "mount", label: "탈것", icon: "/art/ui/equipment-mount-empty-v2.png" },
+  { key: "other", label: "기타", icon: "/art/ui/equipment-other-empty-v2.png" },
 ] as const;
 const BAG_GRID_COLUMNS = 4;
 const BAG_EMPTY_PREVIEW_ROWS = 4;
