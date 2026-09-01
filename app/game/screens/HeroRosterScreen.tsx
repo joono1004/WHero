@@ -52,7 +52,7 @@ const HERO_FRAGMENT_ART: Record<CoreGrade, string> = {
   D: "/art/items/hero-fragment-d-v3.png",
 };
 const TREASURE_CATEGORY_ART: Record<TreasureDefinition["category"], string> = {
-  weapon: "/art/ui/equipment-weapon-empty-v2.png",
+  weapon: "/art/treasures/weapon-sword-v1.png",
   armor: "/art/ui/equipment-armor-empty-v2.png",
   mount: "/art/ui/equipment-mount-empty-v2.png",
   other: "/art/ui/equipment-other-empty-v2.png",
