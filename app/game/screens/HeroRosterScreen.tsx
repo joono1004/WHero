@@ -57,6 +57,14 @@ const TREASURE_CATEGORY_ART: Record<TreasureDefinition["category"], string> = {
   mount: "/art/ui/equipment-mount-empty-v2.png",
   other: "/art/ui/equipment-other-empty-v2.png",
 };
+const TREASURE_GRADE_BADGE: Record<TreasureDefinition["grade"], string> = {
+  SS: "/art/heroes/grades-v2/grade-ss.png",
+  S: "/art/heroes/grades-v2/grade-s.png",
+  A: "/art/heroes/grades-v2/grade-a.png",
+  B: "/art/heroes/grades-v2/grade-b.png",
+  C: "/art/heroes/grades-v2/grade-c.png",
+  D: "/art/heroes/grades-v2/grade-d.png",
+};
 
 /** 10명(2열×5행)을 한눈에 보여주는 모바일 가로용 영웅 기록첩. */
 export function HeroRosterScreen({
@@ -357,7 +365,7 @@ export function HeroRosterScreen({
 
 function TreasureRewardCard({ treasure, isReveal = false }: { treasure: TreasureDefinition; isReveal?: boolean }) {
   return <article className={`recruit-hall__treasure-card${isReveal ? " is-reveal" : ""}`} aria-label={`${treasure.grade}등급 ${treasure.name}`}>
-    <span className={`recruit-hall__treasure-grade grade-${treasure.grade.toLowerCase()}`}>{treasure.grade}</span>
+    <img className="recruit-hall__treasure-grade-image" src={TREASURE_GRADE_BADGE[treasure.grade]} alt={`${treasure.grade}등급`} />
     <img src={TREASURE_CATEGORY_ART[treasure.category]} alt="" />
     <b className="recruit-hall__treasure-effect">{treasureEffectText(treasure)}</b>
     <div><strong>{treasure.name}</strong><small>{treasure.history}</small></div>
