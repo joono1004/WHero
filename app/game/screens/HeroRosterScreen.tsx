@@ -260,14 +260,16 @@ export function HeroRosterScreen({
             </div>
           ) : (
             <div className="recruit-hall__treasure-stage" aria-label="보물 탐색">
-              <aside className="recruit-hall__side-note recruit-hall__side-note--l recruit-hall__side-note--treasure">
-                <strong>잊힌 유적</strong>
-                <span>시대를 건너온<br />보물이 잠들어 있습니다.</span>
-              </aside>
-              <aside className="recruit-hall__side-note recruit-hall__side-note--r recruit-hall__side-note--treasure">
-                <strong>탐색 안내</strong>
-                <span>발견한 보물은<br />가방에서 확인합니다.</span>
-              </aside>
+              {treasureExplorePhase === "idle" && <>
+                <aside className="recruit-hall__side-note recruit-hall__side-note--l recruit-hall__side-note--treasure">
+                  <strong>잊힌 유적</strong>
+                  <span>시대를 건너온<br />보물이 잠들어 있습니다.</span>
+                </aside>
+                <aside className="recruit-hall__side-note recruit-hall__side-note--r recruit-hall__side-note--treasure">
+                  <strong>탐색 안내</strong>
+                  <span>발견한 보물은<br />가방에서 확인합니다.</span>
+                </aside>
+              </>}
               {treasureExplorePhase === "opening" && drawnTreasures[treasureRevealIndex] ? <div className="recruit-hall__treasure-opening" aria-live="polite"><span className="recruit-hall__treasure-burst" /><span className="recruit-hall__treasure-orbit" /><span className="recruit-hall__treasure-sparks" /><img src="/art/recruit/treasure-chest-open-v1.png" alt="열리는 보물상자" /><TreasureRewardCard key={`${drawnTreasures[treasureRevealIndex].id}-${treasureRevealIndex}`} treasure={drawnTreasures[treasureRevealIndex]} isReveal /></div> : treasureExplorePhase === "result" ? <><img className="recruit-hall__treasure-results-chest" src="/art/recruit/treasure-chest-open-v1.png" alt="열린 보물상자" /><div className={`recruit-hall__treasure-results${drawnTreasures.length > 1 ? ` is-multi is-count-${drawnTreasures.length}` : ""}`}>{drawnTreasures.map((treasure, index) => <TreasureRewardCard key={`${treasure.id}-${index}`} treasure={treasure} />)}</div><div className="recruit-hall__draw-actions recruit-hall__treasure-actions">{drawnTreasures.length < 5 && <button type="button" className="recruit-hall__action recruit-hall__action--subtle" onClick={continueExploring}>계속 탐색</button>}<button type="button" className="recruit-hall__action" onClick={() => { setTreasureExplorePhase("idle"); setDrawnTreasures([]); }}>확인</button></div></> : <><button type="button" className="recruit-hall__treasure-chest" onClick={() => exploreTreasures(1)} aria-label="보물상자를 열어 1회 탐색"><img src="/art/recruit/treasure-chest-closed-v1.png" alt="닫힌 보물상자" /></button><div className="recruit-hall__draw-actions recruit-hall__treasure-actions"><button type="button" className="recruit-hall__action recruit-hall__action--subtle" onClick={() => exploreTreasures(1)}>1회 탐색</button><button type="button" className="recruit-hall__action" onClick={() => exploreTreasures(5)}>5회 탐색</button></div></>}
             </div>
           )}
