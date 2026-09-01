@@ -81,6 +81,7 @@ export function HeroRosterScreen({
   const [treasureExplorePhase, setTreasureExplorePhase] = useState<TreasureExplorePhase>("idle");
   const [drawnTreasures, setDrawnTreasures] = useState<TreasureDefinition[]>([]);
   const [treasureRevealIndex, setTreasureRevealIndex] = useState(0);
+  const [isTreasureCardRevealed, setIsTreasureCardRevealed] = useState(false);
   const resultCardRefs = useRef(new Map<number, HTMLDivElement>());
   const claimButtonRef = useRef<HTMLButtonElement>(null);
   const sorted = [...entries].sort(SORT_COMPARATORS[sortMode]);
@@ -108,11 +109,19 @@ export function HeroRosterScreen({
   useEffect(() => {
     if (treasureExplorePhase !== "opening" || drawnTreasures.length === 0) return;
     const timer = window.setTimeout(() => {
-      if (treasureRevealIndex + 1 < drawnTreasures.length) setTreasureRevealIndex((current) => current + 1);
-      else setTreasureExplorePhase("result");
-    }, 820);
+      if (!isTreasureCardRevealed) {
+        setIsTreasureCardRevealed(true);
+        return;
+      }
+      if (treasureRevealIndex + 1 < drawnTreasures.length) {
+        setTreasureRevealIndex((current) => current + 1);
+        setIsTreasureCardRevealed(false);
+      } else {
+        setTreasureExplorePhase("result");
+      }
+    }, isTreasureCardRevealed ? 860 : 420);
     return () => window.clearTimeout(timer);
-  }, [drawnTreasures.length, treasureExplorePhase, treasureRevealIndex]);
+  }, [drawnTreasures.length, isTreasureCardRevealed, treasureExplorePhase, treasureRevealIndex]);
 
   const drawHeroes = (count: number) => {
     const candidates = currentHeroDefinitions();
@@ -134,6 +143,7 @@ export function HeroRosterScreen({
   const exploreTreasures = (count: number) => {
     setDrawnTreasures(Array.from({ length: Math.min(count, 5) }, () => BUNDLED_TREASURE_DEFINITIONS[Math.floor(Math.random() * BUNDLED_TREASURE_DEFINITIONS.length)]));
     setTreasureRevealIndex(0);
+    setIsTreasureCardRevealed(false);
     setTreasureExplorePhase("opening");
   };
 
@@ -257,7 +267,7 @@ export function HeroRosterScreen({
                 <strong>탐색 안내</strong>
                 <span>발견한 보물은<br />가방에서 확인합니다.</span>
               </aside>
-              {treasureExplorePhase === "opening" && drawnTreasures[treasureRevealIndex] ? <div className="recruit-hall__treasure-opening" aria-live="polite"><span className="recruit-hall__treasure-burst" /><span className="recruit-hall__treasure-orbit" /><span className="recruit-hall__treasure-sparks" /><img src="/art/recruit/treasure-chest-open-v1.png" alt="열리는 보물상자" /><TreasureRewardCard treasure={drawnTreasures[treasureRevealIndex]} isReveal /></div> : treasureExplorePhase === "result" ? <><img className="recruit-hall__treasure-results-chest" src="/art/recruit/treasure-chest-open-v1.png" alt="열린 보물상자" /><div className={`recruit-hall__treasure-results${drawnTreasures.length > 1 ? ` is-multi is-count-${drawnTreasures.length}` : ""}`}>{drawnTreasures.map((treasure, index) => <TreasureRewardCard key={`${treasure.id}-${index}`} treasure={treasure} />)}</div><div className="recruit-hall__draw-actions recruit-hall__treasure-actions"><button type="button" className="recruit-hall__action recruit-hall__action--subtle" onClick={() => { setTreasureExplorePhase("idle"); setDrawnTreasures([]); }}>계속 탐색</button><button type="button" className="recruit-hall__action" onClick={() => { setTreasureExplorePhase("idle"); setDrawnTreasures([]); }}>확인</button></div></> : <><button type="button" className="recruit-hall__treasure-chest" onClick={() => exploreTreasures(1)} aria-label="보물상자를 열어 1회 탐색"><img src="/art/recruit/treasure-chest-closed-v1.png" alt="닫힌 보물상자" /></button><div className="recruit-hall__draw-actions recruit-hall__treasure-actions"><button type="button" className="recruit-hall__action recruit-hall__action--subtle" onClick={() => exploreTreasures(1)}>1회 탐색</button><button type="button" className="recruit-hall__action" onClick={() => exploreTreasures(5)}>5회 탐색</button></div></>}
+              {treasureExplorePhase === "opening" && drawnTreasures[treasureRevealIndex] ? <div className="recruit-hall__treasure-opening" aria-live="polite"><span className="recruit-hall__treasure-burst" /><span className="recruit-hall__treasure-orbit" /><span className="recruit-hall__treasure-sparks" /><img src="/art/recruit/treasure-chest-open-v1.png" alt="열리는 보물상자" />{isTreasureCardRevealed ? <TreasureRewardCard key={`${drawnTreasures[treasureRevealIndex].id}-${treasureRevealIndex}`} treasure={drawnTreasures[treasureRevealIndex]} isReveal /> : <TreasureMysteryCard />}</div> : treasureExplorePhase === "result" ? <><img className="recruit-hall__treasure-results-chest" src="/art/recruit/treasure-chest-open-v1.png" alt="열린 보물상자" /><div className={`recruit-hall__treasure-results${drawnTreasures.length > 1 ? ` is-multi is-count-${drawnTreasures.length}` : ""}`}>{drawnTreasures.map((treasure, index) => <TreasureRewardCard key={`${treasure.id}-${index}`} treasure={treasure} />)}</div><div className="recruit-hall__draw-actions recruit-hall__treasure-actions"><button type="button" className="recruit-hall__action recruit-hall__action--subtle" onClick={() => { setTreasureExplorePhase("idle"); setDrawnTreasures([]); }}>계속 탐색</button><button type="button" className="recruit-hall__action" onClick={() => { setTreasureExplorePhase("idle"); setDrawnTreasures([]); }}>확인</button></div></> : <><button type="button" className="recruit-hall__treasure-chest" onClick={() => exploreTreasures(1)} aria-label="보물상자를 열어 1회 탐색"><img src="/art/recruit/treasure-chest-closed-v1.png" alt="닫힌 보물상자" /></button><div className="recruit-hall__draw-actions recruit-hall__treasure-actions"><button type="button" className="recruit-hall__action recruit-hall__action--subtle" onClick={() => exploreTreasures(1)}>1회 탐색</button><button type="button" className="recruit-hall__action" onClick={() => exploreTreasures(5)}>5회 탐색</button></div></>}
             </div>
           )}
         </main>
@@ -348,6 +358,13 @@ function TreasureRewardCard({ treasure, isReveal = false }: { treasure: Treasure
     <img src={TREASURE_CATEGORY_ART[treasure.category]} alt="" />
     <b className="recruit-hall__treasure-effect">{treasureEffectText(treasure)}</b>
     <div><strong>{treasure.name}</strong><small>{treasure.history}</small></div>
+    <img className="recruit-hall__treasure-card-frame" src="/art/recruit/treasure-card-frame-v5.png" alt="" aria-hidden="true" />
+  </article>;
+}
+
+function TreasureMysteryCard() {
+  return <article className="recruit-hall__treasure-card recruit-hall__treasure-card--mystery" aria-label="정체를 알 수 없는 보물 카드">
+    <span>?</span>
     <img className="recruit-hall__treasure-card-frame" src="/art/recruit/treasure-card-frame-v5.png" alt="" aria-hidden="true" />
   </article>;
 }
