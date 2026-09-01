@@ -13,7 +13,7 @@ import { HeroInfoPanel } from "../HeroInfoPanel.tsx";
 import { ARCHETYPE_LABEL, UNIT_TYPE_LABEL } from "../heroLabels.ts";
 import { HERO_PORTRAIT } from "../heroPortraits.ts";
 import type { HeroDefinition } from "../../../lib/game/hero-definition.ts";
-import { BUNDLED_TREASURE_DEFINITIONS, TREASURE_CATEGORY_LABEL, treasureEffectText, type TreasureDefinition } from "../../../lib/game/treasure-definition.ts";
+import { BUNDLED_TREASURE_DEFINITIONS, treasureEffectText, type TreasureDefinition } from "../../../lib/game/treasure-definition.ts";
 
 type SortMode = "grade" | "name" | "level" | "archetype";
 type RecruitTab = "heroes" | "treasures";
@@ -346,7 +346,8 @@ function TreasureRewardCard({ treasure, isReveal = false }: { treasure: Treasure
   return <article className={`recruit-hall__treasure-card${isReveal ? " is-reveal" : ""}`} aria-label={`${treasure.grade}등급 ${treasure.name}`}>
     <span className={`recruit-hall__treasure-grade grade-${treasure.grade.toLowerCase()}`}>{treasure.grade}</span>
     <img src={TREASURE_CATEGORY_ART[treasure.category]} alt="" />
-    <div><small>{TREASURE_CATEGORY_LABEL[treasure.category]}</small><strong>{treasure.name}</strong><b>{treasureEffectText(treasure)}</b></div>
-    <img className="recruit-hall__treasure-card-frame" src="/art/recruit/treasure-card-frame-v1.png" alt="" aria-hidden="true" />
+    <b className="recruit-hall__treasure-effect">{treasureEffectText(treasure)}</b>
+    <div><strong>{treasure.name}</strong><small>{treasure.history}</small></div>
+    <img className="recruit-hall__treasure-card-frame" src="/art/recruit/treasure-card-frame-v3.png" alt="" aria-hidden="true" />
   </article>;
 }
