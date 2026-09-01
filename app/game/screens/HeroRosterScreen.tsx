@@ -348,6 +348,6 @@ function TreasureRewardCard({ treasure, isReveal = false }: { treasure: Treasure
     <img src={TREASURE_CATEGORY_ART[treasure.category]} alt="" />
     <b className="recruit-hall__treasure-effect">{treasureEffectText(treasure)}</b>
     <div><strong>{treasure.name}</strong><small>{treasure.history}</small></div>
-    <img className="recruit-hall__treasure-card-frame" src="/art/recruit/treasure-card-frame-v4.png" alt="" aria-hidden="true" />
+    <img className="recruit-hall__treasure-card-frame" src="/art/recruit/treasure-card-frame-v5.png" alt="" aria-hidden="true" />
   </article>;
 }
