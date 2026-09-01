@@ -52,10 +52,13 @@ const HERO_FRAGMENT_ART: Record<CoreGrade, string> = {
   D: "/art/items/hero-fragment-d-v3.png",
 };
 const TREASURE_CATEGORY_ART: Record<TreasureDefinition["category"], string> = {
-  weapon: "/art/treasures/weapon-sword-v1.png",
+  weapon: "/art/ui/equipment-weapon-empty-v2.png",
   armor: "/art/ui/equipment-armor-empty-v2.png",
   mount: "/art/ui/equipment-mount-empty-v2.png",
   other: "/art/ui/equipment-other-empty-v2.png",
+};
+const TREASURE_ART: Partial<Record<string, string>> = {
+  "goujian-sword": "/art/treasures/goujian-sword-v1.png",
 };
 const TREASURE_GRADE_BADGE: Record<TreasureDefinition["grade"], string> = {
   SS: "/art/heroes/grades-v2/grade-ss.png",
@@ -366,7 +369,7 @@ export function HeroRosterScreen({
 function TreasureRewardCard({ treasure, isReveal = false }: { treasure: TreasureDefinition; isReveal?: boolean }) {
   return <article className={`recruit-hall__treasure-card${isReveal ? " is-reveal" : ""}`} aria-label={`${treasure.grade}등급 ${treasure.name}`}>
     <img className="recruit-hall__treasure-grade-image" src={TREASURE_GRADE_BADGE[treasure.grade]} alt={`${treasure.grade}등급`} />
-    <img src={TREASURE_CATEGORY_ART[treasure.category]} alt="" />
+    <img src={TREASURE_ART[treasure.id] ?? TREASURE_CATEGORY_ART[treasure.category]} alt="" />
     <b className="recruit-hall__treasure-effect">{treasureEffectText(treasure)}</b>
     <div><strong>{treasure.name}</strong><small>{treasure.history}</small></div>
     <img className="recruit-hall__treasure-card-frame" src="/art/recruit/treasure-card-frame-v5.png" alt="" aria-hidden="true" />
