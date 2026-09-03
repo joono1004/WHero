@@ -1312,4 +1312,4 @@ footer small { margin-left:auto; color:#71898b; }
 .recruit-hall__treasure-opening .recruit-hall__treasure-card .recruit-hall__treasure-terrain-effect,
 .recruit-hall__treasure-results.is-count-1 .recruit-hall__treasure-card .recruit-hall__treasure-terrain-effect{font-size:11px!important}
 .recruit-hall__treasure-results.is-multi .recruit-hall__treasure-card .recruit-hall__treasure-effect{top:51%!important}
-.recruit-hall__treasure-card .recruit-hall__treasure-effect{flex-direction:column-reverse!important}
+.recruit-hall__treasure-card .recruit-hall__treasure-effect{flex-direction:column!important}
