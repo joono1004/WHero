@@ -58,6 +58,17 @@ const TREASURE_CATEGORY_ART: Record<TreasureDefinition["category"], string> = {
   other: "/art/ui/equipment-other-empty-v2.png",
 };
 const TREASURE_ART: Partial<Record<string, string>> = {
+  "han-ring-pommel-sword": "/art/treasures/han-ring-pommel-sword-v1.png",
+  "seven-star-sword": "/art/treasures/seven-star-sword-v1.png",
+  "male-female-swords": "/art/treasures/male-female-swords-v1.png",
+  "goding-sword": "/art/treasures/goding-sword-v1.png",
+  "green-dragon-blade": "/art/treasures/green-dragon-blade-v1.png",
+  "serpent-spear": "/art/treasures/serpent-spear-v1.png",
+  "dragon-spear": "/art/treasures/dragon-spear-v1.png",
+  "zhuge-crossbow": "/art/treasures/zhuge-crossbow-v1.png",
+  "fuchai-halberd": "/art/treasures/fuchai-halberd-v1.png",
+  "blue-steel-sword": "/art/treasures/blue-steel-sword-v1.png",
+  "fangtian-halberd": "/art/treasures/fangtian-halberd-v1.png",
   "goujian-sword": "/art/treasures/goujian-sword-v1.png",
 };
 const TREASURE_GRADE_BADGE: Record<TreasureDefinition["grade"], string> = {
