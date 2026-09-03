@@ -372,7 +372,7 @@ function TreasureRewardCard({ treasure, isReveal = false }: { treasure: Treasure
     <img className="recruit-hall__treasure-grade-image" src={TREASURE_GRADE_BADGE[treasure.grade]} alt={`${treasure.grade}등급`} />
     <img className="recruit-hall__treasure-art" src={TREASURE_ART[treasure.id] ?? TREASURE_CATEGORY_ART[treasure.category]} alt="" />
     <b className="recruit-hall__treasure-effect"><span>{primaryEffect}</span>{terrainEffect && <span className="recruit-hall__treasure-terrain-effect">{terrainEffect.replaceAll("·", " ")}</span>}</b>
-    <div><strong>{treasure.name}</strong><small>{treasure.history}</small></div>
+    <div><strong>{treasure.name}</strong><small>{treasure.description}</small></div>
     <img className="recruit-hall__treasure-card-frame" src="/art/recruit/treasure-card-frame-v5.png" alt="" aria-hidden="true" />
   </article>;
 }
