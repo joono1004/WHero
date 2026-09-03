@@ -14,7 +14,8 @@ export type TreasureDefinition = {
   effectKind: TreasureEffectKind;
   effectValue: number;
   terrainBonuses: string[];
-  history: string;
+  /** 이전 저장 데이터 호환용 보조 필드. 게임에서는 description 하나만 표시한다. */
+  history?: string;
   description: string;
 };
 

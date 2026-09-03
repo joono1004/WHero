@@ -86,8 +86,7 @@ function blankTreasure(): TreasureDraft {
       effectKind: "health",
       effectValue: 3,
       terrainBonuses: [],
-      history: "보물의 역사 설명을 입력하세요.",
-      description: "게임 안에서 표시할 보물 설명을 입력하세요.",
+      description: "보물 설명을 입력하세요.",
     },
   };
 }
@@ -119,7 +118,7 @@ function validate(draft: Draft): string | null {
 function validateTreasure(draft: TreasureDraft): string | null {
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(draft.id)) return "보물 ID는 영문 소문자·숫자·하이픈만 사용할 수 있습니다.";
   if (!draft.name.trim()) return "보물 이름을 입력해 주세요.";
-  if (!draft.definition.history.trim() || !draft.definition.description.trim()) return "역사 설명과 게임 설명을 모두 입력해 주세요.";
+  if (!draft.definition.description.trim()) return "보물 설명을 입력해 주세요.";
   if (draft.category === "weapon" && draft.definition.allowedUnitTypes.length === 0) return "무기는 최소 한 가지 장착 가능 병과를 선택해 주세요.";
   if (draft.category !== "weapon" && draft.definition.allowedUnitTypes.length > 0) return "방어구·탈것·기타 보물은 모든 영웅이 장착할 수 있습니다.";
   if (draft.definition.effectValue < 0) return "효과 수치는 0 이상으로 입력해 주세요.";
@@ -333,8 +332,7 @@ function TreasureEditor({ draft, onChange, onSave }: { draft: TreasureDraft; onC
       <label>효과<select value={definition.effectKind} disabled>{TREASURE_EFFECTS.map((effect) => <option key={effect} value={effect}>{TREASURE_EFFECT_LABEL[effect]}</option>)}</select></label>
       <label>효과 수치<input type="number" min="0" value={definition.effectValue} onChange={(event) => setDefinition((current) => ({ ...current, effectValue: Number(event.target.value) || 0 }))} /></label>
       <label className="admin-span-2 admin-toggle-row"><input type="checkbox" checked={draft.published} onChange={(event) => onChange((current) => ({ ...current, published: event.target.checked }))} />게임에 공개</label>
-      <label className="admin-span-2">역사 설명<textarea value={definition.history} onChange={(event) => setDefinition((current) => ({ ...current, history: event.target.value }))} /></label>
-      <label className="admin-span-2">게임 설명<textarea value={definition.description} onChange={(event) => setDefinition((current) => ({ ...current, description: event.target.value }))} /></label>
+      <label className="admin-span-2">보물 설명<textarea value={definition.description} onChange={(event) => setDefinition((current) => ({ ...current, description: event.target.value }))} /></label>
     </div>
     {draft.category === "weapon" ? <fieldset><legend>장착 가능 병과</legend><div className="admin-check-grid">{TREASURE_UNIT_TYPES.map((unitType) => <label key={unitType}><input type="checkbox" checked={definition.allowedUnitTypes.includes(unitType)} onChange={() => setDefinition((current) => ({ ...current, allowedUnitTypes: toggle(unitType, current.allowedUnitTypes) }))} />{TREASURE_UNIT_TYPE_LABEL[unitType]}</label>)}</div></fieldset> : <fieldset><legend>장착 가능 병과</legend><p className="admin-field-note">방어구·탈것·기타 보물은 병과 구분 없이 모든 영웅이 장착할 수 있습니다.</p></fieldset>}
     {draft.category === "mount" ? <fieldset><legend>지형 이동 향상</legend><div className="admin-check-grid">{TREASURE_TERRAINS.map((terrain) => <label key={terrain}><input type="checkbox" checked={definition.terrainBonuses.includes(terrain)} onChange={() => setDefinition((current) => ({ ...current, terrainBonuses: toggle(terrain, current.terrainBonuses) }))} />{TREASURE_TERRAIN_LABEL[terrain]}</label>)}</div></fieldset> : null}

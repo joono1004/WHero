@@ -20,7 +20,7 @@ function isTreasureDefinition(value: unknown): value is TreasureDefinition {
     && CATEGORIES.has(treasure.category) && GRADES.has(treasure.grade)
     && EFFECTS.has(treasure.effectKind) && typeof treasure.effectValue === "number"
     && Array.isArray(treasure.allowedUnitTypes) && Array.isArray(treasure.terrainBonuses)
-    && typeof treasure.history === "string" && typeof treasure.description === "string";
+    && typeof treasure.description === "string";
 }
 
 // Published administrator changes replace their bundled counterpart. When the
