@@ -1287,7 +1287,7 @@ footer small { margin-left:auto; color:#71898b; }
 .recruit-hall__treasure-opening .recruit-hall__treasure-card>img.recruit-hall__treasure-art,.recruit-hall__treasure-results.is-count-1 .recruit-hall__treasure-card>img.recruit-hall__treasure-art{top:7%!important;left:50%!important;width:118px!important;height:118px!important;transform:translateX(-50%)!important}
 
 /* 보물 등급은 보물 본체 확대 규칙에서 제외한다. */
-.recruit-hall__treasure-card>img.recruit-hall__treasure-grade-image{position:absolute!important;z-index:10!important;top:10%!important;right:13%!important;left:auto!important;width:27px!important;height:25px!important;object-fit:contain!important;transform:none!important}
+.recruit-hall__treasure-card>img.recruit-hall__treasure-grade-image,.recruit-hall__treasure-opening .recruit-hall__treasure-card>img.recruit-hall__treasure-grade-image,.recruit-hall__treasure-results.is-count-1 .recruit-hall__treasure-card>img.recruit-hall__treasure-grade-image{position:absolute!important;z-index:10!important;top:10%!important;right:13%!important;left:auto!important;width:27px!important;height:25px!important;object-fit:contain!important;transform:none!important}
 .recruit-hall__treasure-results.is-multi .recruit-hall__treasure-card>img.recruit-hall__treasure-grade-image{top:9%!important;right:12%!important;width:23px!important;height:21px!important;transform:none!important}
 @media(max-width:700px){.recruit-hall__treasure-card>img.recruit-hall__treasure-grade-image{width:23px!important;height:21px!important}.recruit-hall__treasure-results.is-multi .recruit-hall__treasure-card>img.recruit-hall__treasure-grade-image{width:19px!important;height:17px!important}}
 
