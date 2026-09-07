@@ -42,6 +42,23 @@ const TREASURE_CATEGORIES: TreasureCategory[] = ["weapon", "armor", "mount", "ot
 const TREASURE_EFFECTS: TreasureEffectKind[] = ["attack", "defense", "movement", "health"];
 const TREASURE_UNIT_TYPES: TreasureUnitType[] = ["infantry", "cavalry", "archer", "strategist"];
 const TREASURE_TERRAINS = Object.keys(TREASURE_TERRAIN_LABEL);
+const TREASURE_CATEGORY_ART: Record<TreasureCategory, string> = {
+  weapon: "/art/ui/equipment-weapon-empty-v2.png",
+  armor: "/art/ui/equipment-armor-empty-v2.png",
+  mount: "/art/ui/equipment-mount-empty-v2.png",
+  other: "/art/ui/equipment-other-empty-v2.png",
+};
+const TREASURE_ART: Partial<Record<string, string>> = {
+  "han-ring-pommel-sword": "/art/treasures/han-ring-pommel-sword-v1.png", "seven-star-sword": "/art/treasures/seven-star-sword-v1.png", "male-female-swords": "/art/treasures/male-female-swords-v1.png", "goding-sword": "/art/treasures/goding-sword-v1.png", "green-dragon-blade": "/art/treasures/green-dragon-blade-v1.png", "serpent-spear": "/art/treasures/serpent-spear-v1.png", "dragon-spear": "/art/treasures/dragon-spear-v1.png", "zhuge-crossbow": "/art/treasures/zhuge-crossbow-v1.png", "fuchai-halberd": "/art/treasures/fuchai-halberd-v1.png", "blue-steel-sword": "/art/treasures/blue-steel-sword-v1.png", "fangtian-halberd": "/art/treasures/fangtian-halberd-v1.png", "goujian-sword": "/art/treasures/goujian-sword-v1.png",
+  "fish-scale-armor": "/art/treasures/fish-scale-armor-v1.png", "dujeong-gap": "/art/treasures/dujeong-armor-v1.png", "chain-mail": "/art/treasures/chain-mail-v1.png", "mingguang-armor": "/art/treasures/mingguang-armor-v1.png", "gold-thread-jade-suit": "/art/treasures/gold-thread-jade-suit-v1.png", "maximilian-armor": "/art/treasures/maximilian-armor-v1.png",
+  "jeju-horse": "/art/treasures/jeju-horse-v1.png", "wusun-horse": "/art/treasures/wusun-horse-v1.png", "ferghana-horse": "/art/treasures/ferghana-horse-v1.png", "mongolian-horse": "/art/treasures/mongolian-horse-v1.png", "arabian-horse": "/art/treasures/arabian-horse-v1.png", "akhal-teke": "/art/treasures/akhal-teke-v1.png",
+  "tiger-tally": "/art/treasures/tiger-tally-v1.png", "jade-belt-hook": "/art/treasures/jade-belt-hook-v1.png", "jade-bi": "/art/treasures/jade-bi-v1.png", "taiping-jing": "/art/treasures/taiping-jing-v1.png", "shanghan-lun": "/art/treasures/shanghan-lun-v1.png", "huangdi-neijing": "/art/treasures/huangdi-neijing-v1.png",
+};
+const TREASURE_GRADE_BADGE: Record<CoreGrade, string> = { SS: "/art/heroes/grades-v2/grade-ss.png", S: "/art/heroes/grades-v2/grade-s.png", A: "/art/heroes/grades-v2/grade-a.png", B: "/art/heroes/grades-v2/grade-b.png", C: "/art/heroes/grades-v2/grade-c.png", D: "/art/heroes/grades-v2/grade-d.png" };
+
+function treasureArt(treasure: TreasureDefinition): string {
+  return TREASURE_ART[treasure.id] ?? TREASURE_CATEGORY_ART[treasure.category];
+}
 
 function bundledRow(definition: HeroDefinition): AdminHeroRow {
   return { id: definition.id, name: definition.name, availability: STARTER_HERO_IDS.has(definition.id) ? "starter" : "recruitable", portrait_path: HERO_PORTRAIT[definition.id] ?? null, definition };
@@ -285,7 +302,7 @@ export default function AdminPage() {
       </section> : <section className="admin-content">
         <div className="admin-content__heading"><div><p className="admin-kicker">보물정보</p><h2>보물 목록 <b>{treasures.length}</b></h2><span>보물을 클릭하면 역사 설명과 효과를 수정할 수 있습니다.</span></div><button type="button" onClick={createTreasure}>+ 보물 추가</button></div>
         <p className="admin-message">{message}</p>
-        <div className="admin-treasure-list">{treasures.map((row) => <button key={row.id} type="button" onClick={() => openTreasure(row.id)}><span className={`admin-treasure-list__grade grade-${row.grade.toLowerCase()}`}>{row.grade}</span><span><strong>{row.name}</strong><small>{TREASURE_CATEGORY_LABEL[row.category]} · {treasureEffectText(row.definition)}</small><em>{row.published ? "공개" : "비공개"}</em></span><i>수정</i></button>)}</div>
+        <div className="admin-treasure-list">{treasures.map((row) => <button key={row.id} type="button" onClick={() => openTreasure(row.id)}><span className="admin-treasure-list__art"><img src={treasureArt(row.definition)} alt="" /><img src={TREASURE_GRADE_BADGE[row.grade]} alt={`${row.grade}등급`} /></span><span><strong>{row.name}</strong><small>{TREASURE_CATEGORY_LABEL[row.category]} · {treasureEffectText(row.definition)}</small><em>{row.published ? "공개" : "비공개"}</em></span><i>수정</i></button>)}</div>
       </section>}
     </div>
     {isEditorOpen && selected ? <div className="admin-modal" role="dialog" aria-modal="true" aria-label={`${selected.name} 수정`}><div className="admin-modal__backdrop" onClick={() => setEditorOpen(false)} /><div className="admin-modal__panel"><button type="button" className="admin-modal__close" aria-label="수정 창 닫기" onClick={() => setEditorOpen(false)}>×</button><HeroEditor draft={selected} onChange={updateSelected} onSave={saveSelected} /></div></div> : null}
@@ -323,7 +340,7 @@ function TreasureEditor({ draft, onChange, onSave }: { draft: TreasureDraft; onC
     return { ...current, category, definition: { ...current.definition, category, effectKind, allowedUnitTypes: category === "weapon" ? current.definition.allowedUnitTypes : [], terrainBonuses: category === "mount" ? current.definition.terrainBonuses : [] } };
   });
   return <section className="admin-editor">
-    <div className="admin-editor__heading"><div><p>선택 보물</p><h2>{draft.name}</h2></div><button type="button" onClick={onSave}>검증 후 반영</button></div>
+    <div className="admin-editor__heading"><div className="admin-treasure-editor__title"><span className="admin-treasure-list__art"><img src={treasureArt(definition)} alt="" /><img src={TREASURE_GRADE_BADGE[draft.grade]} alt={`${draft.grade}등급`} /></span><div><p>선택 보물</p><h2>{draft.name}</h2></div></div><button type="button" onClick={onSave}>검증 후 반영</button></div>
     <div className="admin-grid">
       <label>보물 ID<input value={draft.id} onChange={(event) => onChange((current) => ({ ...current, id: event.target.value, definition: { ...current.definition, id: event.target.value } }))} /></label>
       <label>이름<input value={draft.name} onChange={(event) => onChange((current) => ({ ...current, name: event.target.value, definition: { ...current.definition, name: event.target.value } }))} /></label>
