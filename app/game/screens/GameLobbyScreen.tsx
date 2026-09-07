@@ -9,6 +9,7 @@ import { heroOverallGrade } from "../../../lib/game/hero-definition.ts";
 import { createRecruitedHeroState, governedWorldId, setDeploymentPriority } from "../../../lib/game/hero.ts";
 import { HERO_FRAGMENT_ITEM_ID } from "../../../lib/game/hero-recruitment.ts";
 import type { HeroState } from "../../../lib/game/hero.ts";
+import { BUNDLED_TREASURE_DEFINITIONS } from "../../../lib/game/treasure-definition.ts";
 import { buildHeroListEntries } from "../../../lib/game/hero-roster.ts";
 import type { HeroListEntry } from "../../../lib/game/hero-roster.ts";
 import type { ClearedWorldRecord } from "../../../lib/game/world.ts";
@@ -335,6 +336,7 @@ export function GameLobbyScreen({
         entries={entries}
         initialHeroId={heroScreenInitialId}
         fragmentItemIds={playerFaction?.itemInventory ?? []}
+        treasureItemIds={playerFaction?.itemInventory ?? []}
         onBack={() => setHeroScreenOpen(false)}
         onToggleDeploymentPriority={(heroId) => {
           const hero = entries.find((entry) => entry.state.heroId === heroId)?.state;
@@ -357,6 +359,48 @@ export function GameLobbyScreen({
                 itemInventory: [...currentFaction.itemInventory, ...fragmentGrades.map((grade) => HERO_FRAGMENT_ITEM_ID[grade])],
               },
             },
+          });
+        }}
+        onClaimTreasures={(treasures) => {
+          const currentFaction = save.factions[PLAYER_FACTION_ID];
+          if (!currentFaction) return;
+          onUpdateSave({
+            ...save,
+            factions: {
+              ...save.factions,
+              [PLAYER_FACTION_ID]: {
+                ...currentFaction,
+                itemInventory: [...currentFaction.itemInventory, ...treasures.map((treasure) => treasure.id)],
+              },
+            },
+          });
+        }}
+        onEquipTreasure={(heroId, treasureId) => {
+          const treasure = BUNDLED_TREASURE_DEFINITIONS.find((candidate) => candidate.id === treasureId);
+          const hero = save.heroes.find((candidate) => candidate.heroId === heroId);
+          const definition = entries.find((entry) => entry.state.heroId === heroId)?.definition;
+          if (!treasure || !hero || !definition || (treasure.allowedUnitTypes.length > 0 && !treasure.allowedUnitTypes.includes(definition.unitType as typeof treasure.allowedUnitTypes[number]))) return;
+          onUpdateSave({
+            ...save,
+            heroes: save.heroes.map((candidate) => candidate.heroId !== heroId ? candidate : {
+              ...candidate,
+              items: [
+                ...candidate.items.filter((item) => {
+                  const equippedTreasure = BUNDLED_TREASURE_DEFINITIONS.find((known) => known.id === item.id);
+                  return equippedTreasure?.category !== treasure.category;
+                }),
+                { id: treasure.id, name: treasure.name, description: treasure.description },
+              ],
+            }),
+          });
+        }}
+        onUnequipTreasure={(heroId, treasureId) => {
+          onUpdateSave({
+            ...save,
+            heroes: save.heroes.map((candidate) => candidate.heroId !== heroId ? candidate : {
+              ...candidate,
+              items: candidate.items.filter((item) => item.id !== treasureId),
+            }),
           });
         }}
         governorLabelFor={governorLabelFor}
