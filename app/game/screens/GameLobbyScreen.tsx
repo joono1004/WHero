@@ -65,6 +65,17 @@ const RESOURCE_CHIPS: { key: "wood" | "iron" | "gold" | "gem"; icon: string; lab
   { key: "gem", icon: "/art/lobby/resources/gem-v2.png", label: "보석", tint: "#d88cff" },
 ];
 
+const TREASURE_INSTANCE_PREFIX = "treasure:";
+
+function treasureIdFromStoredItemId(itemId: string): string | null {
+  const candidateId = itemId.startsWith(TREASURE_INSTANCE_PREFIX) ? itemId.split(":")[1] : itemId;
+  return BUNDLED_TREASURE_DEFINITIONS.some((treasure) => treasure.id === candidateId) ? candidateId : null;
+}
+
+function makeTreasureInstanceId(treasureId: string, serial: string | number): string {
+  return `${TREASURE_INSTANCE_PREFIX}${treasureId}:${serial}`;
+}
+
 // Face-focused derivatives keep the representative hero readable in the compact HUD.
 const LOBBY_REPRESENTATIVE_FACE: Partial<Record<HeroId, string>> = {
   "zhang-bao": "/art/heroes/zhang-bao-lobby-face-v1.png",
@@ -370,36 +381,74 @@ export function GameLobbyScreen({
               ...save.factions,
               [PLAYER_FACTION_ID]: {
                 ...currentFaction,
-                itemInventory: [...currentFaction.itemInventory, ...treasures.map((treasure) => treasure.id)],
+                itemInventory: [...currentFaction.itemInventory, ...treasures.map((treasure, index) => makeTreasureInstanceId(treasure.id, `${Date.now()}-${index}`))],
               },
             },
           });
         }}
-        onEquipTreasure={(heroId, treasureId) => {
-          const treasure = BUNDLED_TREASURE_DEFINITIONS.find((candidate) => candidate.id === treasureId);
+        onNormalizeTreasureInstances={() => {
+          const currentFaction = save.factions[PLAYER_FACTION_ID];
+          if (!currentFaction || !currentFaction.itemInventory.some((itemId) => !itemId.startsWith(TREASURE_INSTANCE_PREFIX) && treasureIdFromStoredItemId(itemId))) return;
+          const serialByTreasureId = new Map<string, number>();
+          const normalizedInventory = currentFaction.itemInventory.map((itemId) => {
+            const treasureId = treasureIdFromStoredItemId(itemId);
+            if (!treasureId || itemId.startsWith(TREASURE_INSTANCE_PREFIX)) return itemId;
+            const serial = serialByTreasureId.get(treasureId) ?? 0;
+            serialByTreasureId.set(treasureId, serial + 1);
+            return makeTreasureInstanceId(treasureId, `legacy-${serial}`);
+          });
+          const instancesByTreasureId = new Map<string, string[]>();
+          normalizedInventory.forEach((itemId) => {
+            const treasureId = treasureIdFromStoredItemId(itemId);
+            if (!treasureId) return;
+            instancesByTreasureId.set(treasureId, [...(instancesByTreasureId.get(treasureId) ?? []), itemId]);
+          });
+          const usedByTreasureId = new Map<string, number>();
+          onUpdateSave({
+            ...save,
+            heroes: save.heroes.map((hero) => ({
+              ...hero,
+              items: hero.items.map((item) => {
+                const treasureId = treasureIdFromStoredItemId(item.id);
+                if (!treasureId || item.id.startsWith(TREASURE_INSTANCE_PREFIX)) return item;
+                const nextIndex = usedByTreasureId.get(treasureId) ?? 0;
+                usedByTreasureId.set(treasureId, nextIndex + 1);
+                return { ...item, id: instancesByTreasureId.get(treasureId)?.[nextIndex] ?? item.id };
+              }),
+            })),
+            factions: {
+              ...save.factions,
+              [PLAYER_FACTION_ID]: { ...currentFaction, itemInventory: normalizedInventory },
+            },
+          });
+        }}
+        onEquipTreasure={(heroId, treasureItemId) => {
+          const treasureId = treasureIdFromStoredItemId(treasureItemId);
+          const treasure = treasureId ? BUNDLED_TREASURE_DEFINITIONS.find((candidate) => candidate.id === treasureId) : undefined;
           const hero = save.heroes.find((candidate) => candidate.heroId === heroId);
           const definition = entries.find((entry) => entry.state.heroId === heroId)?.definition;
-          if (!treasure || !hero || !definition || (treasure.allowedUnitTypes.length > 0 && !treasure.allowedUnitTypes.includes(definition.unitType as typeof treasure.allowedUnitTypes[number]))) return;
+          const currentFaction = save.factions[PLAYER_FACTION_ID];
+          if (!treasure || !hero || !definition || !currentFaction?.itemInventory.includes(treasureItemId) || (treasure.allowedUnitTypes.length > 0 && !treasure.allowedUnitTypes.includes(definition.unitType as typeof treasure.allowedUnitTypes[number]))) return;
           onUpdateSave({
             ...save,
             heroes: save.heroes.map((candidate) => candidate.heroId !== heroId ? candidate : {
               ...candidate,
               items: [
                 ...candidate.items.filter((item) => {
-                  const equippedTreasure = BUNDLED_TREASURE_DEFINITIONS.find((known) => known.id === item.id);
+                  const equippedTreasure = BUNDLED_TREASURE_DEFINITIONS.find((known) => known.id === treasureIdFromStoredItemId(item.id));
                   return equippedTreasure?.category !== treasure.category;
                 }),
-                { id: treasure.id, name: treasure.name, description: treasure.description },
+                { id: treasureItemId, name: treasure.name, description: treasure.description },
               ],
             }),
           });
         }}
-        onUnequipTreasure={(heroId, treasureId) => {
+        onUnequipTreasure={(heroId, treasureItemId) => {
           onUpdateSave({
             ...save,
             heroes: save.heroes.map((candidate) => candidate.heroId !== heroId ? candidate : {
               ...candidate,
-              items: candidate.items.filter((item) => item.id !== treasureId),
+              items: candidate.items.filter((item) => item.id !== treasureItemId),
             }),
           });
         }}

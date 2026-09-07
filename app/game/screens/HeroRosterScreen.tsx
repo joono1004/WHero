@@ -98,13 +98,23 @@ const TREASURE_GRADE_BADGE: Record<TreasureDefinition["grade"], string> = {
   D: "/art/heroes/grades-v2/grade-d.png",
 };
 
+const TREASURE_INSTANCE_PREFIX = "treasure:";
+
+function treasureIdFromInstanceId(itemId: string): string {
+  return itemId.startsWith(TREASURE_INSTANCE_PREFIX) ? itemId.split(":")[1] ?? itemId : itemId;
+}
+
+function isLegacyTreasureInstance(itemId: string): boolean {
+  return !itemId.startsWith(TREASURE_INSTANCE_PREFIX) && BUNDLED_TREASURE_DEFINITIONS.some((treasure) => treasure.id === itemId);
+}
+
 function canHeroEquipTreasure(treasure: TreasureDefinition, unitType: string): boolean {
   return canUnitTypeEquipTreasure(treasure, unitType as Parameters<typeof canUnitTypeEquipTreasure>[1]);
 }
 
 /** 10명(2열×5행)을 한눈에 보여주는 모바일 가로용 영웅 기록첩. */
 export function HeroRosterScreen({
-  entries, initialHeroId, fragmentItemIds, treasureItemIds, onBack, onToggleDeploymentPriority, onClaimRecruitment, onClaimTreasures, onEquipTreasure, onUnequipTreasure, governorLabelFor,
+  entries, initialHeroId, fragmentItemIds, treasureItemIds, onBack, onToggleDeploymentPriority, onClaimRecruitment, onClaimTreasures, onNormalizeTreasureInstances, onEquipTreasure, onUnequipTreasure, governorLabelFor,
 }: {
   entries: HeroListEntry[];
   initialHeroId: string | null;
@@ -114,8 +124,9 @@ export function HeroRosterScreen({
   onToggleDeploymentPriority: (heroId: string) => void;
   onClaimRecruitment: (heroes: HeroDefinition[], fragmentGrades: CoreGrade[]) => void;
   onClaimTreasures: (treasures: TreasureDefinition[]) => void;
-  onEquipTreasure: (heroId: string, treasureId: string) => void;
-  onUnequipTreasure: (heroId: string, treasureId: string) => void;
+  onNormalizeTreasureInstances: () => void;
+  onEquipTreasure: (heroId: string, treasureItemId: string) => void;
+  onUnequipTreasure: (heroId: string, treasureItemId: string) => void;
   governorLabelFor: (state: HeroListEntry["state"]) => string | null;
 }) {
   const [sortMode, setSortMode] = useState<SortMode>("grade");
@@ -129,7 +140,7 @@ export function HeroRosterScreen({
   const [treasureExplorePhase, setTreasureExplorePhase] = useState<TreasureExplorePhase>("idle");
   const [drawnTreasures, setDrawnTreasures] = useState<TreasureDefinition[]>([]);
   const [treasureRevealIndex, setTreasureRevealIndex] = useState(0);
-  const [inspectedTreasureId, setInspectedTreasureId] = useState<string | null>(null);
+  const [inspectedTreasureItemId, setInspectedTreasureItemId] = useState<string | null>(null);
   const resultCardRefs = useRef(new Map<number, HTMLDivElement>());
   const claimButtonRef = useRef<HTMLButtonElement>(null);
   const sorted = [...entries].sort(SORT_COMPARATORS[sortMode]);
@@ -145,14 +156,18 @@ export function HeroRosterScreen({
     return count ? [{ grade, count }] : [];
   });
   const treasureById = new Map(BUNDLED_TREASURE_DEFINITIONS.map((treasure) => [treasure.id, treasure]));
-  const ownedTreasures = treasureItemIds.flatMap((itemId, index) => {
-    const treasure = treasureById.get(itemId);
-    return treasure ? [{ treasure, index }] : [];
+  const ownedTreasures = treasureItemIds.flatMap((itemId) => {
+    const treasure = treasureById.get(treasureIdFromInstanceId(itemId));
+    return treasure ? [{ treasure, itemId }] : [];
   });
   const equippedTreasureIds = new Set(entries.flatMap((entry) => entry.state.items.map((item) => item.id)));
-  const inspectedTreasure = inspectedTreasureId ? treasureById.get(inspectedTreasureId) ?? null : null;
+  const inspectedTreasure = inspectedTreasureItemId ? ownedTreasures.find(({ itemId }) => itemId === inspectedTreasureItemId)?.treasure ?? null : null;
   const selectedEquippedIds = new Set(selected?.state.items.map((item) => item.id) ?? []);
   const canEquipInspected = Boolean(selected && inspectedTreasure && canHeroEquipTreasure(inspectedTreasure, selected.definition.unitType));
+
+  useEffect(() => {
+    if (treasureItemIds.some(isLegacyTreasureInstance)) onNormalizeTreasureInstances();
+  }, [treasureItemIds, onNormalizeTreasureInstances]);
 
   useEffect(() => {
     if (recruitmentPhase !== "revealing" || drawnHeroes.length === 0) return;
@@ -405,9 +420,9 @@ export function HeroRosterScreen({
           <div>
             {EQUIPMENT_SLOTS.map((slot) => (
               (() => {
-                const equippedId = selected?.state.items.find((item) => treasureById.get(item.id)?.category === slot.key)?.id;
-                const equipped = equippedId ? treasureById.get(equippedId) : null;
-                return <button key={slot.key} type="button" className={`hero-ledger__treasure-slot${equipped ? " is-equipped" : ""}`} aria-label={equipped ? `${equipped.name} 장착됨` : `${slot.label} 장착칸`} title={equipped?.name ?? slot.label} onClick={() => equipped && setInspectedTreasureId(equipped.id)}>
+                const equippedId = selected?.state.items.find((item) => treasureById.get(treasureIdFromInstanceId(item.id))?.category === slot.key)?.id;
+                const equipped = equippedId ? treasureById.get(treasureIdFromInstanceId(equippedId)) : null;
+                return <button key={slot.key} type="button" className={`hero-ledger__treasure-slot${equipped ? " is-equipped" : ""}`} aria-label={equipped ? `${equipped.name} 장착됨` : `${slot.label} 장착칸`} title={equipped?.name ?? slot.label} onClick={() => equippedId && setInspectedTreasureItemId(equippedId)}>
                   <img src={equipped ? TREASURE_ART[equipped.id] ?? TREASURE_CATEGORY_ART[equipped.category] : slot.icon} alt="" />
                 </button>;
               })()
@@ -415,16 +430,16 @@ export function HeroRosterScreen({
           </div>
         </aside>
         <aside className="hero-ledger__bag" aria-label="가방"><p>가방</p><div className="hero-ledger__bag-grid">
-          {ownedTreasures.map(({ treasure, index }) => <button type="button" key={`${treasure.id}-${index}`} className={`hero-ledger__bag-treasure${equippedTreasureIds.has(treasure.id) ? " is-equipped" : ""}`} onClick={() => setInspectedTreasureId(treasure.id)} aria-label={`${treasure.name} ${treasure.grade}등급${equippedTreasureIds.has(treasure.id) ? ", 장착됨" : ""}`}><img src={TREASURE_ART[treasure.id] ?? TREASURE_CATEGORY_ART[treasure.category]} alt="" /><img className="hero-ledger__bag-treasure-grade" src={TREASURE_GRADE_BADGE[treasure.grade]} alt={`${treasure.grade}등급`} />{equippedTreasureIds.has(treasure.id) && <small>장착됨</small>}</button>)}
+          {ownedTreasures.map(({ treasure, itemId }) => <button type="button" key={itemId} className={`hero-ledger__bag-treasure${equippedTreasureIds.has(itemId) ? " is-equipped" : ""}`} onClick={() => setInspectedTreasureItemId(itemId)} aria-label={`${treasure.name} ${treasure.grade}등급${equippedTreasureIds.has(itemId) ? ", 장착됨" : ""}`}><img src={TREASURE_ART[treasure.id] ?? TREASURE_CATEGORY_ART[treasure.category]} alt="" /><img className="hero-ledger__bag-treasure-grade" src={TREASURE_GRADE_BADGE[treasure.grade]} alt={`${treasure.grade}등급`} />{equippedTreasureIds.has(itemId) && <small>장착됨</small>}</button>)}
           {fragmentItems.map(({ grade, count }) => <span key={grade} className="hero-ledger__fragment" data-grade={grade} title={`${HERO_FRAGMENT_LABEL[grade]} ${count}개`}><img src={HERO_FRAGMENT_ART[grade]} alt={`${grade}결정`} /><small>×{count}</small></span>)}
           {Array.from({ length: Math.max(0, BAG_GRID_COLUMNS * BAG_EMPTY_PREVIEW_ROWS - fragmentItems.length - ownedTreasures.length) }, (_, index) => <span key={`empty-${index}`} />)}
         </div></aside>
       </div>
-      {inspectedTreasure && <div className="hero-ledger__treasure-tooltip" role="dialog" aria-label={`${inspectedTreasure.name} 정보`}>
-        <button type="button" className="hero-ledger__treasure-tooltip-close" onClick={() => setInspectedTreasureId(null)} aria-label="보물 정보 닫기">×</button>
+      {inspectedTreasure && inspectedTreasureItemId && <div className="hero-ledger__treasure-tooltip" role="dialog" aria-label={`${inspectedTreasure.name} 정보`}>
+        <button type="button" className="hero-ledger__treasure-tooltip-close" onClick={() => setInspectedTreasureItemId(null)} aria-label="보물 정보 닫기">×</button>
         <div><img src={TREASURE_ART[inspectedTreasure.id] ?? TREASURE_CATEGORY_ART[inspectedTreasure.category]} alt="" /><img src={TREASURE_GRADE_BADGE[inspectedTreasure.grade]} alt={`${inspectedTreasure.grade}등급`} /></div>
         <strong>{inspectedTreasure.name}</strong><span>{inspectedTreasure.grade}등급 · {treasureEffectText(inspectedTreasure)}</span><p>{inspectedTreasure.description}</p>
-        {selectedEquippedIds.has(inspectedTreasure.id) ? <button type="button" onClick={() => { if (selected) onUnequipTreasure(selected.state.heroId, inspectedTreasure.id); setInspectedTreasureId(null); }}>해제</button> : <button type="button" disabled={!canEquipInspected} title={canEquipInspected ? undefined : "이 영웅의 병과에는 장착할 수 없습니다"} onClick={() => { if (selected && canEquipInspected) { onEquipTreasure(selected.state.heroId, inspectedTreasure.id); setInspectedTreasureId(null); } }}>{canEquipInspected ? "장착" : "장착 불가"}</button>}
+        {selectedEquippedIds.has(inspectedTreasureItemId) ? <button type="button" onClick={() => { if (selected) onUnequipTreasure(selected.state.heroId, inspectedTreasureItemId); setInspectedTreasureItemId(null); }}>해제</button> : <button type="button" disabled={!canEquipInspected} title={canEquipInspected ? undefined : "이 영웅의 병과에는 장착할 수 없습니다"} onClick={() => { if (selected && canEquipInspected) { onEquipTreasure(selected.state.heroId, inspectedTreasureItemId); setInspectedTreasureItemId(null); } }}>{canEquipInspected ? "장착" : "장착 불가"}</button>}
       </div>}
     </section>
   );
