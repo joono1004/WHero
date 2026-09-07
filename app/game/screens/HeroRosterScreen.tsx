@@ -76,6 +76,12 @@ const TREASURE_ART: Partial<Record<string, string>> = {
   "mingguang-armor": "/art/treasures/mingguang-armor-v1.png",
   "gold-thread-jade-suit": "/art/treasures/gold-thread-jade-suit-v1.png",
   "maximilian-armor": "/art/treasures/maximilian-armor-v1.png",
+  "jeju-horse": "/art/treasures/jeju-horse-v1.png",
+  "wusun-horse": "/art/treasures/wusun-horse-v1.png",
+  "ferghana-horse": "/art/treasures/ferghana-horse-v1.png",
+  "mongolian-horse": "/art/treasures/mongolian-horse-v1.png",
+  "arabian-horse": "/art/treasures/arabian-horse-v1.png",
+  "akhal-teke": "/art/treasures/akhal-teke-v1.png",
 };
 const TREASURE_GRADE_BADGE: Record<TreasureDefinition["grade"], string> = {
   SS: "/art/heroes/grades-v2/grade-ss.png",
