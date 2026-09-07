@@ -141,6 +141,7 @@ export function HeroRosterScreen({
   const [drawnTreasures, setDrawnTreasures] = useState<TreasureDefinition[]>([]);
   const [treasureRevealIndex, setTreasureRevealIndex] = useState(0);
   const [inspectedTreasureItemId, setInspectedTreasureItemId] = useState<string | null>(null);
+  const [inspectedFragmentGrade, setInspectedFragmentGrade] = useState<CoreGrade | null>(null);
   const resultCardRefs = useRef(new Map<number, HTMLDivElement>());
   const claimButtonRef = useRef<HTMLButtonElement>(null);
   const sorted = [...entries].sort(SORT_COMPARATORS[sortMode]);
@@ -430,8 +431,8 @@ export function HeroRosterScreen({
           </div>
         </aside>
         <aside className="hero-ledger__bag" aria-label="가방"><p>가방</p><div className="hero-ledger__bag-grid">
-          {ownedTreasures.map(({ treasure, itemId }) => <button type="button" key={itemId} className={`hero-ledger__bag-treasure${equippedTreasureIds.has(itemId) ? " is-equipped" : ""}`} onClick={() => setInspectedTreasureItemId(itemId)} aria-label={`${treasure.name} ${treasure.grade}등급${equippedTreasureIds.has(itemId) ? ", 장착됨" : ""}`}><img src={TREASURE_ART[treasure.id] ?? TREASURE_CATEGORY_ART[treasure.category]} alt="" /><img className="hero-ledger__bag-treasure-grade" src={TREASURE_GRADE_BADGE[treasure.grade]} alt={`${treasure.grade}등급`} />{equippedTreasureIds.has(itemId) && <small>장착됨</small>}</button>)}
-          {fragmentItems.map(({ grade, count }) => <span key={grade} className="hero-ledger__fragment" data-grade={grade} title={`${HERO_FRAGMENT_LABEL[grade]} ${count}개`}><img src={HERO_FRAGMENT_ART[grade]} alt={`${grade}결정`} /><small>×{count}</small></span>)}
+          {ownedTreasures.map(({ treasure, itemId }) => <button type="button" key={itemId} className={`hero-ledger__bag-treasure${equippedTreasureIds.has(itemId) ? " is-equipped" : ""}`} onClick={() => { setInspectedFragmentGrade(null); setInspectedTreasureItemId(itemId); }} aria-label={`${treasure.name} ${treasure.grade}등급${equippedTreasureIds.has(itemId) ? ", 장착됨" : ""}`}><img src={TREASURE_ART[treasure.id] ?? TREASURE_CATEGORY_ART[treasure.category]} alt="" /><img className="hero-ledger__bag-treasure-grade" src={TREASURE_GRADE_BADGE[treasure.grade]} alt={`${treasure.grade}등급`} />{equippedTreasureIds.has(itemId) && <small>장착됨</small>}</button>)}
+          {fragmentItems.map(({ grade, count }) => <button type="button" key={grade} className="hero-ledger__fragment" data-grade={grade} onClick={() => { setInspectedTreasureItemId(null); setInspectedFragmentGrade(grade); }} aria-label={`${HERO_FRAGMENT_LABEL[grade]} ${count}개 정보`}><img src={HERO_FRAGMENT_ART[grade]} alt={`${grade}결정`} /><small>×{count}</small></button>)}
           {Array.from({ length: Math.max(0, BAG_GRID_COLUMNS * BAG_EMPTY_PREVIEW_ROWS - fragmentItems.length - ownedTreasures.length) }, (_, index) => <span key={`empty-${index}`} />)}
         </div></aside>
       </div>
@@ -440,6 +441,11 @@ export function HeroRosterScreen({
         <div><img src={TREASURE_ART[inspectedTreasure.id] ?? TREASURE_CATEGORY_ART[inspectedTreasure.category]} alt="" /><img src={TREASURE_GRADE_BADGE[inspectedTreasure.grade]} alt={`${inspectedTreasure.grade}등급`} /></div>
         <strong>{inspectedTreasure.name}</strong><span>{inspectedTreasure.grade}등급 · {treasureEffectText(inspectedTreasure)}</span><p>{inspectedTreasure.description}</p>
         {selectedEquippedIds.has(inspectedTreasureItemId) ? <button type="button" onClick={() => { if (selected) onUnequipTreasure(selected.state.heroId, inspectedTreasureItemId); setInspectedTreasureItemId(null); }}>해제</button> : <button type="button" disabled={!canEquipInspected} title={canEquipInspected ? undefined : "이 영웅의 병과에는 장착할 수 없습니다"} onClick={() => { if (selected && canEquipInspected) { onEquipTreasure(selected.state.heroId, inspectedTreasureItemId); setInspectedTreasureItemId(null); } }}>{canEquipInspected ? "장착" : "장착 불가"}</button>}
+      </div>}
+      {inspectedFragmentGrade && <div className="hero-ledger__treasure-tooltip" role="dialog" aria-label={`${HERO_FRAGMENT_LABEL[inspectedFragmentGrade]} 정보`}>
+        <button type="button" className="hero-ledger__treasure-tooltip-close" onClick={() => setInspectedFragmentGrade(null)} aria-label="결정 정보 닫기">×</button>
+        <div><img src={HERO_FRAGMENT_ART[inspectedFragmentGrade]} alt="" /><img src={TREASURE_GRADE_BADGE[inspectedFragmentGrade]} alt={`${inspectedFragmentGrade}등급`} /></div>
+        <strong>{HERO_FRAGMENT_LABEL[inspectedFragmentGrade]}</strong><span>{inspectedFragmentGrade}등급 · 보유 {fragmentItems.find((item) => item.grade === inspectedFragmentGrade)?.count ?? 0}개</span><p>중복 영웅을 영입하면 얻는 결정입니다. 같은 등급 영웅의 능력치 승급 재료로 사용합니다.</p><button type="button" onClick={() => setInspectedFragmentGrade(null)}>확인</button>
       </div>}
     </section>
   );

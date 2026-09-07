@@ -1320,3 +1320,4 @@ footer small { margin-left:auto; color:#71898b; }
 .recruit-hall__treasure-card .recruit-hall__treasure-effect{flex-direction:column!important}
 :root .hero-ledger__bag{--bag-cell-size:52px;padding:5px}.hero-ledger__bag>p{height:10px;margin-bottom:4px;font-size:8px;line-height:10px}.hero-ledger__bag-grid{flex:1 1 auto;height:auto;grid-auto-rows:var(--bag-cell-size)}:root .hero-ledger__bag-grid>*{min-height:auto}
 @media(max-width:700px){:root .hero-ledger__bag{--bag-cell-size:45px}}
+:root .hero-ledger__fragment{padding:0;cursor:pointer}:root .hero-ledger__fragment:hover{filter:brightness(1.14)}
