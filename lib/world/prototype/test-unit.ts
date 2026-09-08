@@ -8,7 +8,7 @@ export const UNIT_VISUAL_SAMPLES = [
     name: "보병",
     accent: "#a9473f",
     visual: {
-      image: "/art/units/infantry-chibi-map-v3.webp",
+      image: "/art/units/infantry-chibi-map-v4.png",
       scale: { width: 1.4, height: 1.75 },
     },
     emblem: {
