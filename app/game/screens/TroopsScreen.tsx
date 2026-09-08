@@ -18,8 +18,12 @@ const UNIT_ART: Record<TroopLine, { src: string; alt: string; isEmblem?: boolean
   infantry: { src: "/art/units/infantry-chibi-map-v5.png", alt: "보병" },
   cavalry: { src: "/art/units/cavalry-chibi-map-v3.webp", alt: "기병" },
   archer: { src: "/art/units/archer-chibi-map-v3.webp", alt: "궁병" },
-  // 책사 캐릭터 스프라이트는 아직 없으므로, 현재 게임에서 쓰는 책사 문장을 사용한다.
-  strategist: { src: "/art/units/strategist-emblem-v3.png", alt: "책사", isEmblem: true },
+  strategist: { src: "/art/units/strategist-chibi-map-v1.png", alt: "책사" },
+};
+
+const STRATEGIST_ART_BY_UNIT: Partial<Record<UnitTypeId, { src: string; alt: string; isEmblem?: boolean }>> = {
+  strategist: { src: "/art/units/strategist-chibi-map-v1.png", alt: "책사" },
+  strategist_advisor: { src: "/art/units/aide-chibi-map-v1.png", alt: "참모" },
 };
 
 function nodePosition(left: string, top: string): CSSProperties {
@@ -57,10 +61,11 @@ function TroopLineBranch({ line, faction, onSetActive }: { line: TroopLine; fact
     {unitTypesInLine(line).map((unit, tier) => {
       const unlocked = isUnitTypeUnlockedFor(faction, unit.id);
       const active = unlocked && unit.id === activeUnitType;
+      const art = line === "strategist" ? (STRATEGIST_ART_BY_UNIT[unit.id] ?? UNIT_ART.strategist) : UNIT_ART[line];
       return <button key={unit.id} type="button" className={`troop-tree__node${unlocked ? "" : " is-locked"}${active ? " is-active" : ""}`}
         style={nodePosition(`${10 + tier * 15}%`, ROW_TOP[line])} disabled={!unlocked} onClick={() => onSetActive(line, unit.id)}
         title={unlocked ? `${unit.label}${active ? " (출전 중)" : ""}` : `${unit.label} (잠김)`}>
-        <strong>{unit.label}</strong><img className={`troop-tree__unit-art${UNIT_ART[line].isEmblem ? " is-emblem" : ""}${line === "infantry" ? " is-facing-right" : ""}`} src={UNIT_ART[line].src} alt="" aria-hidden="true" />
+        <strong>{unit.label}</strong><img className={`troop-tree__unit-art${art.isEmblem ? " is-emblem" : ""}${line === "infantry" ? " is-facing-right" : ""}`} src={art.src} alt="" aria-hidden="true" />
         {!unlocked && <em>🔒</em>}
       </button>;
     })}
