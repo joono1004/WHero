@@ -15,7 +15,7 @@ const GRADE_ART: Record<string, string> = {
 };
 const ROW_TOP: Record<TroopLine, string> = { infantry: "20%", cavalry: "43%", archer: "66%", strategist: "89%" };
 const UNIT_ART: Record<TroopLine, { src: string; alt: string; isEmblem?: boolean }> = {
-  infantry: { src: "/art/units/infantry-chibi-map-v4.png", alt: "보병" },
+  infantry: { src: "/art/units/infantry-chibi-map-v5.png", alt: "보병" },
   cavalry: { src: "/art/units/cavalry-chibi-map-v3.webp", alt: "기병" },
   archer: { src: "/art/units/archer-chibi-map-v3.webp", alt: "궁병" },
   // 책사 캐릭터 스프라이트는 아직 없으므로, 현재 게임에서 쓰는 책사 문장을 사용한다.
