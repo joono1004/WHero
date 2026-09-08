@@ -1,147 +1,86 @@
 import type { CSSProperties } from "react";
 import type { Faction } from "../../../lib/game/faction.ts";
 import type { UnitTypeId } from "../../../lib/game/ids.ts";
-import { activeEvolutionFor, isUnitTypeUnlockedFor, troopGrade, troopLevel } from "../../../lib/game/unit-evolution.ts";
-import { MAX_TROOP_TIER, TROOP_LINES, unitTypesInLine } from "../../../lib/game/unit-production.ts";
+import { activeEvolutionFor, isUnitTypeUnlockedFor } from "../../../lib/game/unit-evolution.ts";
+import { unitTypesInLine } from "../../../lib/game/unit-production.ts";
 import type { TroopLine } from "../../../lib/game/unit-production.ts";
-import { TROOP_LINE_LABEL, TROOP_TIER_LABEL } from "../researchLabels.ts";
+import { TROOP_LINE_LABEL } from "../researchLabels.ts";
 
-// 병사 화면 (2026-08-08, 사용자 방향): 연구 화면(ResearchScreen)이
-// 레벨업/진화(해금)를 담당하는 것과 분리해, 여기는 "지금 해금된 병과 중
-// 어떤 걸 출전시킬지 고르는" 용도만 담당한다. 좌측에 계열(보병/궁병/기병/
-// 책사), 우측으로 갈수록 진화 단계(기본~5단계)가 이어지는 표 형태 -
-// 사용자가 준 예시("보병 - 검병 - 산악병 - ...") 그대로. 해금 안 된
-// 단계도 함께 보여주되(뭘 향해 크는지 알 수 있게) 지금은 클릭해도 아무
-// 반응이 없다 - 클릭 시 연구 화면으로 넘어가 바로 해금할 수 있게 하는
-// 기능은 사용자가 명시적으로 "나중에 추가" 대상으로 남겨둠. 분기(같은
-// 단계에 여러 후보)도 마찬가지로 "나중에 추가" - 지금은 계열당 한 칸씩
-// 외길.
-const LABEL_COLUMN_PX = 56;
-const TIER_COLUMN_PX = 92;
+// 캐릭터 아트가 준비되면 TroopIcon의 문자 아이콘만 실제 스프라이트로 교체한다.
+const TREE_LINES: TroopLine[] = ["infantry", "cavalry", "archer", "strategist"];
+const GRADE_BY_TIER = ["D", "C", "B", "A", "S", "SS"];
+const ROW_TOP: Record<TroopLine, string> = { infantry: "13%", cavalry: "37%", archer: "61%", strategist: "85%" };
+const ICON_BY_LINE: Record<TroopLine, string> = { infantry: "⚔", cavalry: "♞", archer: "🏹", strategist: "☯" };
 
-// app/globals.css has a bare, unlayered `button { background:linear-
-// gradient(...); border:...; padding:...; ... }` rule that beats ANY
-// Tailwind class on a raw <button> regardless of specificity (cascade
-// layers - see Button.tsx's comment for the full explanation). These grid
-// cells are custom multi-line buttons, not the shared Button component, so
-// every property that global rule touches (border/border-radius/padding/
-// background/color/font-weight/cursor) has to be set inline here instead
-// of via className to actually take effect.
-function cellStyle(unlocked: boolean, isActive: boolean): CSSProperties {
-  if (!unlocked) {
-    return {
-      border: "1px solid #233c44",
-      borderRadius: 4,
-      padding: "6px 4px",
-      background: "none",
-      backgroundColor: "rgba(18, 42, 50, 0.4)",
-      color: "#5f7378",
-      fontWeight: 400,
-      cursor: "default",
-    };
-  }
-  if (isActive) {
-    return {
-      border: "1px solid #e3ce94",
-      borderRadius: 4,
-      padding: "6px 4px",
-      background: "none",
-      backgroundColor: "#2a4a3a",
-      color: "#e3ce94",
-      fontWeight: 700,
-      cursor: "pointer",
-    };
-  }
-  return {
-    border: "1px solid #2c4750",
-    borderRadius: 4,
-    padding: "6px 4px",
-    background: "none",
-    backgroundColor: "#122a32",
-    color: "#c0cbc7",
-    fontWeight: 400,
-    cursor: "pointer",
-  };
+type CombinationMock = { name: string; grade: string; condition: string; left: string; top: string; icon: string };
+const COMBINATION_MOCKS: CombinationMock[] = [
+  { name: "석궁기병", grade: "B", condition: "석궁병 + 기병", left: "40%", top: "49%", icon: "♞" },
+  { name: "화공대", grade: "A", condition: "검병 + 군사", left: "55%", top: "74%", icon: "✹" },
+  { name: "전차대", grade: "S", condition: "중보병 + 창기병", left: "70%", top: "25%", icon: "▰" },
+];
+
+function nodePosition(left: string, top: string): CSSProperties {
+  return { "--node-left": left, "--node-top": top } as CSSProperties;
 }
 
-export function TroopsScreen({
-  faction,
-  onBack,
-  onSetActive,
-}: {
+export function TroopsScreen({ faction, onBack, onSetActive }: {
   faction: Faction;
   onBack: () => void;
   onSetActive: (line: TroopLine, unitType: UnitTypeId) => void;
 }) {
-  const gridTemplateColumns = `${LABEL_COLUMN_PX}px repeat(${MAX_TROOP_TIER + 1}, ${TIER_COLUMN_PX}px)`;
   return (
-    <section className="troop-ledger" aria-label="병사정보">
+    <section className="troop-ledger" aria-label="병과 편성">
       <header className="hero-ledger__header troop-ledger__header">
         <button className="hero-ledger__back" onClick={onBack} aria-label="로비로 돌아가기" title="뒤로가기" />
-        <div>
-          <p className="troop-ledger__eyebrow">ARMY REGISTER</p>
-          <h2>병사정보</h2>
-        </div>
+        <div><p className="troop-ledger__eyebrow">FORMATION TREE</p><h2>병과 편성</h2></div>
       </header>
-      <main className="troop-ledger__body">
-        <div className="troop-ledger__caption">
-          <strong>출전 병과 편성</strong>
-          <span>해금한 병과를 선택하면 다음 전투에서 해당 계열의 출전 병과로 편성됩니다.</span>
+      <main className="troop-tree" aria-label="병과 조합 트리">
+        <div className="troop-tree__legend" aria-hidden="true">
+          <span><i className="troop-tree__legend-dot troop-tree__legend-dot--active" />출전</span>
+          <span><i className="troop-tree__legend-dot" />활성</span>
+          <span><i className="troop-tree__legend-dot troop-tree__legend-dot--locked" />잠김</span>
+          <b>조합 병과는 두 병과 해금 뒤 편성 가능</b>
         </div>
-        <div className="troop-ledger__table-wrap">
-          <div className="troop-ledger__table" style={{ gridTemplateColumns }}>
-            <div className="troop-ledger__line-heading">계열</div>
-            {TROOP_TIER_LABEL.map((label) => (
-              <div key={label} className="troop-ledger__tier-heading">{label}</div>
-            ))}
-            {TROOP_LINES.map((line) => (
-              <TroopLineRow key={line} line={line} faction={faction} onSetActive={onSetActive} />
-            ))}
+        <div className="troop-tree__stage">
+          <TreeWires />
+          <div className="troop-tree__grades" aria-hidden="true">
+            {GRADE_BY_TIER.map((grade, index) => <span key={grade} style={{ left: `${10 + index * 15}%` }}>{grade}</span>)}
           </div>
+          {TREE_LINES.map((line) => <TroopLineBranch key={line} line={line} faction={faction} onSetActive={onSetActive} />)}
+          {COMBINATION_MOCKS.map((combination) => (
+            <div key={combination.name} className="troop-tree__combo" style={nodePosition(combination.left, combination.top)} title={`${combination.condition} 조합으로 편성`}>
+              <span className="troop-tree__combo-icon">{combination.icon}</span><span className="troop-tree__combo-grade">{combination.grade}</span>
+              <strong>{combination.name}</strong><small>{combination.condition}</small><em>🔒 조합</em>
+            </div>
+          ))}
         </div>
-        <p className="troop-ledger__hint">잠긴 병과의 레벨업과 진화 해금은 <b>연구</b>에서 진행합니다.</p>
       </main>
     </section>
   );
 }
 
-function TroopLineRow({
-  line,
-  faction,
-  onSetActive,
-}: {
-  line: TroopLine;
-  faction: Faction;
-  onSetActive: (line: TroopLine, unitType: UnitTypeId) => void;
-}) {
+function TroopLineBranch({ line, faction, onSetActive }: { line: TroopLine; faction: Faction; onSetActive: (line: TroopLine, unitType: UnitTypeId) => void }) {
   const activeUnitType = activeEvolutionFor(faction, line);
-  return (
-    <>
-      <div className="troop-ledger__line-label">{TROOP_LINE_LABEL[line]}</div>
-      {unitTypesInLine(line).map((node) => {
-        const unlocked = isUnitTypeUnlockedFor(faction, node.id);
-        const isActive = node.id === activeUnitType;
-        const level = troopLevel(faction.troopLevels, node.id);
-        const grade = troopGrade(faction.troopLevels, node.id);
-        return (
-          <button
-            key={node.id}
-            type="button"
-            disabled={!unlocked}
-            onClick={() => onSetActive(line, node.id)}
-            className="troop-ledger__cell"
-            style={cellStyle(unlocked, isActive)}
-          >
-            <span>{unlocked ? node.label : `🔒 ${node.label}`}</span>
-            {unlocked && (
-              <span className="text-[9px]" style={{ color: "#8fa6a8", fontWeight: 400 }}>
-                {grade}등급 Lv.{level}
-              </span>
-            )}
-            {isActive && <span className="text-[9px]">출전 중</span>}
-          </button>
-        );
-      })}
-    </>
-  );
+  return <>
+    <div className="troop-tree__line-name" style={nodePosition("2.2%", ROW_TOP[line])}>{TROOP_LINE_LABEL[line]}</div>
+    {unitTypesInLine(line).map((unit, tier) => {
+      const unlocked = isUnitTypeUnlockedFor(faction, unit.id);
+      const active = unlocked && unit.id === activeUnitType;
+      return <button key={unit.id} type="button" className={`troop-tree__node${unlocked ? "" : " is-locked"}${active ? " is-active" : ""}`}
+        style={nodePosition(`${10 + tier * 15}%`, ROW_TOP[line])} disabled={!unlocked} onClick={() => onSetActive(line, unit.id)}
+        title={unlocked ? `${unit.label}${active ? " (출전 중)" : ""}` : `${unit.label} (잠김)`}>
+        <span className="troop-tree__unit-icon" aria-hidden="true">{ICON_BY_LINE[line]}</span><span className="troop-tree__node-grade">{GRADE_BY_TIER[tier]}</span>
+        <strong>{unit.label}</strong>{active ? <em>출전</em> : unlocked ? <small>대기</small> : <em>🔒</em>}
+      </button>;
+    })}
+  </>;
+}
+
+function TreeWires() {
+  return <svg className="troop-tree__wires" viewBox="0 0 1000 1000" preserveAspectRatio="none" aria-hidden="true">
+    {[130, 370, 610, 850].map((y) => <path key={y} d={`M100 ${y} H850`} />)}
+    <path className="troop-tree__wire--combo" d="M250 610 L400 490 L400 370" />
+    <path className="troop-tree__wire--combo" d="M250 130 L550 740 L400 850" />
+    <path className="troop-tree__wire--combo" d="M550 130 L700 250 L550 370" />
+  </svg>;
 }
