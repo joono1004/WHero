@@ -6,11 +6,17 @@ import { unitTypesInLine } from "../../../lib/game/unit-production.ts";
 import type { TroopLine } from "../../../lib/game/unit-production.ts";
 import { TROOP_LINE_LABEL } from "../researchLabels.ts";
 
-// 캐릭터 아트가 준비되면 TroopIcon의 문자 아이콘만 실제 스프라이트로 교체한다.
+// 맵에서 실제로 쓰는 병사 스프라이트를 같은 병과 트리에도 사용한다.
 const TREE_LINES: TroopLine[] = ["infantry", "cavalry", "archer", "strategist"];
 const GRADE_BY_TIER = ["D", "C", "B", "A", "S", "SS"];
 const ROW_TOP: Record<TroopLine, string> = { infantry: "13%", cavalry: "37%", archer: "61%", strategist: "85%" };
-const ICON_BY_LINE: Record<TroopLine, string> = { infantry: "⚔", cavalry: "♞", archer: "🏹", strategist: "☯" };
+const UNIT_ART: Record<TroopLine, { src: string; alt: string; isEmblem?: boolean }> = {
+  infantry: { src: "/art/units/infantry-chibi-map-v3.webp", alt: "보병" },
+  cavalry: { src: "/art/units/cavalry-chibi-map-v3.webp", alt: "기병" },
+  archer: { src: "/art/units/archer-chibi-map-v3.webp", alt: "궁병" },
+  // 책사 캐릭터 스프라이트는 아직 없으므로, 현재 게임에서 쓰는 책사 문장을 사용한다.
+  strategist: { src: "/art/units/strategist-emblem-v3.png", alt: "책사", isEmblem: true },
+};
 
 type CombinationMock = { name: string; grade: string; condition: string; left: string; top: string; icon: string };
 const COMBINATION_MOCKS: CombinationMock[] = [
@@ -69,7 +75,8 @@ function TroopLineBranch({ line, faction, onSetActive }: { line: TroopLine; fact
       return <button key={unit.id} type="button" className={`troop-tree__node${unlocked ? "" : " is-locked"}${active ? " is-active" : ""}`}
         style={nodePosition(`${10 + tier * 15}%`, ROW_TOP[line])} disabled={!unlocked} onClick={() => onSetActive(line, unit.id)}
         title={unlocked ? `${unit.label}${active ? " (출전 중)" : ""}` : `${unit.label} (잠김)`}>
-        <span className="troop-tree__unit-icon" aria-hidden="true">{ICON_BY_LINE[line]}</span><span className="troop-tree__node-grade">{GRADE_BY_TIER[tier]}</span>
+        <img className={`troop-tree__unit-art${UNIT_ART[line].isEmblem ? " is-emblem" : ""}`} src={UNIT_ART[line].src} alt="" aria-hidden="true" />
+        <span className="troop-tree__node-grade">{GRADE_BY_TIER[tier]}</span>
         <strong>{unit.label}</strong>{active ? <em>출전</em> : unlocked ? <small>대기</small> : <em>🔒</em>}
       </button>;
     })}
