@@ -69,6 +69,6 @@ function TroopLineBranch({ line, faction, onSetActive }: { line: TroopLine; fact
 
 function TreeWires() {
   return <svg className="troop-tree__wires" viewBox="0 0 1000 1000" preserveAspectRatio="none" aria-hidden="true">
-    {[130, 370, 610, 850].map((y) => <path key={y} d={`M100 ${y} H850`} />)}
+    {[200, 430, 660, 890].map((y) => <path key={y} d={`M100 ${y} H850`} />)}
   </svg>;
 }
