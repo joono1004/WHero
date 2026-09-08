@@ -9,7 +9,7 @@ import { TROOP_LINE_LABEL } from "../researchLabels.ts";
 // 맵에서 실제로 쓰는 병사 스프라이트를 같은 병과 트리에도 사용한다.
 const TREE_LINES: TroopLine[] = ["infantry", "cavalry", "archer", "strategist"];
 const GRADE_BY_TIER = ["D", "C", "B", "A", "S", "SS"];
-const ROW_TOP: Record<TroopLine, string> = { infantry: "13%", cavalry: "37%", archer: "61%", strategist: "85%" };
+const ROW_TOP: Record<TroopLine, string> = { infantry: "20%", cavalry: "43%", archer: "66%", strategist: "89%" };
 const UNIT_ART: Record<TroopLine, { src: string; alt: string; isEmblem?: boolean }> = {
   infantry: { src: "/art/units/infantry-chibi-map-v3.webp", alt: "보병" },
   cavalry: { src: "/art/units/cavalry-chibi-map-v3.webp", alt: "기병" },
@@ -56,7 +56,7 @@ function TroopLineBranch({ line, faction, onSetActive }: { line: TroopLine; fact
       return <button key={unit.id} type="button" className={`troop-tree__node${unlocked ? "" : " is-locked"}${active ? " is-active" : ""}`}
         style={nodePosition(`${10 + tier * 15}%`, ROW_TOP[line])} disabled={!unlocked} onClick={() => onSetActive(line, unit.id)}
         title={unlocked ? `${unit.label}${active ? " (출전 중)" : ""}` : `${unit.label} (잠김)`}>
-        <strong>{unit.label}</strong><img className={`troop-tree__unit-art${UNIT_ART[line].isEmblem ? " is-emblem" : ""}`} src={UNIT_ART[line].src} alt="" aria-hidden="true" />
+        <strong>{unit.label}</strong><img className={`troop-tree__unit-art${UNIT_ART[line].isEmblem ? " is-emblem" : ""}${line === "infantry" ? " is-facing-right" : ""}`} src={UNIT_ART[line].src} alt="" aria-hidden="true" />
         {!unlocked && <em>🔒</em>}
       </button>;
     })}
