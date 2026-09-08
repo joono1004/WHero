@@ -18,13 +18,6 @@ const UNIT_ART: Record<TroopLine, { src: string; alt: string; isEmblem?: boolean
   strategist: { src: "/art/units/strategist-emblem-v3.png", alt: "책사", isEmblem: true },
 };
 
-type CombinationMock = { name: string; grade: string; condition: string; left: string; top: string; icon: string };
-const COMBINATION_MOCKS: CombinationMock[] = [
-  { name: "석궁기병", grade: "B", condition: "석궁병 + 기병", left: "35.5%", top: "49%", icon: "♞" },
-  { name: "화공대", grade: "A", condition: "검병 + 군사", left: "59.5%", top: "74%", icon: "✹" },
-  { name: "전차대", grade: "S", condition: "중보병 + 창기병", left: "65.5%", top: "25%", icon: "▰" },
-];
-
 function nodePosition(left: string, top: string): CSSProperties {
   return { "--node-left": left, "--node-top": top } as CSSProperties;
 }
@@ -47,12 +40,6 @@ export function TroopsScreen({ faction, onBack, onSetActive }: {
             {GRADE_BY_TIER.map((grade, index) => <span key={grade} style={{ left: `${10 + index * 15}%` }}>{grade}</span>)}
           </div>
           {TREE_LINES.map((line) => <TroopLineBranch key={line} line={line} faction={faction} onSetActive={onSetActive} />)}
-          {COMBINATION_MOCKS.map((combination) => (
-            <div key={combination.name} className="troop-tree__combo" style={nodePosition(combination.left, combination.top)} title={`${combination.condition} 조합으로 편성`}>
-              <span className="troop-tree__combo-icon">{combination.icon}</span>
-              <strong>{combination.name}</strong><small>{combination.condition}</small><em>🔒</em>
-            </div>
-          ))}
         </div>
       </main>
     </section>
@@ -79,8 +66,5 @@ function TroopLineBranch({ line, faction, onSetActive }: { line: TroopLine; fact
 function TreeWires() {
   return <svg className="troop-tree__wires" viewBox="0 0 1000 1000" preserveAspectRatio="none" aria-hidden="true">
     {[130, 370, 610, 850].map((y) => <path key={y} d={`M100 ${y} H850`} />)}
-    <path className="troop-tree__wire--combo" d="M250 610 L355 490 L400 370" />
-    <path className="troop-tree__wire--combo" d="M250 130 L595 740 L400 850" />
-    <path className="troop-tree__wire--combo" d="M550 130 L655 250 L550 370" />
   </svg>;
 }
