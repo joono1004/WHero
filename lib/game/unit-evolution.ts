@@ -21,6 +21,10 @@ export type TroopLevels = Record<UnitTypeId, number>;
 
 export const ZERO_TROOP_LEVELS: TroopLevels = {};
 
+// 연구 화면의 실제 해금 흐름을 연결하기 전까지는, 병과 편성 화면에서 모든
+// 병과를 시험·출전할 수 있게 둔다. 연구 연결 시 false로 되돌리면 된다.
+export const DEVELOPMENT_UNLOCK_ALL_TROOPS = true;
+
 export function troopLevel(levels: TroopLevels, unitType: UnitTypeId): number {
   return levels[unitType] ?? 0;
 }
@@ -61,7 +65,7 @@ export function upgradeTroopLevel(faction: Faction, unitType: UnitTypeId): Facti
 }
 
 export function isUnitTypeUnlockedFor(faction: Faction, unitType: UnitTypeId): boolean {
-  return isRootUnitType(unitType) || faction.unlockedUnitTypes.includes(unitType);
+  return DEVELOPMENT_UNLOCK_ALL_TROOPS || isRootUnitType(unitType) || faction.unlockedUnitTypes.includes(unitType);
 }
 
 function gradeAtLeast(grade: UnitGrade, required: UnitGrade): boolean {
