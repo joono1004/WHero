@@ -4,9 +4,7 @@ import type { UnitTypeId } from "../../../lib/game/ids.ts";
 import { activeEvolutionFor, isUnitTypeUnlockedFor, troopGrade, troopLevel } from "../../../lib/game/unit-evolution.ts";
 import { MAX_TROOP_TIER, TROOP_LINES, unitTypesInLine } from "../../../lib/game/unit-production.ts";
 import type { TroopLine } from "../../../lib/game/unit-production.ts";
-import { Button } from "../Button.tsx";
 import { TROOP_LINE_LABEL, TROOP_TIER_LABEL } from "../researchLabels.ts";
-import { ScreenShell } from "../ScreenShell.tsx";
 
 // 병사 화면 (2026-08-08, 사용자 방향): 연구 화면(ResearchScreen)이
 // 레벨업/진화(해금)를 담당하는 것과 분리해, 여기는 "지금 해금된 병과 중
@@ -77,30 +75,33 @@ export function TroopsScreen({
 }) {
   const gridTemplateColumns = `${LABEL_COLUMN_PX}px repeat(${MAX_TROOP_TIER + 1}, ${TIER_COLUMN_PX}px)`;
   return (
-    <ScreenShell
-      header={<h2 className="text-base font-bold text-[#f3dfaa]">병사</h2>}
-      footer={
-        <div className="flex justify-center">
-          <Button variant="secondary" size="sm" onClick={onBack}>
-            뒤로
-          </Button>
+    <section className="troop-ledger" aria-label="병사정보">
+      <header className="hero-ledger__header troop-ledger__header">
+        <button className="hero-ledger__back" onClick={onBack} aria-label="로비로 돌아가기" title="뒤로가기" />
+        <div>
+          <p className="troop-ledger__eyebrow">ARMY REGISTER</p>
+          <h2>병사정보</h2>
         </div>
-      }
-    >
-      <div className="overflow-x-auto pb-1">
-        <div className="grid gap-y-1.5" style={{ gridTemplateColumns }}>
-          <div />
-          {TROOP_TIER_LABEL.map((label) => (
-            <div key={label} className="px-1 text-center text-[9px] font-bold text-[#8fa6a8]">
-              {label}
-            </div>
-          ))}
-          {TROOP_LINES.map((line) => (
-            <TroopLineRow key={line} line={line} faction={faction} onSetActive={onSetActive} />
-          ))}
+      </header>
+      <main className="troop-ledger__body">
+        <div className="troop-ledger__caption">
+          <strong>출전 병과 편성</strong>
+          <span>해금한 병과를 선택하면 다음 전투에서 해당 계열의 출전 병과로 편성됩니다.</span>
         </div>
-      </div>
-    </ScreenShell>
+        <div className="troop-ledger__table-wrap">
+          <div className="troop-ledger__table" style={{ gridTemplateColumns }}>
+            <div className="troop-ledger__line-heading">계열</div>
+            {TROOP_TIER_LABEL.map((label) => (
+              <div key={label} className="troop-ledger__tier-heading">{label}</div>
+            ))}
+            {TROOP_LINES.map((line) => (
+              <TroopLineRow key={line} line={line} faction={faction} onSetActive={onSetActive} />
+            ))}
+          </div>
+        </div>
+        <p className="troop-ledger__hint">잠긴 병과의 레벨업과 진화 해금은 <b>연구</b>에서 진행합니다.</p>
+      </main>
+    </section>
   );
 }
 
@@ -116,7 +117,7 @@ function TroopLineRow({
   const activeUnitType = activeEvolutionFor(faction, line);
   return (
     <>
-      <div className="flex items-center text-[11px] font-bold text-[#e3ce94]">{TROOP_LINE_LABEL[line]}</div>
+      <div className="troop-ledger__line-label">{TROOP_LINE_LABEL[line]}</div>
       {unitTypesInLine(line).map((node) => {
         const unlocked = isUnitTypeUnlockedFor(faction, node.id);
         const isActive = node.id === activeUnitType;
@@ -128,7 +129,7 @@ function TroopLineRow({
             type="button"
             disabled={!unlocked}
             onClick={() => onSetActive(line, node.id)}
-            className="flex flex-col items-center justify-center gap-0.5 text-[10px]"
+            className="troop-ledger__cell"
             style={cellStyle(unlocked, isActive)}
           >
             <span>{unlocked ? node.label : `🔒 ${node.label}`}</span>
