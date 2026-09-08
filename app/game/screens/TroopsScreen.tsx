@@ -9,6 +9,10 @@ import { TROOP_LINE_LABEL } from "../researchLabels.ts";
 // 맵에서 실제로 쓰는 병사 스프라이트를 같은 병과 트리에도 사용한다.
 const TREE_LINES: TroopLine[] = ["infantry", "cavalry", "archer", "strategist"];
 const GRADE_BY_TIER = ["D", "C", "B", "A", "S", "SS"];
+const GRADE_ART: Record<string, string> = {
+  D: "/art/heroes/grades-v2/grade-d.png", C: "/art/heroes/grades-v2/grade-c.png", B: "/art/heroes/grades-v2/grade-b.png",
+  A: "/art/heroes/grades-v2/grade-a.png", S: "/art/heroes/grades-v2/grade-s.png", SS: "/art/heroes/grades-v2/grade-ss.png",
+};
 const ROW_TOP: Record<TroopLine, string> = { infantry: "20%", cavalry: "43%", archer: "66%", strategist: "89%" };
 const UNIT_ART: Record<TroopLine, { src: string; alt: string; isEmblem?: boolean }> = {
   infantry: { src: "/art/units/infantry-chibi-map-v3.webp", alt: "보병" },
@@ -37,7 +41,7 @@ export function TroopsScreen({ faction, onBack, onSetActive }: {
         <div className="troop-tree__stage">
           <TreeWires />
           <div className="troop-tree__grades" aria-hidden="true">
-            {GRADE_BY_TIER.map((grade, index) => <span key={grade} style={{ left: `${10 + index * 15}%` }}>{grade}</span>)}
+            {GRADE_BY_TIER.map((grade, index) => <span key={grade} style={{ left: `${10 + index * 15}%` }}><img src={GRADE_ART[grade]} alt={`${grade}등급`} /></span>)}
           </div>
           {TREE_LINES.map((line) => <TroopLineBranch key={line} line={line} faction={faction} onSetActive={onSetActive} />)}
         </div>
