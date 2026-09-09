@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { supabase } from "../game/supabaseClient.ts";
 import type { CoreGrade, SpecialtyGrade } from "../../lib/game/grade.ts";
 import type { DomesticSpecialtyKind, HeroDefinition } from "../../lib/game/hero-definition.ts";
@@ -30,6 +30,8 @@ type AdminHeroRow = { id: string; name: string; availability: Availability; port
 type Draft = AdminHeroRow;
 type AdminTreasureRow = { id: string; name: string; category: TreasureCategory; grade: CoreGrade; definition: TreasureDefinition; published: boolean; updated_at?: string };
 type TreasureDraft = AdminTreasureRow;
+type TroopDirection = "left-up" | "right-up" | "left" | "right" | "left-down" | "right-down";
+type TroopAction = "ready" | "move" | "attack" | "hurt" | "death";
 
 const GRADES: CoreGrade[] = ["D", "C", "B", "A", "S", "SS"];
 const SPECIALTY_GRADES: SpecialtyGrade[] = ["없음", ...GRADES];
@@ -55,6 +57,12 @@ const TREASURE_ART: Partial<Record<string, string>> = {
   "tiger-tally": "/art/treasures/tiger-tally-v1.png", "jade-belt-hook": "/art/treasures/jade-belt-hook-v1.png", "jade-bi": "/art/treasures/jade-bi-v1.png", "taiping-jing": "/art/treasures/taiping-jing-v1.png", "shanghan-lun": "/art/treasures/shanghan-lun-v1.png", "huangdi-neijing": "/art/treasures/huangdi-neijing-v1.png",
 };
 const TREASURE_GRADE_BADGE: Record<CoreGrade, string> = { SS: "/art/heroes/grades-v2/grade-ss.png", S: "/art/heroes/grades-v2/grade-s.png", A: "/art/heroes/grades-v2/grade-a.png", B: "/art/heroes/grades-v2/grade-b.png", C: "/art/heroes/grades-v2/grade-c.png", D: "/art/heroes/grades-v2/grade-d.png" };
+const TROOP_DIRECTIONS: { id: TroopDirection; label: string; x: number; y: number; flip: boolean }[] = [
+  { id: "left-up", label: "왼쪽 위", x: -1, y: -1, flip: true }, { id: "right-up", label: "오른쪽 위", x: 1, y: -1, flip: false },
+  { id: "left", label: "왼쪽", x: -1, y: 0, flip: true }, { id: "right", label: "오른쪽", x: 1, y: 0, flip: false },
+  { id: "left-down", label: "왼쪽 아래", x: -1, y: 1, flip: true }, { id: "right-down", label: "오른쪽 아래", x: 1, y: 1, flip: false },
+];
+const TROOP_ACTION_LABEL: Record<TroopAction, string> = { ready: "준비", move: "이동", attack: "공격", hurt: "피해", death: "사망" };
 
 function treasureArt(treasure: TreasureDefinition): string {
   return TREASURE_ART[treasure.id] ?? TREASURE_CATEGORY_ART[treasure.category];
@@ -147,7 +155,7 @@ export default function AdminPage() {
   const [password, setPassword] = useState("");
   const [checking, setChecking] = useState(true);
   const [authorized, setAuthorized] = useState(false);
-  const [activeSection, setActiveSection] = useState<"heroes" | "treasures">("heroes");
+  const [activeSection, setActiveSection] = useState<"heroes" | "treasures" | "troops">("heroes");
   const [rows, setRows] = useState<AdminHeroRow[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isEditorOpen, setEditorOpen] = useState(false);
@@ -294,12 +302,12 @@ export default function AdminPage() {
   return <main className="admin-shell">
     <header className="admin-header"><div><p className="admin-kicker">HERO STORY · ADMIN</p><h1>관리자 화면</h1><span>관리 항목을 선택해 데이터를 확인·수정합니다.</span></div><button type="button" className="admin-logout" onClick={signOut}>로그아웃</button></header>
     <div className="admin-layout">
-      <aside className="admin-nav" aria-label="관리자 메뉴"><p>관리 메뉴</p><button type="button" className={activeSection === "heroes" ? "is-active" : ""} onClick={() => setActiveSection("heroes")}>영웅정보</button><button type="button" className={activeSection === "treasures" ? "is-active" : ""} onClick={() => setActiveSection("treasures")}>보물정보</button></aside>
+      <aside className="admin-nav" aria-label="관리자 메뉴"><p>관리 메뉴</p><button type="button" className={activeSection === "heroes" ? "is-active" : ""} onClick={() => setActiveSection("heroes")}>영웅정보</button><button type="button" className={activeSection === "troops" ? "is-active" : ""} onClick={() => setActiveSection("troops")}>병과정보</button><button type="button" className={activeSection === "treasures" ? "is-active" : ""} onClick={() => setActiveSection("treasures")}>보물정보</button></aside>
       {activeSection === "heroes" ? <section className="admin-content">
         <div className="admin-content__heading"><div><p className="admin-kicker">영웅정보</p><h2>영웅 목록 <b>{rows.length}</b></h2><span>영웅을 클릭하면 수정 창이 열립니다.</span></div><button type="button" onClick={createHero}>+ 영웅 추가</button></div>
         <p className="admin-message">{message}</p>
         <div className="admin-hero-list">{rows.map((row) => { const portraitUrl = row.portrait_path ?? HERO_PORTRAIT[row.id]; return <button key={row.id} type="button" onClick={() => openHero(row.id)}><span className="admin-hero-list__portrait">{portraitUrl ? <img src={portraitUrl} alt="" /> : "?"}</span><span><strong>{row.name}</strong><small>{row.availability === "starter" ? "첫 영웅" : row.availability === "recruitable" ? "영입 가능" : "비공개"} · {UNIT_TYPE_CATALOG[row.definition.unitType]?.label ?? row.definition.unitType}</small></span><i>수정</i></button>; })}</div>
-      </section> : <section className="admin-content">
+      </section> : activeSection === "troops" ? <TroopPreview /> : <section className="admin-content">
         <div className="admin-content__heading"><div><p className="admin-kicker">보물정보</p><h2>보물 목록 <b>{treasures.length}</b></h2><span>보물을 클릭하면 역사 설명과 효과를 수정할 수 있습니다.</span></div><button type="button" onClick={createTreasure}>+ 보물 추가</button></div>
         <p className="admin-message">{message}</p>
         <div className="admin-treasure-list">{treasures.map((row) => <button key={row.id} type="button" onClick={() => openTreasure(row.id)}><span className="admin-treasure-list__art"><img src={treasureArt(row.definition)} alt="" /><img src={TREASURE_GRADE_BADGE[row.grade]} alt={`${row.grade}등급`} /></span><span><strong>{row.name}</strong><small>{TREASURE_CATEGORY_LABEL[row.category]} · {treasureEffectText(row.definition)}</small><em>{row.published ? "공개" : "비공개"}</em></span><i>수정</i></button>)}</div>
@@ -308,6 +316,32 @@ export default function AdminPage() {
     {isEditorOpen && selected ? <div className="admin-modal" role="dialog" aria-modal="true" aria-label={`${selected.name} 수정`}><div className="admin-modal__backdrop" onClick={() => setEditorOpen(false)} /><div className="admin-modal__panel"><button type="button" className="admin-modal__close" aria-label="수정 창 닫기" onClick={() => setEditorOpen(false)}>×</button><HeroEditor draft={selected} onChange={updateSelected} onSave={saveSelected} /></div></div> : null}
     {isTreasureEditorOpen && selectedTreasure ? <div className="admin-modal" role="dialog" aria-modal="true" aria-label={`${selectedTreasure.name} 수정`}><div className="admin-modal__backdrop" onClick={() => setTreasureEditorOpen(false)} /><div className="admin-modal__panel"><button type="button" className="admin-modal__close" aria-label="수정 창 닫기" onClick={() => setTreasureEditorOpen(false)}>×</button><TreasureEditor draft={selectedTreasure} onChange={updateSelectedTreasure} onSave={saveSelectedTreasure} /></div></div> : null}
   </main>;
+}
+
+function TroopPreview() {
+  const [direction, setDirection] = useState<TroopDirection>("right-down");
+  const [action, setAction] = useState<TroopAction>("ready");
+  const currentDirection = TROOP_DIRECTIONS.find((entry) => entry.id === direction) ?? TROOP_DIRECTIONS[5];
+  const previewStyle = {
+    "--troop-x": String(currentDirection.x),
+    "--troop-y": String(currentDirection.y),
+    "--troop-flip": currentDirection.flip ? "-1" : "1",
+  } as CSSProperties;
+  return <section className="admin-content admin-troop-preview"><style>{`.admin-troop-preview{min-height:620px}.troop-preview__layout{display:grid;grid-template-columns:minmax(460px,1fr) 270px;gap:22px;padding-top:22px}.troop-preview__stage{position:relative;display:grid;min-height:480px;place-items:center;overflow:hidden;border:1px solid #8f6c36;border-radius:8px;background:radial-gradient(ellipse at 50% 58%,#5f7045 0 14%,#374831 15% 22%,#17251f 50%,#0b120f 100%);box-shadow:inset 0 0 50px #000a}.troop-preview__hex{position:absolute;width:230px;height:200px;border:2px solid #ddbd6d99;background:#9c8a4c4d;clip-path:polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%)}.troop-preview__unit{position:relative;z-index:2;width:240px;height:310px;display:grid;place-items:end center;transform:scaleX(var(--troop-flip));transform-origin:center bottom}.troop-preview__unit img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 8px 7px #000b)}.troop-preview__unit.is-ready{animation:troop-ready 1.15s ease-in-out infinite}.troop-preview__unit.is-move{animation:troop-move .62s ease-in-out infinite}.troop-preview__unit.is-attack{animation:troop-attack .82s ease-in-out infinite}.troop-preview__unit.is-hurt{animation:troop-hurt 1.25s ease-in-out infinite}.troop-preview__unit.is-death{animation:troop-death 1.45s ease-in forwards}.troop-preview__caption{position:absolute;z-index:3;bottom:20px;border:1px solid #bd9650;border-radius:4px;background:#140d08d9;color:#ffe5a2;padding:7px 13px;font-size:13px;font-weight:900}.troop-preview__controls{display:grid;align-content:start;gap:18px;padding:18px;border:1px solid #846331;border-radius:7px;background:#160d08c9}.troop-preview__controls section{border-bottom:1px solid #875e2b;padding-bottom:16px}.troop-preview__controls h3{margin:0 0 10px;color:#f2cb75;font-size:14px}.troop-preview__buttons{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}.troop-preview__buttons button{border:1px solid #76522a;border-radius:4px;background:#28150a;color:#d9b97a;padding:8px 5px;font-size:12px}.troop-preview__buttons button.is-active{border-color:#f0c65e;background:linear-gradient(#8b5b25,#42210e);color:#fff0bc}.troop-preview__controls p{margin:0;color:#b99d70;font-size:12px;line-height:1.6}@keyframes troop-ready{0%,100%{translate:0 0}50%{translate:0 7px}}@keyframes troop-move{0%{translate:0 0}50%{translate:calc(var(--troop-x)*18px) calc(var(--troop-y)*10px)}100%{translate:0 0}}@keyframes troop-attack{0%{translate:0 0}55%{translate:calc(var(--troop-x)*42px) calc(var(--troop-y)*21px)}100%{translate:0 0}}@keyframes troop-hurt{0%,100%{translate:0 0}45%{translate:calc(var(--troop-x)*-5px) 14px;filter:brightness(.72)}}@keyframes troop-death{0%{translate:0 0;opacity:1}70%{translate:calc(var(--troop-x)*30px) 84px;rotate:calc(var(--troop-x)*68deg);opacity:1}100%{translate:calc(var(--troop-x)*34px) 88px;rotate:calc(var(--troop-x)*72deg);opacity:0}}`}</style>
+    <div className="admin-content__heading"><div><p className="admin-kicker">병과정보 · 애니메이션 시험</p><h2>보병 <b>시안 테스트</b></h2><span>고정 HEX 방향과 상태별 동작을 확인합니다. 이 패널은 게임 규칙을 변경하지 않습니다.</span></div></div>
+    <div className="troop-preview__layout">
+      <div className="troop-preview__stage" aria-label={`${currentDirection.label} 방향 ${TROOP_ACTION_LABEL[action]} 보병 시연`}>
+        <div className="troop-preview__hex troop-preview__hex--center" />
+        <div className={`troop-preview__unit is-${action}`} style={previewStyle}><img src="/art/units/infantry-chibi-map-v5.png" alt={`${currentDirection.label} 방향 보병`} /></div>
+        <span className="troop-preview__caption">{currentDirection.label} · {TROOP_ACTION_LABEL[action]}</span>
+      </div>
+      <div className="troop-preview__controls">
+        <section><h3>방향</h3><div className="troop-preview__buttons">{TROOP_DIRECTIONS.map((entry) => <button key={entry.id} type="button" className={direction === entry.id ? "is-active" : ""} onClick={() => setDirection(entry.id)}>{entry.label}</button>)}</div></section>
+        <section><h3>상태</h3><div className="troop-preview__buttons troop-preview__buttons--actions">{(Object.keys(TROOP_ACTION_LABEL) as TroopAction[]).map((id) => <button key={id} type="button" className={action === id ? "is-active" : ""} onClick={() => setAction(id)}>{TROOP_ACTION_LABEL[id]}</button>)}</div></section>
+        <p>준비·이동·피해는 반복 시연됩니다. 공격은 짧은 돌진·타격·복귀, 사망은 쓰러진 뒤 사라지는 연출을 시험합니다.</p>
+      </div>
+    </div>
+  </section>;
 }
 
 function HeroEditor({ draft, onChange, onSave }: { draft: Draft; onChange: (change: (current: Draft) => Draft) => void; onSave: () => void }) {
