@@ -24,6 +24,96 @@ it explicitly.
   screens, not plain debug panels. Do not replace their asset-driven style
   with generic HTML controls.
 
+### Tactical HEX map and troop-art direction confirmed — 2026-09-09
+
+This is the binding reference for future troop art and tactical-map work.
+Do not substitute alternative direction labels, camera behavior, or sprite
+states without an explicit planner decision.
+
+#### Player-facing HEX direction vocabulary
+
+Use these six labels only in player-facing copy, art briefs, sprite manifests
+and review material. Do **not** use north/south/east/west terminology in
+planner-facing communication.
+
+```
+       왼쪽 위      오른쪽 위
+
+왼쪽                    오른쪽
+
+       왼쪽 아래    오른쪽 아래
+```
+
+Internal odd-r coordinate math may map to these labels, but must not leak
+into the visual-design vocabulary. A troop sprite must always correspond to
+the actual adjacent HEX selected by movement/attack logic, not to an assumed
+screen direction.
+
+#### Camera, zoom and selection
+
+- Tactical-map camera is **not rotatable**. It has one fixed 2.5D view;
+  pan and zoom remain available.
+- Zoom-in target: about 40 degrees above ground for the tactical 2.5D view.
+  Mid zoom is about 55 degrees. Far/world zoom is about 80 degrees and reads
+  as a flat strategic map.
+- Zoom must focus on the pointer/clicked location. At far/world zoom, a click
+  recentres and zooms into the selected region; individual HEX move/attack
+  commands are unavailable until strategic/tactical zoom.
+- At far zoom, troops and heroes become compact faction-colour badges rather
+  than detailed characters. Fog/cloud visibility rules still apply: zooming
+  out must never reveal hidden enemy information.
+- Individual HEX input is an invisible HEX-shaped interaction layer, not a
+  click on terrain/trees/buildings or the troop mesh. Clicking anywhere in an
+  occupied HEX selects that troop.
+- Mountains, trees and buildings never intentionally hide game information.
+  Cloud/fog is the only visibility rule. If foreground geometry lies between
+  the camera and a game-visible troop, fade only the occluding geometry to
+  roughly 30% opacity and restore it when it no longer occludes.
+- While a move, melee dash/return, projectile, hit, or death presentation is
+  playing, do not accept a competing map action. Resume input after the
+  presentation completes. Keep map panning bounded to avoid large empty
+  space beyond map edges.
+
+#### Troop-sprite production contract
+
+- The existing allied infantry visual identity is the initial reference:
+  compact game-chibi proportions, silver segmented armour with gold trim,
+  royal-blue plume/scarf/skirt panels, blue round shield, broad short sword
+  and brown boots. The infantry establishes the shared size and boot-baseline
+  standard for future troop lines.
+- First approve one accurate six-direction infantry base set that is mapped
+  to the real fixed-camera HEX directions. Do not manufacture derivative
+  animation sheets from a direction sheet until that base set is approved.
+- Every frame uses a common transparent canvas, identical scale and boot
+  baseline. No baked terrain, shadows, status effects, UI or backgrounds.
+- Faction differentiation is not eight separately painted sets. Armour,
+  skin and weapons remain common; plume, scarf, skirt panels and shield
+  detail use a runtime faction-colour mask. Current map palette is player
+  blue plus seven rival colours.
+
+#### Troop animation states
+
+Each state below has a distinct version for all six HEX directions.
+
+| State | Frames | Presentation rule |
+| --- | ---: | --- |
+| Ready / can act | 3 looping | Tense guard; subtle breathing/upper-body motion. |
+| Movement | 3 looping | Actual walking cycle in the selected adjacent-HEX direction. |
+| Low HP / damage / poison | 3 looping | Exhausted idle: lean on sword, sag, recover weakly. Poison/fire/etc. overlays stay separate. |
+| Melee attack | 6 one-shot | Dash preparation, short advance, strike, recoil, return to own HEX. The attacker never occupies the target HEX. |
+| Ranged attack | 3 one-shot | Aim, fire, recover. A separate projectile may travel to the target and trigger its hit effect. Projectile art is future work. |
+| Action complete | reuse ready | Keep ready animation but apply a renderer-level greyscale/desaturated inactive treatment. |
+| Death | 3 one-shot | Lose balance, fall, final prone pose. Hold final pose about one second, then fade out. |
+
+- Target hit response is a renderer effect (brief shake, flash and damage
+  number), not a separate character-frame set. A low-health target then uses
+  the low-HP loop.
+- A future counterattack reuses that troop's existing directional attack
+  animation; it needs no special sprite state.
+- Initial raw-frame totals: melee line 108 images (18 ready + 18 movement +
+  18 low-HP + 36 attack + 18 death); ranged line 90 images because its attack
+  is 18 rather than 36. The action-complete state adds no files.
+
 ### Account, persistence and administration
 
 - Players sign in or register from the **main menu**, using email + password.
