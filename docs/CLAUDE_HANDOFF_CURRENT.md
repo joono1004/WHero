@@ -93,6 +93,19 @@ screen direction.
 
 #### Troop animation states
 
+#### Approved right-facing movement reference — 2026-09-10
+
+- The allied infantry's right-facing movement is an **8-frame fast walk**:
+  more purposeful than a calm march but not a crouched tactical advance,
+  charge, or sprint.
+- Its legs alternate clearly in the sequence. The shield remains naturally
+  held forward and the sword remains in a non-attacking ready position.
+- Approved source sheet:
+  `public/art/units/infantry-sheets/infantry-right-fast-walk-v1-source.png`.
+- Future directional/state sheets must use equal fixed cells, generous
+  in-cell safety margins, one shared boot baseline, and no automatic
+  silhouette cropping, scaling, or re-centering at runtime.
+
 Each state below has a distinct version for all six HEX directions.
 
 | State | Frames | Presentation rule |

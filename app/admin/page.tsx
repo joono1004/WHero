@@ -341,7 +341,9 @@ function TroopPreview() {
     "--troop-x": String(currentDirection.x),
     "--troop-y": String(currentDirection.y),
     "--sprite-y": `${(frame / Math.max(sprite.rows - 1, 1)) * 100}%`,
-    "--sprite-image": `url(/art/units/infantry-high/${action}-${direction}.png)`,
+    "--sprite-image": direction === "right"
+      ? `url(/art/units/infantry-right-safe/${action}.png)`
+      : `url(/art/units/infantry-high/${action}-${direction}.png)`,
     "--sprite-rows": String(sprite.rows),
     "--sprite-size-y": `${sprite.rows * 100}%`,
     "--sprite-ratio": String(sprite.ratio),
