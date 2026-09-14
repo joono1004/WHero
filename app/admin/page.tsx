@@ -327,7 +327,7 @@ export default function AdminPage() {
 const TROOP_SPRITES: Record<TroopAction, { rows: number; ratio: number; fps: number }> = {
   ready: { rows: 6, ratio: 0.889, fps: 5 },
   move: { rows: 8, ratio: 0.889, fps: 12 },
-  attack: { rows: 10, ratio: 0.889, fps: 12 },
+  attack: { rows: 10, ratio: 1.333, fps: 12 },
   hurt: { rows: 6, ratio: 0.889, fps: 6 },
   death: { rows: 6, ratio: 0.889, fps: 6 },
 };
@@ -407,7 +407,7 @@ function TroopPreview() {
     "--troop-x": String(currentDirection.x),
     "--troop-y": String(currentDirection.y),
     "--sprite-y": `${(frame / Math.max(sprite.rows - 1, 1)) * 100}%`,
-    "--sprite-image": direction === "right" ? `url(/art/units/infantry-right-safe/${action}.png)` : `url(/art/units/infantry-high/${action}-${direction}.png)`,
+    "--sprite-image": direction === "right" ? `url(/art/units/infantry-right-normalized-v3/${action}.png)` : `url(/art/units/infantry-high/${action}-${direction}.png)`,
     "--sprite-rows": String(sprite.rows),
     "--sprite-size-y": `${sprite.rows * 100}%`,
     "--sprite-ratio": String(sprite.ratio),
