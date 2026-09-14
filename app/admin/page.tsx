@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState, type CSSProperties } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import { supabase } from "../game/supabaseClient.ts";
 import type { CoreGrade, SpecialtyGrade } from "../../lib/game/grade.ts";
 import type { DomesticSpecialtyKind, HeroDefinition } from "../../lib/game/hero-definition.ts";
@@ -34,7 +34,10 @@ type TroopDirection = "left-up" | "right-up" | "left" | "right" | "left-down" | 
 type TroopAction = "ready" | "move" | "attack" | "hurt" | "death";
 type TroopFrameOffset = { x: number; y: number };
 type TroopFrameOffsets = Record<string, TroopFrameOffset>;
+type TroopFrameDrag = { pointerId: number; startX: number; startY: number; offset: TroopFrameOffset };
 const TROOP_FRAME_OFFSETS_KEY = "world-in-hero:troop-frame-offsets:v1";
+const TROOP_FRAME_PUBLISHED_KEY = "world-in-hero:troop-frame-offsets:published:v1";
+const TROOP_ANIMATION_ID = "infantry";
 
 const GRADES: CoreGrade[] = ["D", "C", "B", "A", "S", "SS"];
 const SPECIALTY_GRADES: SpecialtyGrade[] = ["없음", ...GRADES];
@@ -336,16 +339,26 @@ function TroopPreview() {
   const [isPlaying, setPlaying] = useState(true);
   const [offsets, setOffsets] = useState<TroopFrameOffsets>({});
   const [showFrameBorder, setShowFrameBorder] = useState(false);
+  const [referenceFrame, setReferenceFrame] = useState<number | null>(null);
   const [saveMessage, setSaveMessage] = useState("");
+  const drag = useRef<TroopFrameDrag | null>(null);
   const currentDirection = TROOP_DIRECTIONS.find((entry) => entry.id === direction) ?? TROOP_DIRECTIONS[5];
   const sprite = TROOP_SPRITES[action];
   const frameKey = `${direction}:${action}:${frame}`;
   const offset = offsets[frameKey] ?? { x: 0, y: 0 };
   useEffect(() => {
     try { setOffsets(JSON.parse(window.localStorage.getItem(TROOP_FRAME_OFFSETS_KEY) ?? "{}") as TroopFrameOffsets); } catch { setOffsets({}); }
+    let active = true;
+    if (supabase) {
+      void supabase.from("troop_animation_drafts").select("offsets").eq("id", TROOP_ANIMATION_ID).maybeSingle().then(({ data, error }) => {
+        if (active && !error && data?.offsets) setOffsets(data.offsets as TroopFrameOffsets);
+      });
+    }
+    return () => { active = false; };
   }, []);
   useEffect(() => {
     setFrame(0);
+    setReferenceFrame(null);
     setSaveMessage("");
   }, [action, direction]);
   useEffect(() => {
@@ -353,9 +366,10 @@ function TroopPreview() {
     const timer = window.setInterval(() => setFrame((current) => action === "death" ? Math.min(current + 1, sprite.rows - 1) : (current + 1) % sprite.rows), Math.round(1000 / sprite.fps));
     return () => window.clearInterval(timer);
   }, [action, isPlaying, sprite.fps, sprite.rows]);
-  const nudge = (x: number, y: number) => { setPlaying(false); setSaveMessage(""); setOffsets((current) => ({ ...current, [frameKey]: { x: (current[frameKey]?.x ?? 0) + x, y: (current[frameKey]?.y ?? 0) + y } })); };
+  const updateOffset = (nextOffset: TroopFrameOffset) => { setPlaying(false); setSaveMessage(""); setOffsets((current) => ({ ...current, [frameKey]: nextOffset })); };
+  const nudge = (x: number, y: number) => updateOffset({ x: offset.x + x, y: offset.y + y });
   const resetFrame = () => { setPlaying(false); setSaveMessage(""); setOffsets((current) => ({ ...current, [frameKey]: { x: 0, y: 0 } })); };
-  const saveDirectionOffsets = () => {
+  const saveDirectionOffsets = async () => {
     const complete = { ...offsets };
     (Object.keys(TROOP_ACTION_LABEL) as TroopAction[]).forEach((actionId) => Array.from({ length: TROOP_SPRITES[actionId].rows }, (_, index) => {
       const key = `${direction}:${actionId}:${index}`;
@@ -363,8 +377,32 @@ function TroopPreview() {
     }));
     setOffsets(complete);
     window.localStorage.setItem(TROOP_FRAME_OFFSETS_KEY, JSON.stringify(complete));
-    setSaveMessage(`${currentDirection.label} 방향의 모든 프레임 정렬값을 저장했습니다.`);
+    if (!supabase) { setSaveMessage(`${currentDirection.label} 방향의 모든 프레임 정렬값을 이 브라우저에 저장했습니다.`); return; }
+    const { error } = await supabase.from("troop_animation_drafts").upsert({ id: TROOP_ANIMATION_ID, offsets: complete, updated_at: new Date().toISOString() }, { onConflict: "id" });
+    setSaveMessage(error ? `${currentDirection.label} 방향 정렬값을 이 브라우저에 저장했습니다. 서버 저장은 설정 후 다시 시도해 주세요.` : `${currentDirection.label} 방향의 모든 프레임 정렬값을 작업 데이터에 저장했습니다.`);
   };
+  const publishOffsets = async () => {
+    window.localStorage.setItem(TROOP_FRAME_PUBLISHED_KEY, JSON.stringify(offsets));
+    if (!supabase) { setSaveMessage("현재 작업값을 이 브라우저의 게임 반영본으로 적용했습니다."); return; }
+    const { error } = await supabase.from("troop_animation_catalog").upsert({ id: TROOP_ANIMATION_ID, offsets, updated_at: new Date().toISOString() }, { onConflict: "id" });
+    setSaveMessage(error ? "이 브라우저 반영본에는 적용했습니다. 서버 반영은 설정 후 다시 시도해 주세요." : "저장한 정렬값을 게임 반영본으로 적용했습니다.");
+  };
+  const startDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
+    setPlaying(false); setSaveMessage("");
+    drag.current = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, offset };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+  const moveDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const current = drag.current;
+    if (!current || current.pointerId !== event.pointerId) return;
+    updateOffset({ x: current.offset.x + Math.round(event.clientX - current.startX), y: current.offset.y + Math.round(event.clientY - current.startY) });
+  };
+  const endDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (drag.current?.pointerId !== event.pointerId) return;
+    drag.current = null;
+    event.currentTarget.releasePointerCapture(event.pointerId);
+  };
+  const referenceOffset = referenceFrame === null ? null : offsets[`${direction}:${action}:${referenceFrame}`] ?? { x: 0, y: 0 };
   const previewStyle = {
     "--troop-x": String(currentDirection.x),
     "--troop-y": String(currentDirection.y),
@@ -374,18 +412,22 @@ function TroopPreview() {
     "--sprite-size-y": `${sprite.rows * 100}%`,
     "--sprite-ratio": String(sprite.ratio),
   } as CSSProperties;
+  const referenceStyle = referenceFrame === null ? undefined : { ...previewStyle, "--sprite-y": `${(referenceFrame / Math.max(sprite.rows - 1, 1)) * 100}%` } as CSSProperties;
   return <section className="admin-content admin-troop-preview"><style>{`.admin-troop-preview{min-height:620px}.troop-preview__layout{display:grid;grid-template-columns:minmax(460px,1fr) 270px;gap:22px;padding-top:22px}.troop-preview__stage{position:relative;min-height:500px;overflow:hidden;border:1px solid #8f6c36;border-radius:8px;background:radial-gradient(ellipse at 50% 55%,#50613b 0 15%,#30422f 16% 30%,#17251f 55%,#0b120f 100%);box-shadow:inset 0 0 50px #000a}.troop-preview__map-hex{position:absolute;width:176px;aspect-ratio:1/.866;border:2px solid #b7994b99;background:linear-gradient(135deg,#78945d9b,#3d583c9b);clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);filter:drop-shadow(0 1px 0 #111)}.troop-preview__map-hex--lu{left:calc(50% - 176px);top:34px}.troop-preview__map-hex--ru{left:50%;top:34px}.troop-preview__map-hex--l{left:calc(50% - 264px);top:155px}.troop-preview__map-hex--c{left:calc(50% - 88px);top:155px;background:linear-gradient(135deg,#9a9b51bb,#52693cbf);border-color:#f2d474}.troop-preview__map-hex--r{left:calc(50% + 88px);top:155px}.troop-preview__map-hex--ld{left:calc(50% - 176px);top:276px}.troop-preview__map-hex--rd{left:50%;top:276px}.troop-preview__anchor{position:absolute;z-index:2;left:50%;top:273px}.troop-preview__unit{position:absolute;left:0;bottom:0;width:min(230px,48vw);aspect-ratio:var(--sprite-ratio);translate:-50% 0;background-image:var(--sprite-image);background-repeat:no-repeat;background-size:100% var(--sprite-size-y);background-position:center var(--sprite-y);filter:drop-shadow(0 10px 8px #000b);transform-origin:50% 100%}.troop-preview__unit.is-move{animation:troop-move .7s ease-in-out infinite}.troop-preview__unit.is-attack{animation:troop-attack .85s ease-in-out infinite}.troop-preview__unit.is-hurt{animation:troop-hurt 1s ease-in-out infinite}.troop-preview__unit.is-death{animation:troop-death 1.6s ease-in forwards}.troop-preview__unit.is-rigged.is-ready{animation:troop-rig-ready .85s ease-in-out infinite}.troop-preview__unit.is-rigged.is-move{animation:troop-rig-move .46s ease-in-out infinite}.troop-preview__unit.is-rigged.is-attack{animation:troop-rig-attack .72s ease-in-out infinite}.troop-preview__unit.is-rigged.is-hurt{animation:troop-rig-hurt .9s ease-in-out infinite}.troop-preview__unit.is-rigged.is-death{animation:troop-rig-death 1.35s ease-in forwards}.troop-preview__caption{position:absolute;z-index:3;bottom:20px;left:50%;translate:-50% 0;border:1px solid #bd9650;border-radius:4px;background:#140d08d9;color:#ffe5a2;padding:7px 13px;font-size:13px;font-weight:900}.troop-preview__controls{display:grid;align-content:start;gap:18px;padding:18px;border:1px solid #846331;border-radius:7px;background:#160d08c9}.troop-preview__controls section{border-bottom:1px solid #875e2b;padding-bottom:16px}.troop-preview__controls h3{margin:0 0 10px;color:#f2cb75;font-size:14px}.troop-preview__buttons{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}.troop-preview__buttons button{border:1px solid #76522a;border-radius:4px;background:#28150a;color:#d9b97a;padding:8px 5px;font-size:12px}.troop-preview__buttons button.is-active{border-color:#f0c65e;background:linear-gradient(#8b5b25,#42210e);color:#fff0bc}.troop-preview__controls p{margin:0;color:#b99d70;font-size:12px;line-height:1.6}@keyframes troop-move{0%,100%{translate:-50% 0}50%{translate:calc(-50% + var(--troop-x)*10px) calc(var(--troop-y)*-8px)}}@keyframes troop-attack{0%,100%{translate:-50% 0}55%{translate:calc(-50% + var(--troop-x)*18px) calc(var(--troop-y)*-12px)}}@keyframes troop-hurt{0%,100%{translate:-50% 0;filter:drop-shadow(0 10px 8px #000b)}50%{translate:calc(-50% - var(--troop-x)*4px) 5px;filter:brightness(.76) drop-shadow(0 10px 8px #000b)}}@keyframes troop-death{0%{translate:-50% 0;opacity:1}78%{translate:calc(-50% + var(--troop-x)*10px) 18px;opacity:1}100%{translate:calc(-50% + var(--troop-x)*10px) 18px;opacity:0}}@keyframes troop-rig-ready{0%,100%{translate:-50% 0;rotate:0deg}50%{translate:-50% -4px;rotate:-.45deg}}@keyframes troop-rig-move{0%,100%{translate:-50% 0;rotate:0deg}25%{translate:calc(-50% + 7px) -5px;rotate:-1deg}50%{translate:calc(-50% + 15px) 0;rotate:0deg}75%{translate:calc(-50% + 8px) -5px;rotate:1deg}}@keyframes troop-rig-attack{0%,100%{translate:-50% 0;rotate:0deg}28%{translate:calc(-50% - 5px) 2px;rotate:-5deg}60%{translate:calc(-50% + 25px) -3px;rotate:8deg}76%{translate:calc(-50% + 11px) 0;rotate:2deg}}@keyframes troop-rig-hurt{0%,100%{translate:-50% 0;rotate:0deg;filter:drop-shadow(0 10px 8px #000b)}45%{translate:calc(-50% - 5px) 9px;rotate:-7deg;filter:brightness(.7) drop-shadow(0 10px 8px #000b)}70%{translate:calc(-50% - 2px) 5px;rotate:-3deg}}@keyframes troop-rig-death{0%{translate:-50% 0;rotate:0deg;opacity:1}55%{translate:calc(-50% + 8px) 18px;rotate:54deg;opacity:1}82%{translate:calc(-50% + 18px) 33px;rotate:75deg;opacity:1}100%{translate:calc(-50% + 18px) 33px;rotate:75deg;opacity:0}}@media(max-width:800px){.troop-preview__layout{grid-template-columns:1fr}.troop-preview__controls{grid-row:1}.troop-preview__stage{min-height:440px}.troop-preview__map-hex{width:136px}.troop-preview__map-hex--lu{left:calc(50% - 136px);top:30px}.troop-preview__map-hex--ru{left:50%;top:30px}.troop-preview__map-hex--l{left:calc(50% - 204px);top:124px}.troop-preview__map-hex--c{left:calc(50% - 68px);top:124px}.troop-preview__map-hex--r{left:calc(50% + 68px);top:124px}.troop-preview__map-hex--ld{left:calc(50% - 136px);top:218px}.troop-preview__anchor{top:215px}.troop-preview__unit{width:min(210px,56vw)}}`}</style>
     <div className="admin-content__heading"><div><p className="admin-kicker">병과정보 · 프레임 애니메이션</p><h2>보병 <b>동작 테스트</b></h2><span>실제 맵과 같은 꼭짓점 위쪽 HEX 배치 위에서, 생성된 스프라이트 프레임을 순서대로 재생합니다.</span></div></div>
     <div className="troop-preview__layout">
       <div className="troop-preview__stage" aria-label={`${currentDirection.label} 방향 ${TROOP_ACTION_LABEL[action]} 보병 프레임 시연`}>
         <i className="troop-preview__map-hex troop-preview__map-hex--lu" /><i className="troop-preview__map-hex troop-preview__map-hex--ru" /><i className="troop-preview__map-hex troop-preview__map-hex--l" /><i className="troop-preview__map-hex troop-preview__map-hex--c" /><i className="troop-preview__map-hex troop-preview__map-hex--r" /><i className="troop-preview__map-hex troop-preview__map-hex--ld" /><i className="troop-preview__map-hex troop-preview__map-hex--rd" />
-        <div className="troop-preview__anchor"><div className="troop-preview__frame-anchor" style={{ position: "relative", translate: `${offset.x}px ${offset.y}px` }}><div className={`troop-preview__unit is-${action}`} style={{ ...previewStyle, outline: showFrameBorder ? "2px dashed #f5d472" : "none", outlineOffset: "-2px" }} aria-label={`${frame + 1}번째 프레임`} /></div></div>
+        <div className="troop-preview__anchor">
+          {referenceFrame !== null && referenceOffset && referenceStyle ? <div className="troop-preview__frame-anchor" aria-hidden="true" style={{ position: "relative", translate: `${referenceOffset.x}px ${referenceOffset.y}px` }}><div className="troop-preview__unit" style={{ ...referenceStyle, opacity: 0.3, pointerEvents: "none", animation: "none", filter: "grayscale(1) drop-shadow(0 7px 5px #0008)" }} /></div> : null}
+          <div className="troop-preview__frame-anchor" style={{ position: "relative", translate: `${offset.x}px ${offset.y}px` }}><div className={`troop-preview__unit is-${action}`} style={{ ...previewStyle, outline: showFrameBorder ? "2px dashed #f5d472" : "none", outlineOffset: "-2px", cursor: "grab", touchAction: "none", animation: isPlaying ? undefined : "none" }} aria-label={`${frame + 1}번째 프레임`} onPointerDown={startDrag} onPointerMove={moveDrag} onPointerUp={endDrag} onPointerCancel={endDrag} /></div>
+        </div>
         <span className="troop-preview__caption">{currentDirection.label} · {TROOP_ACTION_LABEL[action]} · {frame + 1}/{sprite.rows} 프레임</span>
       </div>
       <div className="troop-preview__controls">
         <section><h3>방향</h3><div className="troop-preview__buttons">{TROOP_DIRECTIONS.map((entry) => <button key={entry.id} type="button" className={direction === entry.id ? "is-active" : ""} onClick={() => setDirection(entry.id)}>{entry.label}</button>)}</div></section>
         <section><h3>상태</h3><div className="troop-preview__buttons troop-preview__buttons--actions">{(Object.keys(TROOP_ACTION_LABEL) as TroopAction[]).map((id) => <button key={id} type="button" className={action === id ? "is-active" : ""} onClick={() => setAction(id)}>{TROOP_ACTION_LABEL[id]}</button>)}</div></section>
-        <section className="troop-preview__editor"><h3>프레임 정렬</h3><div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>{Array.from({ length: sprite.rows }, (_, index) => <button key={index} type="button" className={frame === index ? "is-active" : ""} onClick={() => { setPlaying(false); setFrame(index); }}>{index + 1}</button>)}</div><div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}><button type="button" onClick={() => setShowFrameBorder((current) => !current)}>{showFrameBorder ? "테두리 숨기기" : "테두리 표시"}</button><button type="button" onClick={() => nudge(0, -1)}>▲</button><button type="button" onClick={() => nudge(-1, 0)}>◀</button><button type="button" onClick={() => nudge(1, 0)}>▶</button><button type="button" onClick={() => nudge(0, 1)}>▼</button></div><p>x {offset.x}px · y {offset.y}px</p><div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}><button type="button" onClick={() => setPlaying((current) => !current)}>{isPlaying ? "정지" : "재생"}</button><button type="button" onClick={resetFrame}>이 프레임 초기화</button><button type="button" onClick={saveDirectionOffsets}>이 방향 전체 저장</button></div>{saveMessage ? <small>{saveMessage}</small> : null}</section>
+        <section className="troop-preview__editor"><h3>프레임 정렬</h3><div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>{Array.from({ length: sprite.rows }, (_, index) => <button key={index} type="button" className={frame === index ? "is-active" : ""} onClick={() => { setPlaying(false); setFrame(index); }}>{index + 1}</button>)}</div><div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}><button type="button" onClick={() => setShowFrameBorder((current) => !current)}>{showFrameBorder ? "테두리 숨기기" : "테두리 표시"}</button><button type="button" onClick={() => nudge(0, -1)}>▲</button><button type="button" onClick={() => nudge(-1, 0)}>◀</button><button type="button" onClick={() => nudge(1, 0)}>▶</button><button type="button" onClick={() => nudge(0, 1)}>▼</button></div><p>이미지를 마우스로 끌어 위치를 맞추거나, 화살표로 1px씩 이동합니다.</p><label style={{ display: "flex", gap: 6, alignItems: "center", color: "#f2cb75", fontSize: 12 }}><input type="checkbox" checked={referenceFrame === frame} onChange={(event) => { setPlaying(false); setReferenceFrame(event.target.checked ? frame : null); }} />현재 프레임을 기준으로 고정</label>{referenceFrame !== null && referenceFrame !== frame ? <p>기준: {referenceFrame + 1}번 프레임 (반투명)</p> : null}<p>x {offset.x}px · y {offset.y}px</p><div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}><button type="button" onClick={() => setPlaying((current) => !current)}>{isPlaying ? "정지" : "재생"}</button><button type="button" onClick={resetFrame}>이 프레임 초기화</button><button type="button" onClick={() => void saveDirectionOffsets()}>이 방향 작업 저장</button><button type="button" onClick={() => void publishOffsets()}>게임 반영</button></div>{saveMessage ? <small>{saveMessage}</small> : null}</section>
         <p>준비·피해·사망은 6프레임, 이동은 8프레임, 공격은 10프레임입니다. 모든 프레임은 투명 배경과 같은 발 위치를 가진 별도 이미지 자산입니다.</p>
       </div>
     </div>

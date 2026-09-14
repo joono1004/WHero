@@ -155,6 +155,59 @@ create policy "Administrators can update treasures"
   using (public.is_admin())
   with check (public.is_admin());
 
+-- -------------------------------------------------------------------------
+-- Troop animation alignment
+-- -------------------------------------------------------------------------
+-- Draft offsets are administrator-only. Published offsets are separate so
+-- play clients never receive unfinished frame alignment work.
+create table if not exists public.troop_animation_drafts (
+  id text primary key,
+  offsets jsonb not null default '{}'::jsonb,
+  updated_at timestamptz not null default now()
+);
+
+alter table public.troop_animation_drafts enable row level security;
+
+drop policy if exists "Administrators can read troop animation drafts" on public.troop_animation_drafts;
+create policy "Administrators can read troop animation drafts"
+  on public.troop_animation_drafts for select
+  using (public.is_admin());
+
+drop policy if exists "Administrators can add troop animation drafts" on public.troop_animation_drafts;
+create policy "Administrators can add troop animation drafts"
+  on public.troop_animation_drafts for insert
+  with check (public.is_admin());
+
+drop policy if exists "Administrators can update troop animation drafts" on public.troop_animation_drafts;
+create policy "Administrators can update troop animation drafts"
+  on public.troop_animation_drafts for update
+  using (public.is_admin())
+  with check (public.is_admin());
+
+create table if not exists public.troop_animation_catalog (
+  id text primary key,
+  offsets jsonb not null default '{}'::jsonb,
+  updated_at timestamptz not null default now()
+);
+
+alter table public.troop_animation_catalog enable row level security;
+
+drop policy if exists "Players can read published troop animation" on public.troop_animation_catalog;
+create policy "Players can read published troop animation"
+  on public.troop_animation_catalog for select
+  using (true);
+
+drop policy if exists "Administrators can add published troop animation" on public.troop_animation_catalog;
+create policy "Administrators can add published troop animation"
+  on public.troop_animation_catalog for insert
+  with check (public.is_admin());
+
+drop policy if exists "Administrators can update published troop animation" on public.troop_animation_catalog;
+create policy "Administrators can update published troop animation"
+  on public.troop_animation_catalog for update
+  using (public.is_admin())
+  with check (public.is_admin());
+
 -- The first six definitions are seeded only when the catalogue is empty.
 -- Later edits in /admin are never overwritten by re-running this file.
 insert into public.hero_catalog (id, name, availability, portrait_path, definition) values
