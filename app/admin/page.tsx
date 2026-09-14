@@ -335,7 +335,8 @@ function TroopPreview() {
   const [frame, setFrame] = useState(0);
   const [isPlaying, setPlaying] = useState(true);
   const [offsets, setOffsets] = useState<TroopFrameOffsets>({});
-  const [saved, setSaved] = useState(false);
+  const [showFrameBorder, setShowFrameBorder] = useState(false);
+  const [saveMessage, setSaveMessage] = useState("");
   const currentDirection = TROOP_DIRECTIONS.find((entry) => entry.id === direction) ?? TROOP_DIRECTIONS[5];
   const sprite = TROOP_SPRITES[action];
   const frameKey = `${direction}:${action}:${frame}`;
@@ -345,16 +346,25 @@ function TroopPreview() {
   }, []);
   useEffect(() => {
     setFrame(0);
-    setSaved(false);
+    setSaveMessage("");
   }, [action, direction]);
   useEffect(() => {
     if (!isPlaying) return;
     const timer = window.setInterval(() => setFrame((current) => action === "death" ? Math.min(current + 1, sprite.rows - 1) : (current + 1) % sprite.rows), Math.round(1000 / sprite.fps));
     return () => window.clearInterval(timer);
   }, [action, isPlaying, sprite.fps, sprite.rows]);
-  const nudge = (x: number, y: number) => { setPlaying(false); setSaved(false); setOffsets((current) => ({ ...current, [frameKey]: { x: (current[frameKey]?.x ?? 0) + x, y: (current[frameKey]?.y ?? 0) + y } })); };
-  const resetFrame = () => { setPlaying(false); setSaved(false); setOffsets((current) => ({ ...current, [frameKey]: { x: 0, y: 0 } })); };
-  const saveOffsets = () => { window.localStorage.setItem(TROOP_FRAME_OFFSETS_KEY, JSON.stringify(offsets)); setSaved(true); };
+  const nudge = (x: number, y: number) => { setPlaying(false); setSaveMessage(""); setOffsets((current) => ({ ...current, [frameKey]: { x: (current[frameKey]?.x ?? 0) + x, y: (current[frameKey]?.y ?? 0) + y } })); };
+  const resetFrame = () => { setPlaying(false); setSaveMessage(""); setOffsets((current) => ({ ...current, [frameKey]: { x: 0, y: 0 } })); };
+  const saveDirectionOffsets = () => {
+    const complete = { ...offsets };
+    (Object.keys(TROOP_ACTION_LABEL) as TroopAction[]).forEach((actionId) => Array.from({ length: TROOP_SPRITES[actionId].rows }, (_, index) => {
+      const key = `${direction}:${actionId}:${index}`;
+      complete[key] ??= { x: 0, y: 0 };
+    }));
+    setOffsets(complete);
+    window.localStorage.setItem(TROOP_FRAME_OFFSETS_KEY, JSON.stringify(complete));
+    setSaveMessage(`${currentDirection.label} 방향의 모든 프레임 정렬값을 저장했습니다.`);
+  };
   const previewStyle = {
     "--troop-x": String(currentDirection.x),
     "--troop-y": String(currentDirection.y),
@@ -369,13 +379,13 @@ function TroopPreview() {
     <div className="troop-preview__layout">
       <div className="troop-preview__stage" aria-label={`${currentDirection.label} 방향 ${TROOP_ACTION_LABEL[action]} 보병 프레임 시연`}>
         <i className="troop-preview__map-hex troop-preview__map-hex--lu" /><i className="troop-preview__map-hex troop-preview__map-hex--ru" /><i className="troop-preview__map-hex troop-preview__map-hex--l" /><i className="troop-preview__map-hex troop-preview__map-hex--c" /><i className="troop-preview__map-hex troop-preview__map-hex--r" /><i className="troop-preview__map-hex troop-preview__map-hex--ld" /><i className="troop-preview__map-hex troop-preview__map-hex--rd" />
-        <div className="troop-preview__anchor"><div className="troop-preview__frame-anchor" style={{ position: "relative", translate: `${offset.x}px ${offset.y}px` }}><div className={`troop-preview__unit is-${action}`} style={previewStyle} aria-label={`${frame + 1}번째 프레임`} /></div></div>
+        <div className="troop-preview__anchor"><div className="troop-preview__frame-anchor" style={{ position: "relative", translate: `${offset.x}px ${offset.y}px` }}><div className={`troop-preview__unit is-${action}`} style={{ ...previewStyle, outline: showFrameBorder ? "2px dashed #f5d472" : "none", outlineOffset: "-2px" }} aria-label={`${frame + 1}번째 프레임`} /></div></div>
         <span className="troop-preview__caption">{currentDirection.label} · {TROOP_ACTION_LABEL[action]} · {frame + 1}/{sprite.rows} 프레임</span>
       </div>
       <div className="troop-preview__controls">
         <section><h3>방향</h3><div className="troop-preview__buttons">{TROOP_DIRECTIONS.map((entry) => <button key={entry.id} type="button" className={direction === entry.id ? "is-active" : ""} onClick={() => setDirection(entry.id)}>{entry.label}</button>)}</div></section>
         <section><h3>상태</h3><div className="troop-preview__buttons troop-preview__buttons--actions">{(Object.keys(TROOP_ACTION_LABEL) as TroopAction[]).map((id) => <button key={id} type="button" className={action === id ? "is-active" : ""} onClick={() => setAction(id)}>{TROOP_ACTION_LABEL[id]}</button>)}</div></section>
-        <section className="troop-preview__editor"><h3>프레임 정렬</h3><div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>{Array.from({ length: sprite.rows }, (_, index) => <button key={index} type="button" className={frame === index ? "is-active" : ""} onClick={() => { setPlaying(false); setFrame(index); }}>{index + 1}</button>)}</div><div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}><button type="button" onClick={() => nudge(0, -1)}>▲</button><button type="button" onClick={() => nudge(-1, 0)}>◀</button><button type="button" onClick={() => nudge(1, 0)}>▶</button><button type="button" onClick={() => nudge(0, 1)}>▼</button></div><p>x {offset.x}px · y {offset.y}px</p><div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}><button type="button" onClick={() => setPlaying((current) => !current)}>{isPlaying ? "정지" : "재생"}</button><button type="button" onClick={resetFrame}>이 프레임 초기화</button><button type="button" onClick={saveOffsets}>저장</button></div>{saved ? <small>이 브라우저에 정렬값을 저장했습니다.</small> : null}</section>
+        <section className="troop-preview__editor"><h3>프레임 정렬</h3><div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>{Array.from({ length: sprite.rows }, (_, index) => <button key={index} type="button" className={frame === index ? "is-active" : ""} onClick={() => { setPlaying(false); setFrame(index); }}>{index + 1}</button>)}</div><div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}><button type="button" onClick={() => setShowFrameBorder((current) => !current)}>{showFrameBorder ? "테두리 숨기기" : "테두리 표시"}</button><button type="button" onClick={() => nudge(0, -1)}>▲</button><button type="button" onClick={() => nudge(-1, 0)}>◀</button><button type="button" onClick={() => nudge(1, 0)}>▶</button><button type="button" onClick={() => nudge(0, 1)}>▼</button></div><p>x {offset.x}px · y {offset.y}px</p><div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}><button type="button" onClick={() => setPlaying((current) => !current)}>{isPlaying ? "정지" : "재생"}</button><button type="button" onClick={resetFrame}>이 프레임 초기화</button><button type="button" onClick={saveDirectionOffsets}>이 방향 전체 저장</button></div>{saveMessage ? <small>{saveMessage}</small> : null}</section>
         <p>준비·피해·사망은 6프레임, 이동은 8프레임, 공격은 10프레임입니다. 모든 프레임은 투명 배경과 같은 발 위치를 가진 별도 이미지 자산입니다.</p>
       </div>
     </div>
