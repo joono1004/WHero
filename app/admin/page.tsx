@@ -326,8 +326,8 @@ export default function AdminPage() {
 
 const TROOP_SPRITES: Record<TroopAction, { rows: number; ratio: number; fps: number }> = {
   ready: { rows: 6, ratio: 0.889, fps: 5 },
-  move: { rows: 8, ratio: 0.889, fps: 12 },
-  attack: { rows: 10, ratio: 1.333, fps: 12 },
+  move: { rows: 8, ratio: 0.889, fps: 8 },
+  attack: { rows: 10, ratio: 1.333, fps: 8 },
   hurt: { rows: 6, ratio: 0.889, fps: 6 },
   death: { rows: 6, ratio: 0.889, fps: 6 },
 };
@@ -407,7 +407,7 @@ function TroopPreview() {
     "--troop-x": String(currentDirection.x),
     "--troop-y": String(currentDirection.y),
     "--sprite-y": `${(frame / Math.max(sprite.rows - 1, 1)) * 100}%`,
-    "--sprite-image": direction === "right" ? `url(/art/units/infantry-right-normalized-v3/${action}.png)` : `url(/art/units/infantry-high/${action}-${direction}.png)`,
+    "--sprite-image": direction === "right" ? `url(/art/units/infantry-right-normalized-v4/${action}.png)` : `url(/art/units/infantry-high/${action}-${direction}.png)`,
     "--sprite-rows": String(sprite.rows),
     "--sprite-size-y": `${sprite.rows * 100}%`,
     "--sprite-ratio": String(sprite.ratio),
@@ -420,7 +420,7 @@ function TroopPreview() {
         <i className="troop-preview__map-hex troop-preview__map-hex--lu" /><i className="troop-preview__map-hex troop-preview__map-hex--ru" /><i className="troop-preview__map-hex troop-preview__map-hex--l" /><i className="troop-preview__map-hex troop-preview__map-hex--c" /><i className="troop-preview__map-hex troop-preview__map-hex--r" /><i className="troop-preview__map-hex troop-preview__map-hex--ld" /><i className="troop-preview__map-hex troop-preview__map-hex--rd" />
         <div className="troop-preview__anchor">
           {referenceFrame !== null && referenceOffset && referenceStyle ? <div className="troop-preview__frame-anchor" aria-hidden="true" style={{ position: "relative", translate: `${referenceOffset.x}px ${referenceOffset.y}px` }}><div className="troop-preview__unit" style={{ ...referenceStyle, opacity: 0.3, pointerEvents: "none", animation: "none", filter: "grayscale(1) drop-shadow(0 7px 5px #0008)" }} /></div> : null}
-          <div className="troop-preview__frame-anchor" style={{ position: "relative", translate: `${offset.x}px ${offset.y}px` }}><div className={`troop-preview__unit is-${action}`} style={{ ...previewStyle, outline: showFrameBorder ? "2px dashed #f5d472" : "none", outlineOffset: "-2px", cursor: "grab", touchAction: "none", animation: isPlaying ? undefined : "none" }} aria-label={`${frame + 1}번째 프레임`} onPointerDown={startDrag} onPointerMove={moveDrag} onPointerUp={endDrag} onPointerCancel={endDrag} /></div>
+          <div className="troop-preview__frame-anchor" style={{ position: "relative", translate: `${offset.x}px ${offset.y}px` }}><div className={`troop-preview__unit is-${action}`} style={{ ...previewStyle, width: action === "attack" ? "min(345px, 72vw)" : undefined, outline: showFrameBorder ? "2px dashed #f5d472" : "none", outlineOffset: "-2px", cursor: "grab", touchAction: "none", animation: isPlaying ? undefined : "none" }} aria-label={`${frame + 1}번째 프레임`} onPointerDown={startDrag} onPointerMove={moveDrag} onPointerUp={endDrag} onPointerCancel={endDrag} /></div>
         </div>
         <span className="troop-preview__caption">{currentDirection.label} · {TROOP_ACTION_LABEL[action]} · {frame + 1}/{sprite.rows} 프레임</span>
       </div>
